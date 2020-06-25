@@ -100,5 +100,5 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 #' @export
 crossAssign <- function(opal, symbol, value, wait = F, async = T) {
     value <- dsCDISC:::.decode.arg(value)
-    opal::datashield.assign(opal, symbol, as.symbol(value), wait, async)
+    opal::datashield.assign(opal, symbol, value, wait, async)
 }
