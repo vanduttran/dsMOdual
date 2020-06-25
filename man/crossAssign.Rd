@@ -6,7 +6,7 @@
 
 Cross assign # rather on client side}
 \usage{
-crossAssign(opal, symbol, value, wait = F, async = T)
+crossAssign(opal, symbol, value, variables = NULL, wait = F, async = T)
 }
 \arguments{
 \item{opal}{An opal object or list of opal objects.}
