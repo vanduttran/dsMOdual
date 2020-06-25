@@ -82,10 +82,11 @@ crossLogin <- function(logins) {
 #' @param expr An encoded expression to evaluate.
 #' @param wait See opal::datashield.aggreate options. Default: FALSE.
 #' @param async See opal::datashield.aggreate options. Default: TRUE.
+#' @import opal
 #' @export
 crossAggregate <- function(opal, expr, wait = F, async = T) {
     expr <- dsCDISC:::.decode.arg(expr)
-    opal::datashield.aggregate(opal, as.symbol(expr), wait, async)
+    opal::datashield.aggregate(opal=opal, expr=as.symbol(expr), wait=wait, async=async)
 }
 
 
@@ -97,8 +98,10 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 #' @param value An encoded expression with allowed assign function calls.
 #' @param wait See opal::datashield.aggreate options. Default: FALSE.
 #' @param async See opal::datashield.aggreate options. Default: TRUE.
+#' @import opal
 #' @export
 crossAssign <- function(opal, symbol, value, variables = NULL, wait = F, async = T) {
     value <- dsCDISC:::.decode.arg(value)
-    opal::datashield.assign(opal, symbol, value, variables, wait, async)
+    variables <- dsCDISC:::.decode.arg(variables)
+    opal::datashield.assign(opal=opal, symbol=symbol, value=value, variables=variables, wait=wait, async=async)
 }
