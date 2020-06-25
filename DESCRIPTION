@@ -13,6 +13,10 @@ AggregateMethods:
     crossProd,
     tcrossProd,
     tripleProd
+    crossAssign
+AssignMethods:
+    crossLogin,
+    crossAggregate
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
