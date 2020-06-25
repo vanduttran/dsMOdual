@@ -85,6 +85,7 @@ crossLogin <- function(logins) {
 #' @import opal
 #' @export
 crossAggregate <- function(opal, expr, wait = F, async = T) {
+    require(opal)
     expr <- dsCDISC:::.decode.arg(expr)
     opal::datashield.aggregate(opal=opal, expr=as.symbol(expr), wait=wait, async=async)
 }
@@ -101,6 +102,7 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 #' @import opal
 #' @export
 crossAssign <- function(opal, symbol, value, variables = NULL, wait = F, async = T) {
+    require(opal)
     value <- dsCDISC:::.decode.arg(value)
     variables <- dsCDISC:::.decode.arg(variables)
     opal::datashield.assign(opal=opal, symbol=symbol, value=value, variables=variables, wait=wait, async=async)
