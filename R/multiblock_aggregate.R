@@ -96,14 +96,15 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 #' Cross assign # rather on client side
 #' @param opal An opal object or list of opal objects.
 #' @param symbol Name of an R symbol.
-#' @param value An encoded expression with allowed assign function calls.
+#' @param value A variable name or an R epxression with allowed assign function calls.
+#' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
 #' @param wait See opal::datashield.aggreate options. Default: FALSE.
 #' @param async See opal::datashield.aggreate options. Default: TRUE.
 #' @import opal
 #' @export
-crossAssign <- function(opal, symbol, value, variables = NULL, wait = F, async = T) {
+crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait = F, async = T) {
     require(opal)
     value <- dsCDISC:::.decode.arg(value)
     variables <- dsCDISC:::.decode.arg(variables)
-    opal::datashield.assign(opal=opal, symbol=symbol, value=value, variables=variables, wait=wait, async=async)
+    opal::datashield.assign(opal=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, wait=wait, async=async)
 }

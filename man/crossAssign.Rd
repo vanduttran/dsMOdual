@@ -6,14 +6,24 @@
 
 Cross assign # rather on client side}
 \usage{
-crossAssign(opal, symbol, value, variables = NULL, wait = F, async = T)
+crossAssign(
+  opal,
+  symbol,
+  value,
+  value.call,
+  variables = NULL,
+  wait = F,
+  async = T
+)
 }
 \arguments{
 \item{opal}{An opal object or list of opal objects.}
 
 \item{symbol}{Name of an R symbol.}
 
-\item{value}{An encoded expression with allowed assign function calls.}
+\item{value}{A variable name or an R epxression with allowed assign function calls.}
+
+\item{value.call}{A logical value, TRUE if value is function call, FALSE if value is a variable name.}
 
 \item{wait}{See opal::datashield.aggreate options. Default: FALSE.}
 
