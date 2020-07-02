@@ -10,13 +10,14 @@ rowmeans <- function(x, y = NULL) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
     if (is.null(y)) {
-        return (matrix(rowMeans(x), ncol=1))
+        return (matrix(rowMeans(x), ncol=1, dimnames=list(rownames(x), "mean")))
     } else if (!all(sapply(y, isSymmetric))) {
         stop("y is not all symmetric.")
     } else {
-        return (lapply(y, function(yy) matrix(rowMeans(tcrossprod(x, yy)), ncol=1)))
+        return (lapply(y, function(yy) matrix(rowMeans(tcrossprod(x, yy)), ncol=1, dims=list(rownames(x), "mean"))))
     }
 }
+
 
 #' @title Matrix cross product
 #' 
@@ -31,6 +32,7 @@ crossProd <- function(x) {
     return (crossprod(x))
 }
 
+
 #' @title Matrix cross product
 #' 
 #' Calculates the cross product x \%*\% t(x)
@@ -43,6 +45,7 @@ tcrossProd <- function(x) {
     ## }
     return (tcrossprod(x))
 }
+
 
 #' @title Matrix triple product
 #'
@@ -58,6 +61,7 @@ tripleProd <- function(x, y) {
         return (lapply(y, function(yy) tcrossprod(x, tcrossprod(x, yy))))
     }
 }
+
 
 #' @title Cross login
 #'
