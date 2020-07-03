@@ -14,7 +14,7 @@ rowmeans <- function(x, y = NULL) {
     } else if (!all(sapply(y, isSymmetric))) {
         stop("y is not all symmetric.")
     } else {
-        return (lapply(y, function(yy) matrix(rowMeans(tcrossprod(x, yy)), ncol=1, dims=list(rownames(x), "mean"))))
+        return (lapply(y, function(yy) matrix(rowMeans(tcrossprod(x, yy)), ncol=1, dimnames=list(rownames(x), "mean"))))
     }
 }
 
