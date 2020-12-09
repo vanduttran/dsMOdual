@@ -25,9 +25,9 @@ crossAssign(
 
 \item{value.call}{A logical value, TRUE if value is function call, FALSE if value is a variable name.}
 
-\item{wait}{See opal::datashield.aggreate options. Default: FALSE.}
+\item{wait}{See DSI::datashield.aggreate options. Default: FALSE.}
 
-\item{async}{See opal::datashield.aggreate options. Default: TRUE.}
+\item{async}{See DSI::datashield.aggreate options. Default: TRUE.}
 }
 \description{
 Cross assign

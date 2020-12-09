@@ -69,13 +69,13 @@ tripleProd <- function(x, y) {
 #' @param logins An encoded dataframe with server, url, user, password, and table fields.
 #' @export
 crossLogin <- function(logins) {
-    loginfo <- dsCDISC:::.decode.arg(logins)
+    loginfo <- dsSwissKnife:::.decode.arg(logins)
     myDf <- data.frame(server=loginfo$server,
                        url=loginfo$url,
                        user=loginfo$user,
                        password=loginfo$password,
                        table=loginfo$table)
-    opal::datashield.login(myDf)
+    DSI::datashield.login(myDf)
 }
 
 
@@ -84,14 +84,13 @@ crossLogin <- function(logins) {
 #' Cross aggregate # rather on client side
 #' @param opal An opal object or list of opal objects.
 #' @param expr An encoded expression to evaluate.
-#' @param wait See opal::datashield.aggreate options. Default: FALSE.
-#' @param async See opal::datashield.aggreate options. Default: TRUE.
-#' @import opal
+#' @param wait See DSI::datashield.aggreate options. Default: FALSE.
+#' @param async See DSI::datashield.aggreate options. Default: TRUE.
+#' @import DSI
 #' @export
 crossAggregate <- function(opal, expr, wait = F, async = T) {
-    require(opal)
-    expr <- dsCDISC:::.decode.arg(expr)
-    opal::datashield.aggregate(opal=opal, expr=as.symbol(expr), wait=wait, async=async)
+    expr <- dsSwissKnife:::.decode.arg(expr)
+    DSI::datashield.aggregate(opal=opal, expr=as.symbol(expr), wait=wait, async=async)
 }
 
 
@@ -102,13 +101,12 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 #' @param symbol Name of an R symbol.
 #' @param value A variable name or an R epxression with allowed assign function calls.
 #' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
-#' @param wait See opal::datashield.aggreate options. Default: FALSE.
-#' @param async See opal::datashield.aggreate options. Default: TRUE.
-#' @import opal
+#' @param wait See DSI::datashield.aggreate options. Default: FALSE.
+#' @param async See DSI::datashield.aggreate options. Default: TRUE.
+#' @import DSI
 #' @export
 crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait = F, async = T) {
-    require(opal)
-    value <- dsCDISC:::.decode.arg(value)
-    variables <- dsCDISC:::.decode.arg(variables)
-    opal::datashield.assign(opal=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, wait=wait, async=async)
+    value <- dsSwissKnife:::.decode.arg(value)
+    variables <- dsSwissKnife:::.decode.arg(variables)
+    DSI::datashield.assign(opal=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, wait=wait, async=async)
 }
