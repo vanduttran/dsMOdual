@@ -93,7 +93,7 @@ crossLogin <- function(logins) {
 #' @export
 crossAggregate <- function(opal, expr, wait = F, async = T) {
     expr <- dsSwissKnife:::.decode.arg(expr)
-    DSI::datashield.aggregate(opal=opal, expr=as.symbol(expr), wait=wait, async=async)
+    DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
 }
 
 
@@ -111,5 +111,5 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait = F, async = T) {
     value <- dsSwissKnife:::.decode.arg(value)
     variables <- dsSwissKnife:::.decode.arg(variables)
-    DSI::datashield.assign(opal=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, wait=wait, async=async)
+    DSI::datashield.assign(conns=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
 }
