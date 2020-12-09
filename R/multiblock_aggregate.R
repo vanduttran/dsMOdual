@@ -66,7 +66,7 @@ tripleProd <- function(x, y) {
 #' @title Cross login
 #'
 #' Cross login # rather on client side
-#' @param logins An encoded dataframe with server, url, user, password, and table fields.
+#' @param logins An encoded dataframe with server, url, user, password, and driver fields.
 #' @export
 crossLogin <- function(logins) {
     loginfo <- dsSwissKnife:::.decode.arg(logins)
@@ -74,7 +74,7 @@ crossLogin <- function(logins) {
                        url=loginfo$url,
                        user=loginfo$user,
                        password=loginfo$password,
-                       table=loginfo$table)
+                       driver=loginfo$driver)
     DSI::datashield.login(myDf)
 }
 
