@@ -76,7 +76,7 @@ crossLogin <- function(logins) {
                        password=loginfo$password,
                        driver=loginfo$driver)
     x <- tryCatch(DSI::datashield.login(myDf), error=function(e) return (sessionInfo()))
-    return (x)
+    save(x, file = '/srv_local/session.Rdata')
 }
 
 
