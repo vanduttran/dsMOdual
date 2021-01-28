@@ -19,17 +19,35 @@ rowmeans <- function(x, y = NULL) {
 }
 
 
+#' @title Column means
+#'
+#' Column means of a matrix 
+#' @param x A numeric matrix
+#' @return Column means of x
+#' @export
+colmeans <- function(x) {
+    return (matrix(colMeans(x), nrow=1, dimnames=list("mean", colnames(x))))
+}
+
+
 #' @title Matrix cross product
 #' 
 #' Calculates the cross product t(x) \%*\% x
 #' @param x A numeric matrix
 #' @return t(x) \%*\% x
 #' @export
-crossProd <- function(x) {
+#crossProd <- function(x) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
-    return (crossprod(x))
+#    return (crossprod(x))
+#}
+crossProd <- function(x, y = NULL) {
+    ## if (is.null(dim(x)) || min(dim(x)) < 10) {
+    ##     stop("x should be a matrix with two dimensions higher than 10.")
+    ## }
+    yd <- dsSwissKnife:::.decode.arg(y)
+    return (crossprod(x, yd))
 }
 
 
@@ -39,11 +57,18 @@ crossProd <- function(x) {
 #' @param x A numeric matrix
 #' @return x \%*\% t(x)
 #' @export
-tcrossProd <- function(x) {
+#tcrossProd <- function(x) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
-    return (tcrossprod(x))
+#    return (tcrossprod(x))
+#}
+tcrossProd <- function(x, y = NULL) {
+    ## if (is.null(dim(x)) || min(dim(x)) < 10) {
+    ##     stop("x should be a matrix with two dimensions higher than 10.")
+    ## }
+    yd <- dsSwissKnife:::.decode.arg(y)
+    return (tcrossprod(x, yd))
 }
 
 
