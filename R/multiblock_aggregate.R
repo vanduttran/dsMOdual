@@ -82,6 +82,7 @@ tcrossProd <- function(x, y = NULL) {
 #' @return List of x %*% y %*% t(x)
 #' @export
 tripleProd <- function(x, y) {
+    print(dim(y[[1]]))
     if (!all(sapply(y, isSymmetric))) {
         stop("y is not all symmetric.")
     } else {
