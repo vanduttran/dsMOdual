@@ -46,8 +46,9 @@ crossProd <- function(x, y = NULL) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
-    yd <- dsSwissKnife:::.decode.arg(y)
-    return (crossprod(x, y))
+    #yd <- dsSwissKnife:::.decode.arg(y)
+    #return (crossprod(x, yd))
+    return (lapply(y, function(yy) matrix(crossprod(x, yy))))
 }
 
 
@@ -67,8 +68,9 @@ tcrossProd <- function(x, y = NULL) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
-    yd <- dsSwissKnife:::.decode.arg(y)
-    return (tcrossprod(x, y))
+    #yd <- dsSwissKnife:::.decode.arg(y)
+    #return (tcrossprod(x, y))
+    return (lapply(y, function(yy) matrix(tcrossprod(x, yy))))
 }
 
 
