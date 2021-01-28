@@ -11,6 +11,7 @@ Depends: DSI, dsSwissKnife, DSOpal
 Description: Client side functions for integrating sum of squares and cross products matrices.
 AggregateMethods:
     rowmeans,
+    colmeans,
     crossProd,
     tcrossProd,
     tripleProd,
