@@ -9,7 +9,7 @@ Cross login # rather on client side}
 crossLogin(logins)
 }
 \arguments{
-\item{logins}{An encoded dataframe with server, url, user, password, and table fields.}
+\item{logins}{An encoded dataframe with server, url, user, password, and driver fields.}
 }
 \description{
 Cross login
