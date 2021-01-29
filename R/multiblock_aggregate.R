@@ -37,7 +37,7 @@ colmeans <- function(x) {
 #' @return t(x) %*% (x %*% t(x))[,1]
 #' @export
 singularProd <- function(x) {
-    return (crossprod(x, tcrossprod(x)[, 1, drop=F]))
+    return (crossprod(tcrossprod(x)[, 1, drop=F], x))
 }
 
 
