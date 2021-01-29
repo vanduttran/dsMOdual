@@ -2,7 +2,7 @@
 % Please edit documentation in R/multiblock_aggregate.R
 \name{colmeans}
 \alias{colmeans}
-\title{Column means
+\title{Column means, deprecated
 
 Column means of a matrix}
 \usage{
@@ -15,7 +15,7 @@ colmeans(x)
 Column means of x
 }
 \description{
-Column means
+Column means, deprecated
 
 Column means of a matrix
 }

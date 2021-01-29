@@ -1,6 +1,6 @@
 Package: dsSSCPclient
 Title: Client Side Functions for Integrating Sum of Squares and Cross Products Matrices
-Version: 0.1.6
+Version: 0.1.7
 Authors@R: 
     person(given = "Van Du T.",
            family = "Tran",
@@ -12,6 +12,7 @@ Description: Client side functions for integrating sum of squares and cross prod
 AggregateMethods:
     rowmeans,
     colmeans,
+    singularProd,
     crossProd,
     tcrossProd,
     tripleProd,

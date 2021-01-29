@@ -19,7 +19,7 @@ rowmeans <- function(x, y = NULL) {
 }
 
 
-#' @title Column means
+#' @title Column means, deprecated
 #'
 #' Column means of a matrix 
 #' @param x A numeric matrix
@@ -27,6 +27,17 @@ rowmeans <- function(x, y = NULL) {
 #' @export
 colmeans <- function(x) {
     return (matrix(colMeans(x), nrow=1, dimnames=list("mean", colnames(x))))
+}
+
+
+#' @title Product of x' and first column of xx'
+#'
+#' Product of x' and first column of xx'
+#' @param x A numeric matrix
+#' @return t(x) %*% (x %*% t(x))[,1]
+#' @export
+singularProd <- function(x) {
+    return (crossprod(x, tcrossprod(x)[, 1, drop=F]))
 }
 
 
