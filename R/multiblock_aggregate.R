@@ -57,9 +57,9 @@ crossProd <- function(x, y = NULL) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
-    #yd <- dsSwissKnife:::.decode.arg(y)
     if (is.null(y)) return (crossprod(x))
-    return (lapply(y, function(yy) matrix(crossprod(x, yy))))
+    yd <- dsSwissKnife:::.decode.arg(y)
+    return (crossprod(x, yd)) #(lapply(y, function(yy) matrix(crossprod(x, yy))))
 }
 
 
