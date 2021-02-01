@@ -60,6 +60,8 @@ crossProd <- function(x, y = NULL) {
     if (is.null(y)) return (crossprod(x))
     yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
+    print(dim(x))
+    print(dim(yd))
     return (crossprod(x, yd)) #(lapply(y, function(yy) matrix(crossprod(x, yy))))
 }
 
