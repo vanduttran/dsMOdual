@@ -7,10 +7,9 @@ Authors@R:
            role = c("aut", "cre"),
            email = "thuong.tran@sib.swiss",
            comment = c(ORCID = "0000-0003-2074-5029"))
-Description: Server side functions for integrating sum of squares and cross products matrices.
+Description: Client side functions for integrating sum of squares and cross products matrices.
 AssignMethods:
     randomData,
-    center,
     trscale
 License: GPL-3
 Encoding: UTF-8
