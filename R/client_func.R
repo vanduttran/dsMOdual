@@ -2,6 +2,7 @@
 #' @param logins Login info
 #' @param variables Variables
 #' @param TOL Tolerance of 0
+#' @import DSI
 #' @export
 ComDimFD <- function(logins, variables, TOL = 1e-10) {
     #opals.cen <- paste0("crossLogin('", dsSSCP:::.encode.arg(logins), "')")

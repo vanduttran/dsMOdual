@@ -7,6 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "thuong.tran@sib.swiss",
            comment = c(ORCID = "0000-0003-2074-5029"))
+Depends: DSI, dsSwissKnife, DSOpal
 Description: Client side functions for integrating sum of squares and cross products matrices.
 AggregateMethods:
     ComDimFD
