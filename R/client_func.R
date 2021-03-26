@@ -5,10 +5,11 @@
 #' @import DSI
 #' @export
 ComDimFD <- function(logins, variables, TOL = 1e-10) {
+    require(DSOpal)
     #opals.cen <- paste0("crossLogin('", dsSSCP:::.encode.arg(logins), "')")
     #datashield.assign(opals[opn], 'mates', as.symbol(opals.cen), async = F)
         
-    opals <- datashield.login(logins=logins)
+    opals <- DSI::datashield.login(logins=logins)
     nNode <- length(opals)
     return (opals)
     # querytable <- unique(logins$table)
