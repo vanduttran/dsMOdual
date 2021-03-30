@@ -17,16 +17,10 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
 
     datashield.assign(opals, "rawData", querytable,
                       variables=vardata, async=T)
-    #print(datashield.symbols(opals))
-    #print(datashield.erros())
-    
     datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    #print(datashield.symbols(opals))
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
-    #print(datashield.symbols(opals))
-    #datashield.symbols(opals)
-    #ds.summary("centeredData", datasources=opals)
-    #ds.summary("crossProdSelf", datasources=opals)
+    ds.summary("centeredData", datasources=opals)
+    ds.summary("crossProdSelf", datasources=opals)
     
     # ##- received by node i from other nodes ----
     # invisible(mclapply(names(opals), mc.cores=1, function(opn) {
