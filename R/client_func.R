@@ -17,8 +17,8 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     
     datashield.assign(opals, "rawData", querytable,
                       variables=variables, async=T)
-    print(datashield.symbols(opals))
-    print(datashield.erros())
+    #print(datashield.symbols(opals))
+    #print(datashield.erros())
     return (NULL)
     #datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     #print(datashield.symbols(opals))
