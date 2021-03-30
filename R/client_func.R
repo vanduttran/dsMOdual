@@ -8,7 +8,9 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     require(DSOpal)
     #opals.cen <- paste0("crossLogin('", dsSSCP:::.encode.arg(logins), "')")
     #datashield.assign(opals[opn], 'mates', as.symbol(opals.cen), async = F)
-    logindata <- dsSwissKnife:::.decode.arg(logins)    
+    logindata <- dsSwissKnife:::.decode.arg(logins)
+    vardata <- dsSwissKnife:::.decode.arg(variables)
+    
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
     querytable <- unique(logindata$table)
@@ -16,13 +18,13 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     print(querytable)
     
     datashield.assign(opals, "rawData", querytable,
-                      variables=variables, async=T)
+                      variables=vardata, async=T)
     #print(datashield.symbols(opals))
     #print(datashield.erros())
     return (NULL)
-    #datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     #print(datashield.symbols(opals))
-    #datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
+    datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     #print(datashield.symbols(opals))
     #datashield.symbols(opals)
     #ds.summary("centeredData", datasources=opals)
