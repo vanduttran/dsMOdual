@@ -1,4 +1,4 @@
-
+ciao
 ##########compute covariances#############
 comput_cov <- function(x,y) {
   x <-  scale(x, scale = F)
