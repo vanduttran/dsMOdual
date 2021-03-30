@@ -14,13 +14,16 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     querytable <- unique(logindata$table)
     print(opals)
     print(querytable)
+    
     datashield.assign(opals, "rawData", querytable,
                       variables=variables, async=T)
     print(datashield.symbols(opals))
-    datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    print(datashield.symbols(opals))
-    datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
-    print(datashield.symbols(opals))
+    print(datashield.erros())
+    return (NULL)
+    #datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    #print(datashield.symbols(opals))
+    #datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
+    #print(datashield.symbols(opals))
     #datashield.symbols(opals)
     #ds.summary("centeredData", datasources=opals)
     #ds.summary("crossProdSelf", datasources=opals)
@@ -62,7 +65,7 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     ##-----
     
     ##  (X_i) * (X_i)'
-    crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
+    #crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
@@ -71,6 +74,6 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     # prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
     #                                                               as.symbol("centeredData"), 
     #                                                               dsSwissKnifeClient:::.encode.arg(names(opals)))), async=T)
-    return (crossProdSelf)
+    #return (crossProdSelf)
 }
 
