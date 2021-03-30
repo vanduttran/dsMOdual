@@ -14,7 +14,7 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     querytable <- unique(logindata$table)
     print(querytable)
     datashield.assign(opals, 'rawData', querytable,
-                      variables=VAR, async=T)
+                      variables=variables, async=T)
     datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     #datashield.symbols(opals)
