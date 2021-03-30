@@ -14,13 +14,13 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     querytable <- unique(logindata$table)
     print(opals)
     print(querytable)
-    datashield.assign(opals, 'rawData', querytable,
+    datashield.assign(opals, "rawData", querytable,
                       variables=variables, async=T)
-    print(datashield.errors())
+    print(datashield.symbols(opals))
     datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    print(datashield.errors())
+    print(datashield.symbols(opals))
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
-    print(datashield.errors())
+    print(datashield.symbols(opals))
     #datashield.symbols(opals)
     #ds.summary("centeredData", datasources=opals)
     #ds.summary("crossProdSelf", datasources=opals)
