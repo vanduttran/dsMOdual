@@ -2,7 +2,7 @@
 #' @param logins Login info
 #' @param variables Variables
 #' @param TOL Tolerance of 0
-#' @import DSI
+#' @import DSOpal
 #' @export
 ComDimFD <- function(logins, variables, TOL = 1e-10) {
     require(DSOpal)
@@ -11,17 +11,16 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     logindata <- dsSwissKnife:::.decode.arg(logins)    
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-    return (opals)
-    # querytable <- unique(logins$table)
-    # 
-    # datashield.assign(opals, 'rawData', querytable, 
-    #                   variables=VAR, async=T)
-    # datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    # datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
-    # datashield.symbols(opals)
-    # ds.summary("centeredData", datasources=opals)
-    # ds.summary("crossProdSelf", datasources=opals)
-    # 
+    querytable <- unique(logindata$table)
+
+    datashield.assign(opals, 'rawData', querytable,
+                      variables=VAR, async=T)
+    datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
+    datashield.symbols(opals)
+    ds.summary("centeredData", datasources=opals)
+    ds.summary("crossProdSelf", datasources=opals)
+    
     # ##- received by node i from other nodes ----
     # invisible(mclapply(names(opals), mc.cores=1, function(opn) {
     #     logindata.opn <- logins[logins$server != opn, , drop=F]
@@ -57,5 +56,17 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     # }))
     # datashield.symbols(opals)
     ##-----
+    
+    ##  (X_i) * (X_i)'
+    crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
+    ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
+    #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
+    ##  (X_i) * (X_j)' * (X_j) * (X_i)'
+    #prodDataCross     <- datashield.aggregate(opals, as.symbol('tripleProd(centeredData, crossProdMate)'), async=F)
+    ## N.B. save-load increase numeric imprecision!!!
+    # prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
+    #                                                               as.symbol("centeredData"), 
+    #                                                               dsSwissKnifeClient:::.encode.arg(names(opals)))), async=T)
+    return (crossProdSelf)
 }
 
