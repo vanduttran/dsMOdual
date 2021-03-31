@@ -1,4 +1,9 @@
-ciao
+# Three functions: 
+# First computes the variance v(x) of 2 input matrix and covariance cov(x,y)
+# Second computes resulting covariance matrix from list of smaller matrices
+# Third computes 
+
+# 1.
 ##########compute covariances#############
 comput_cov <- function(x,y) {
   x <-  scale(x, scale = F)
@@ -11,21 +16,24 @@ comput_cov <- function(x,y) {
   return(list(cx = cx, cy = cy,cxy = cxy))
 }
 
-
-#########merge cov matrices#########
+# 2.
+######### Merge cov matrices#########
 ##########matrices need to have same n of columns and be scaled
 merge_cov <- function(listcx = list(), listcy = list(), listcxy = list(list())){
   
   cx <-  Reduce("+" , lapply(listcx,function(x) (dim(x)[1]-1)*cov(x)))
+  cov_tot = (Reduce("+", lapply(xl, function(x) dim(x)[1]))-1) *Reduce("+" , lapply(xl,function(x) (dim(x)[1]-1)*cov(x)))
   
   cy <- Reduce("+" , lapply(listcy,function(x) (dim(x)[1]-1)*cov(x)))
   
-  #Function for cxy to be done!
+  cxy = 1/(Reduce("+",lapply(xyl, function(x) dim(x[[1]])[1])) -1 )*Reduce("+",lapply(xyl, function(x) (dim(x[[1]])[1]-1)*cov(x[[1]],x[[2]])))
   
-  return(list(cx = cx, cy = cy))
+  
+  
+  return(list(cx = cx, cy = cy, cxy =cxy ))
 }
 
-
+# 3.
 #########compute coefficients matrices#########
 cov_CCA <- function(cxy,cxx,cyy){
   require(CCA)
@@ -59,23 +67,82 @@ scores = comput(x,y, res2) #computes scores and loadings, this function center t
 library(CCA)
 out = cc(x,y); round(sum(out$scores$xscores - scores$xscores),0); round(sum(out$scores$yscores - scores$yscores),0)
 sum(out$xcoef - res2$xcoef) #they provide the same results
+#####################################################################################################################
 
+#READ: AT THE END OF ALL OF THIS I TRY THE ACTUAL FUNCTION merge_Cov
 
-# Test 2: random matrices and merging function required this time
+#2)
+# Test 2: Generate 6 random matrices (x1,x2,x3,y1,y2,y3) to test the merge_Cov function
 
 #define and center x matrices
-x1 = matrix(rnorm(20), 5); x2 = matrix(rnorm(12), 3)
-dim(x1); dim(x2)
-x1 = scale(x1, scale = F); x2 = scale(x2, scale = F)
-xl = list(x1, x2) 
-x = rbind(x1,x2); dim(x) #matrix merged by rows
+x1 = matrix(rnorm(200000), ncol = 400); x2 = matrix(rnorm(12000), ncol = 400); x3 = matrix(rnorm(240000), ncol = 400) 
+dim(x1); dim(x2);dim(x3)
+x1 = scale(x1, scale = F); x2 = scale(x2, scale = F); x3 = scale(x3, scale = F)
+xl = list(x1, x2, x3) 
+x = rbind(x1,x2,x3); dim(x) #matrix merged by rows
 
 
-y1 = matrix(rnorm(20), 5); y2 = matrix(rnorm(12), 3)
-dim(x1); dim(x2)
-y1 = scale(x1, scale = F); y2 = scale(x2, scale = F)
+y1 = matrix(rnorm(200000), ncol = 400); y2 = matrix(rnorm(12000), ncol = 400); y3 = matrix(rnorm(24000), ncol = 400) 
+dim(y1); dim(y2); dim(y3)
+y1 = scale(y1, scale = F); y2 = scale(y2, scale = F); y3 = scale(y3, scale = F)
+yl = list(y1, y2, y3) 
+y = rbind(y1,y2,y3); dim(x) #matrix merged by rows
 
 
-cov_tot = Reduce("+" , lapply(xl,function(x) (dim(x)[1]-1)*cov(x)))
+cov_tot = 1/(Reduce("+", lapply(xl, function(x) dim(x)[1]))-1) * Reduce("+" , lapply(xl,function(x) (dim(x)[1]-1)*cov(x)))
+sum(cov(x) -cov_tot)
 
-(dim(x)[1]-1) * cov(x) -cov_tot # to prove we reach the same result
+           #1/sum rows of each dataset -1                   #sum covariances   #computes covariances multiplied by rows
+cov_tot = 1/(Reduce("+", lapply(yl, function(x) dim(x)[1]))-1) * Reduce("+" , lapply(yl,function(x) (dim(x)[1]-1)*cov(x)))
+
+sum(cov(y) -cov_tot) # to prove we reach the same result
+
+
+########################### Cov(x,y) #############################
+#Generate again 6 random matrices to test if cov(x,y) merge function implemented works properly
+
+x1 = matrix(rnorm(150000), ncol = 3000); x2 = matrix(rnorm(90000), ncol = 3000); x3 = matrix(rnorm(120000), ncol = 3000) 
+dim(x1); dim(x2);dim(x3)
+x1 = scale(x1, scale = F); x2 = scale(x2, scale = F); x3 = scale(x3, scale = F)
+xl = list(x1, x2, x3) 
+x = rbind(x1,x2,x3); dim(x) #matrix merged by rows
+
+y1 = matrix(rnorm(150000), ncol = 3000); y2 = matrix(rnorm(90000), ncol = 3000); y3 = matrix(rnorm(120000), ncol = 3000) 
+dim(y1); dim(y2); dim(y3)
+y1 = scale(y1, scale = F); y2 = scale(y2, scale = F); y3 = scale(y3, scale = F)
+yl = list(y1, y2, y3) 
+y = rbind(y1,y2,y3); dim(x) #matrix merged by rows
+
+
+xyl = list(list(x1, y1), list(x2,y2), list(x3,y3))
+
+covxy_tot = 1/(Reduce("+",lapply(xyl, function(x) dim(x[[1]])[1])) -1 )*Reduce("+",lapply(xyl, function(x) (dim(x[[1]])[1]-1)*cov(x[[1]],x[[2]])))
+
+sum(cov(x,y)- covxy_tot)
+
+
+dim(x)
+dim(y)
+
+#### I try my functions
+covariances = merge_cov(xl, yl, xyl)
+cx = covariances$cx
+cy = covariances$cy
+cxy = covariances$cxy
+
+make_PD = function(C, m){
+  D = 0.5 * (C + t(C))
+  D =  D + (m - min(eigen(D)$value) * diag(1, dim(D)))
+  
+  print(sum(C- D))
+  return(D)
+} # stupid function to make the matrix PD
+cx = make_PD(cx, 0.02)
+cy = make_PD(cy, 0.02)
+
+res = cov_CCA(cxy, cx, cy) #non positive definite matrices give problems
+
+
+
+
+
