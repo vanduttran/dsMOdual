@@ -82,7 +82,7 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
                             Xr=singularProdCross[[opnj]][[opni]])
             #cat("Precision on A = a1:", max(abs(As[[opni]][[opnj]] - a1)), "\n")
             #cat("Precision on A = a2:", max(abs(As[[opnj]][[opni]] - a2)), "\n")
-            cat("Precision on a1 = a2:", max(a1 - a2)), "\n")
+            cat("Precision on a1 = a2:", max(abs(a1 - a2)), "\n")
             return (a1)
         })
         names(crossi) <- names(opals)[(opi+1):(nNode)]
