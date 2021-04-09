@@ -1,3 +1,109 @@
+#' @title Find X from XX' and X'X
+#' @param XXt XX'
+#' @param XtX X'X
+#' @param r A non-null vector of length \code{ncol(XtX)}
+#' @param Xr A vector of length \code{nrow(XXt)}, equals to the product X %*% r
+#' @import parallel
+#' @keywords internal
+#' @return X
+solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
+    if (length(r) != ncol(XtX)) {
+        stop("r length shoud match ncol(XtX).")
+    }
+    if (length(Xr) != nrow(XXt)) {
+        stop("Xr length shoud match nrow(XXt).")
+    }
+    if (max(abs(r)) < TOL) {
+        stop("Cannot solve with r = 0.")
+    }
+    
+    B1 <- XXt
+    B2 <- XtX
+    N1 <- nrow(B1)
+    N2 <- nrow(B2)
+    
+    eB1 <- eigen(B1, symmetric=T)
+    eB2 <- eigen(B2, symmetric=T)
+    vecB1 <- eB1$vectors                    # not unique
+    vecB2 <- eB2$vectors                    # not unique
+    valB1 <- eB1$values
+    valB2 <- eB2$values                     # valB2 == union(valB1, 0)
+    vecs <- list("XXt"=vecB1, "XtX"=vecB2)
+    vals <- list("XXt"=valB1, "XtX"=valB2)
+    if (N2 > N1) {
+        tol <- max(abs(valB2[(N1+1):N2]))*10
+    } else if (N1 > N2) {
+        tol <- max(abs(valB1[(N2+1):N1]))*10
+    } else {
+        tol <- TOL
+    }
+    vals <- mclapply(vals, mc.cores=length(vals), function(x) {
+        x[abs(x) < tol] <- 0
+        return (x)
+    })
+    eignum <- length(vals[[1]])
+    poseignum <- unique(sapply(vals, function(x) {
+        max(which(x > 0))
+    }))
+    cat("Number of strictly positive eigenvalues:", poseignum, "\n")
+    stopifnot(length(poseignum)==1)
+    ## verify deduced info
+    invisible(lapply(1:length(vecs), function(j) {
+        vec <- vecs[[j]]
+        cat("------", names(vecs)[j], "------\n")
+        cat("Determinant:", det(vec), "\n")
+        cat("Precision on v' = 1/v:", max(abs(t(vec) - solve(vec))), "\n")
+        cat("Precision on Norm_col = 1:", max(abs(apply(vec, 2, function(x) norm(as.matrix(x), "2")) - 1)), "\n")
+        cat("Precision on Norm_row = 1:", max(abs(apply(vec, 1, function(x) norm(as.matrix(x), "2")) - 1)), "\n")
+        cat("Precision on Orthogonal:", max(sapply(1:(ncol(vec)-1), function(i) {
+            max(sum(vec[i,] * vec[i+1,]), sum(vec[, i] * vec[, i+1]))
+        })), "\n")
+    }))
+    
+    ## solution S: X * r = vecB1 * E * S * vecB2' * r = Xr
+    ## E * S * vecB2' * r = vecB1' * Xr = tmprhs1
+    tmprhs1 <- crossprod(vecs[[1]], Xr)
+    if (poseignum < N1) cat("Precision on tmprhs1's zero:", max(abs(tmprhs1[(poseignum+1):N1, 1])), "\n")
+    ## S * vecB2' * rmX2 = S * lhs1 = 1/E * tmprhs1 = rhs1
+    E <- diag(sqrt(vals[[1]][1:poseignum]))
+    invE <- diag(1/diag(E))
+    rhs1 <- crossprod(t(invE), tmprhs1[1:poseignum, , drop=F])
+    lhs1 <- crossprod(vecs[[2]], r)
+    signs1 <- rhs1[1:poseignum,]/lhs1[1:poseignum,]
+    S <- cbind(diag(signs1), matrix(0, nrow=poseignum, ncol=N2-poseignum)) # S = [signs1 0]
+    D <- rbind(crossprod(t(E), S), matrix(0, nrow=N1-poseignum, ncol=N2))  # D = E %*% S
+    a1 <- tcrossprod(tcrossprod(vecs[[1]], t(D)), vecs[[2]]) # a = vecs[["A*A'"]] %*% D %*% t(vecs[["A'*A"]])
+    
+    cat("----------------------\n")
+    cat("Precision on XXt = a1*a1':", max(abs(B1 - tcrossprod(a1))), "\n")
+    cat("Precision on XtX = a1'*a1:", max(abs(B2 - crossprod(a1))), "\n")
+    
+    return (a1)
+    
+    # ## solution S: A' * r = vecB2 * S' * E' * vecB1' * r = Xr
+    # ## S' * E' * vecB1' * r = S' * lhs2 = vecB2' * Xr = rhs2
+    # rhs2 <- crossprod(vecs[[2]], Xr)
+    # if (poseignum < N2) cat("Precision on rhs2's zero:", max(abs(rhs2[(poseignum+1):N2, 1])), "\n")
+    # E <- diag(sqrt(vals[[1]][1:poseignum]))
+    # 
+    # lhs2 <- crossprod(E, crossprod(vecs[[1]][,1:poseignum], r))
+    # signs2 <- rhs2[1:poseignum,]/lhs2[1:poseignum,]
+    # 
+    # ## check signs: signs2 should be identical to signs1
+    # cat("Precision on signs double-check:", max(abs(signs1-signs2)), "\n")
+    # 
+    # S <- cbind(diag(signs2), matrix(0, nrow=poseignum, ncol=N2-poseignum)) # S = [signs1 0]
+    # D <- rbind(crossprod(t(E), S), matrix(0, nrow=N1-poseignum, ncol=N2))  # D = E %*% S
+    # a2 <- tcrossprod(tcrossprod(vecs[[1]], t(D)), vecs[[2]]) # a = vecs[["A*A'"]] %*% D %*% t(vecs[["A'*A"]])
+    # 
+    # cat("----------------------\n")
+    # cat("Precision on XXt = a2*a2':", max(abs(B1 - tcrossprod(a2))), "\n")
+    # cat("Precision on XtX = a2'*a2:", max(abs(B2 - crossprod(a2))), "\n")
+    
+    # return (a2)
+}
+
+
 #' @title Federated ComDim
 #' @param logins Login info
 #' @param variables Variables
