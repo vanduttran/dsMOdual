@@ -59,13 +59,46 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     ##  (X_i) * (X_i)'
     crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
-    #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
+    singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
     #prodDataCross     <- datashield.aggregate(opals, as.symbol('tripleProd(centeredData, crossProdMate)'), async=F)
     ## N.B. save-load increase numeric imprecision!!!
-    # prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
-    #                                                               as.symbol("centeredData"), 
-    #                                                               dsSwissKnifeClient:::.encode.arg(names(opals)))), async=T)
-    return (crossProdSelf)
+    prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
+                                                                  as.symbol("centeredData"), 
+                                                                  dsSwissKnifeClient:::.encode.arg(names(opals)))), async=T)
+    ## deduced from received info by federation
+    crossProductPair <- lapply(1:(nNode-1), function(opi) {
+        crossi <- lapply((opi+1):(nNode), function(opj) {
+            opni <- names(opals)[opi]
+            opnj <- names(opals)[opj]
+
+            a1 <- solveSSCP(XXt=prodDataCross[[opni]][[opnj]],
+                            XtX=prodDataCross[[opnj]][[opni]],
+                            r=crossProdSelf[[opnj]][, 1, drop=F],
+                            Xr=singularProdCross[[opni]][[opnj]])
+            a2 <- solveSSCP(XXt=prodDataCross[[opnj]][[opni]],
+                            XtX=prodDataCross[[opni]][[opnj]],
+                            r=crossProdSelf[[opni]][, 1, drop=F],
+                            Xr=singularProdCross[[opnj]][[opni]])
+            #cat("Precision on A = a1:", max(abs(As[[opni]][[opnj]] - a1)), "\n")
+            #cat("Precision on A = a2:", max(abs(As[[opnj]][[opni]] - a2)), "\n")
+            cat("Precision on a1 = a2:", max(a1 - a2)), "\n")
+            return (a1)
+        })
+        names(crossi) <- names(opals)[(opi+1):(nNode)]
+        return (crossi)
+    })
+    names(crossProductPair) <- names(opals)[1:(nNode-1)]
+    
+    ## SSCP whole matrix
+    XXt <- do.call(rbind, lapply(1:nNode, function(opi) {
+        upper.opi <- do.call(cbind, as.list(crossProductPair[[names(opals)[opi]]]))
+        lower.opi <- do.call(cbind, lapply(setdiff(1:opi, opi), function(opj) {
+            t(crossProductPair[[names(opals)[opj]]][[names(opals)[opi]]])
+        }))
+        return (cbind(lower.opi, crossProdSelf[[opi]], upper.opi))
+    }))
+    
+    return (XXt)
 }
 
