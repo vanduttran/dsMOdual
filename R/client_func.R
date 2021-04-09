@@ -2,7 +2,7 @@
 #' @param logins Login info
 #' @param variables Variables
 #' @param TOL Tolerance of 0
-#' @import DSOpal
+#' @import DSOpal parallel
 #' @export
 ComDimFD <- function(logins, variables, TOL = 1e-10) {
     require(DSOpal)

@@ -1,13 +1,13 @@
 Package: dsSSCPclient
 Title: Client Side Functions for Integrating Sum of Squares and Cross Products Matrices
-Version: 0.1.5
+Version: 0.1.6
 Authors@R: 
     person(given = "Van Du T.",
            family = "Tran",
            role = c("aut", "cre"),
            email = "thuong.tran@sib.swiss",
            comment = c(ORCID = "0000-0003-2074-5029"))
-Depends: DSI, dsSwissKnife, DSOpal
+Depends: DSI, dsSwissKnife, DSOpal, parallel
 Description: Client side functions for integrating sum of squares and cross products matrices.
 AggregateMethods:
     ComDimFD
@@ -17,4 +17,4 @@ AssignMethods:
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.1
