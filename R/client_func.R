@@ -1,3 +1,22 @@
+#' @title Encode function  arguments
+#' @description Serialize to JSON, then encode base64,
+#'  then replace '+', '/' and '=' in the result in order to play nicely with the opal sentry.
+#'  Used to encode non-scalar function arguments prior to sending to the opal server.
+#'  There's a corresponding function in the server package calle .decode_args
+#' @param some.object the object to be encoded
+#' @return encoded text with offending characters replaced by strings
+#' @keywords internal
+.encode.arg <- function(some.object){
+    encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'));
+    # go fishing for '+', '/' and '=', opal rejects them :
+    my.dictionary <- c('\\/' = '-slash-', '\\+' = '-plus-', '\\=' = '-equals-')
+    sapply(names(my.dictionary), function(x){
+        encoded[1] <<- gsub(x, my.dictionary[x], encoded[1])
+    })
+    return(paste0(encoded[1],'base64'))
+}
+
+
 #' @title Find X from XX' and X'X
 #' @param XXt XX'
 #' @param XtX X'X
@@ -112,8 +131,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 #' @export
 ComDimFD <- function(logins, variables, TOL = 1e-10) {
     require(DSOpal)
-    #opals.cen <- paste0("crossLogin('", dsSSCP:::.encode.arg(logins), "')")
-    #datashield.assign(opals[opn], 'mates', as.symbol(opals.cen), async = F)
+
     logindata <- dsSwissKnife:::.decode.arg(logins)
     vardata <- dsSwissKnife:::.decode.arg(variables)
     
@@ -131,16 +149,16 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
         logindata.opn <- logindata[logindata$server != opn, , drop=F]
         logindata.opn$user <- logindata.opn$userserver
         logindata.opn$password <- logindata.opn$passwordserver
-        opals.loc <- paste0("crossLogin('", dsSwissKnifeClient:::.encode.arg(logindata.opn), "')")
+        opals.loc <- paste0("crossLogin('", .encode.arg(logindata.opn), "')")
         datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async = F)
         
         command.opn <- list(paste0("crossAssign(mates, symbol='rawDataMate', value='", 
-                                   dsSwissKnifeClient:::.encode.arg(querytable), 
+                                   .encode.arg(querytable), 
                                    "', value.call=F, variables='",
-                                   dsSwissKnifeClient:::.encode.arg(VAR),
+                                   .encode.arg(VAR),
                                    "', async=F)"),
                             paste0("crossAssign(mates, symbol='centeredDataMate', value='",
-                                   dsSwissKnifeClient:::.encode.arg("center(rawDataMate)"),
+                                   .encode.arg("center(rawDataMate)"),
                                    "', value.call=T, async=F)")
         )
         for (command in command.opn) {
@@ -148,12 +166,12 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
             print(datashield.aggregate(opals[opn], as.symbol(command), async=F))
         }
         
-        command.opn <- paste0("crossAggregate(mates, '", dsSwissKnifeClient:::.encode.arg('singularProd(centeredDataMate)'), "', async=F)")
+        command.opn <- paste0("crossAggregate(mates, '", .encode.arg('singularProd(centeredDataMate)'), "', async=F)")
         cat("Command: ", command.opn, "\n")
         print(datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=F))
         
         command.opn <- paste0("crossAggregate(mates, '", 
-                              dsSwissKnifeClient:::.encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
+                              .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
                               "', async=F)")
         cat("Command: ", command.opn, "\n")
         print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
@@ -171,7 +189,7 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     ## N.B. save-load increase numeric imprecision!!!
     prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
                                                                   as.symbol("centeredData"), 
-                                                                  dsSwissKnifeClient:::.encode.arg(names(opals)))), async=T)
+                                                                  .encode.arg(names(opals)))), async=T)
     ## deduced from received info by federation
     crossProductPair <- lapply(1:(nNode-1), function(opi) {
         crossi <- lapply((opi+1):(nNode), function(opj) {
