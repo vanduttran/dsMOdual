@@ -127,7 +127,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 #' @param logins Login info
 #' @param variables Variables
 #' @param TOL Tolerance of 0
-#' @import DSOpal parallel
+#' @import DSOpal parallel bigmemory
 #' @export
 ComDimFD <- function(logins, variables, TOL = 1e-10) {
     require(DSOpal)
@@ -143,6 +143,7 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
                       variables=vardata, async=T)
     datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
+    #datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData)'), async=T)
 
     ##- received by node i from other nodes ----
     invisible(mclapply(names(opals), mc.cores=1, function(opn) {
@@ -174,6 +175,9 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
         command.opn <- paste0("crossAggregate(mates, '", 
                               .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
                               "', async=F)")
+        # command.opn <- paste0("crossAggregate(mates, '", 
+        #                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
+        #                       "', async=F)")
         cat("Command: ", command.opn, "\n")
         print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
     }))
@@ -205,8 +209,6 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
                             XtX=prodDataCross[[opni]][[opnj]],
                             r=crossProdSelf[[opni]][, 1, drop=F],
                             Xr=singularProdCross[[opnj]][[opni]])
-            #cat("Precision on A = a1:", max(abs(As[[opni]][[opnj]] - a1)), "\n")
-            #cat("Precision on A = a2:", max(abs(As[[opnj]][[opni]] - a2)), "\n")
             cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))), "\n")
             return (a1)
         })
