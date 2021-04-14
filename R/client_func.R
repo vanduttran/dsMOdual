@@ -17,12 +17,12 @@
 }
 
 
-#' @title Find X from XX' and X'X
-#' @description Find X from XX' and X'X
-#' @param XXt XX'
-#' @param XtX X'X
-#' @param r A non-null vector of length \code{ncol(XtX)}
-#' @param Xr A vector of length \code{nrow(XXt)}, equals to the product X %*% r
+#' @title Find X from X*t(X) and t(X)*X
+#' @description Find X from X*t(X)  and t(X)*X
+#' @param XXt X*t(X)
+#' @param XtX t(X)*X
+#' @param r A non-null vector of length \code{ncol(t(X)*X)}
+#' @param Xr A vector of length \code{nrow(X * t(X))}, equals to the product X %*% r
 #' @import parallel
 #' @keywords internal
 #' @return X
