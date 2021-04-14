@@ -2,23 +2,23 @@
 % Please edit documentation in R/client_func.R
 \name{solveSSCP}
 \alias{solveSSCP}
-\title{Find X from XX' and X'X}
+\title{Find X from X*t(X) and t(X)*X}
 \usage{
 solveSSCP(XXt, XtX, r, Xr, TOL = 1e-10)
 }
 \arguments{
-\item{XXt}{XX'}
+\item{XXt}{X*t(X)}
 
-\item{XtX}{X'X}
+\item{XtX}{t(X)*X}
 
-\item{r}{A non-null vector of length \code{ncol(XtX)}}
+\item{r}{A non-null vector of length \code{ncol(t(X)*X)}}
 
-\item{Xr}{A vector of length \code{nrow(XXt)}, equals to the product X %*% r}
+\item{Xr}{A vector of length \code{nrow(X * t(X))}, equals to the product X %*% r}
 }
 \value{
 X
 }
 \description{
-Find X from XX' and X'X
+Find X from X*t(X)  and t(X)*X
 }
 \keyword{internal}
