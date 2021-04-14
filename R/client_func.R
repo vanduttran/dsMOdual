@@ -129,9 +129,10 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @export
-ComDimFD <- function(logins, variables, TOL = 1e-10) {
+ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     require(DSOpal)
 
+    loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata <- dsSwissKnife:::.decode.arg(logins)
     vardata <- dsSwissKnife:::.decode.arg(variables)
     
@@ -151,7 +152,7 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
         logindata.opn$user <- logindata.opn$userserver
         logindata.opn$password <- logindata.opn$passwordserver
         opals.loc <- paste0("crossLogin('", .encode.arg(logindata.opn), "')")
-        datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async = F)
+        datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async=F)
         
         command.opn <- list(paste0("crossAssign(mates, symbol='rawDataMate', value='", 
                                    .encode.arg(querytable), 
@@ -183,10 +184,16 @@ ComDimFD <- function(logins, variables, TOL = 1e-10) {
     
     ##  (X_i) * (X_i)'
     #crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
-    crossProdSelfDSC  <- datashield.aggregate(opals, 
-                                              as.call(list(as.symbol('pushValue'),
-                                                           as.symbol('dsSSCP:::.encode.arg(tcrossProdSelf)'),
-                                                           .encode.arg(names(opals)))), async=T)
+    datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
+    command <- paste0("dscPush(FD, '", 
+                      .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(tcrossProdSelf), dsSSCP:::.encode.arg('", names(opals), "')))")), 
+                      "', async=T)")
+    cat("Command: ", command, "\n")
+    crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+    # crossProdSelfDSC  <- datashield.aggregate(opals, 
+    #                                           as.call(list(as.symbol('pushValue'),
+    #                                                        as.symbol('tcrossProdSelf'),
+    #                                                        .encode.arg(names(opals)))), async=T)
     return(crossProdSelfDSC)
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
