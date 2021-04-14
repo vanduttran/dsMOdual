@@ -190,7 +190,9 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(tcrossProdSelf), dsSSCP:::.encode.arg('", names(opals), "')))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
+    print(datashield.errors())
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+    print(datashield.errors())
     # crossProdSelfDSC  <- datashield.aggregate(opals, 
     #                                           as.call(list(as.symbol('pushValue'),
     #                                                        as.symbol('tcrossProdSelf'),
