@@ -18,6 +18,7 @@
 
 
 #' @title Find X from XX' and X'X
+#' @description Find X from XX' and X'X
 #' @param XXt XX'
 #' @param XtX X'X
 #' @param r A non-null vector of length \code{ncol(XtX)}
