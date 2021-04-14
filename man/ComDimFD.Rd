@@ -4,7 +4,7 @@
 \alias{ComDimFD}
 \title{Federated ComDim}
 \usage{
-ComDimFD(logins, variables, TOL = 1e-10)
+ComDimFD(loginFD, logins, variables, TOL = 1e-10)
 }
 \arguments{
 \item{logins}{Login info}
