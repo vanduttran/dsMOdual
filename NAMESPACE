@@ -2,6 +2,7 @@
 
 export(ComDimFD)
 export(dotprod)
+export(pushValue)
 export(randomData)
 export(trscale)
 import(DSOpal)
