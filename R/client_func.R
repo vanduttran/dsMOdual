@@ -17,6 +17,25 @@
 }
 
 
+#' @title Cross push
+#' @import bigmemory
+#' @export
+# pushValuesave <- function(value, name) {
+#     print(value)
+#     pid <- Sys.getpid()
+#     save(value, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
+#     return (pid)
+# }
+pushValue <- function(value, name) {
+    valued <- dsSwissKnife:::.decode.arg(value)
+    if (is.list(valued)) valued <- do.call(rbind, valued)
+    stopifnot(isSymmetric(valued))
+    dscbigmatrix <- describe(as.big.matrix(valued))
+    save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
+    return (dscbigmatrix)
+}
+
+
 #' @title Find X from XX' and X'X
 #' @description Find X from XX'  and X'X
 #' @param XXt XX'
