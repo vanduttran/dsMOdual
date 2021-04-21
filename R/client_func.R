@@ -18,6 +18,7 @@
 
 
 #' @title Cross push
+#' @description Push matrix data into the federated server
 #' @import bigmemory
 #' @export
 pushValue <- function(value, name) {
