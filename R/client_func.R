@@ -20,12 +20,6 @@
 #' @title Cross push
 #' @import bigmemory
 #' @export
-# pushValuesave <- function(value, name) {
-#     print(value)
-#     pid <- Sys.getpid()
-#     save(value, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
-#     return (pid)
-# }
 pushValue <- function(value, name) {
     valued <- dsSwissKnife:::.decode.arg(value)
     if (is.list(valued)) valued <- do.call(rbind, valued)
@@ -37,7 +31,7 @@ pushValue <- function(value, name) {
 
 
 #' @title Find X from XX' and X'X
-#' @description Find X from XX'  and X'X
+#' @description Find X from XX' and X'X
 #' @param XXt XX'
 #' @param XtX X'X
 #' @param r A non-null vector of length \code{ncol(t(X)*X)}
@@ -209,14 +203,19 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", names(opals)[1], "')))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
-    #print(datashield.errors())
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-    #print(datashield.errors())
+    
+    crossProdSelf <- mclapply(crossProdSelfDSC, function(dscbigmatrix) {
+        y <- as.matrix(attach.big.matrix(dscbigmatrix))
+        stopifnot(isSymmetric(y))
+        return (y)
+    })
+        
     # crossProdSelfDSC  <- datashield.aggregate(opals, 
     #                                           as.call(list(as.symbol('pushValue'),
     #                                                        as.symbol('tcrossProdSelf'),
     #                                                        .encode.arg(names(opals)))), async=T)
-    return(crossProdSelfDSC)
+    return(crossProdSelf)
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
