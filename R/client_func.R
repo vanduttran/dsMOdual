@@ -206,7 +206,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
     crossProdSelf <- mclapply(crossProdSelfDSC, function(dscbigmatrix) {
-        y <- as.matrix(attach.big.matrix(dscbigmatrix))
+        y <- as.matrix(attach.big.matrix(dscbigmatrix[[1]]))
         stopifnot(isSymmetric(y))
         return (y)
     })
