@@ -23,10 +23,18 @@
 #' @export
 pushValue <- function(value, name) {
     valued <- dsSwissKnife:::.decode.arg(value)
-    if (is.list(valued)) valued <- do.call(rbind, valued)
-    stopifnot(ncol(valued)!=1)
-    dscbigmatrix <- describe(as.big.matrix(valued))
-    save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
+    stopifnot(is.list(valued) && length(valued)>0)
+    if (is.list(valued[[1]])) {
+        dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
+            x.mat <- do.call(rbind, x)
+            stopifnot(ncol(x.mat)==1)
+            return (describe(as.big.matrix(x.mat)))
+        })
+    } else {
+        valued.mat <- do.call(rbind, valued)
+        stopifnot(ncol(valued.mat)==1)
+        dscbigmatrix <- list(describe(as.big.matrix(valued)))
+    }
     return (dscbigmatrix)
 }
 
@@ -201,13 +209,13 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     #crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
     datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
     command <- paste0("dscPush(FD, '", 
-                      .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", names(opals)[1], "')))")), 
+                      .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(tcrossProdSelf), dsSSCP:::.encode.arg('", names(opals)[1], "')))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
     crossProdSelf <- mclapply(crossProdSelfDSC, function(dscbigmatrix) {
-        y <- as.matrix(attach.big.matrix(dscbigmatrix[[1]]))
+        y <- as.matrix(attach.big.matrix(dscbigmatrix[[1]][[1]]))
         stopifnot(isSymmetric(y))
         return (y)
     })
@@ -220,10 +228,13 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
                       "', async=T)")
     cat("Command: ", command, "\n")
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-    singularProdCross <- mclapply(singularProdCrossDSC, function(dscbigmatrix) {
-        y <- as.matrix(attach.big.matrix(dscbigmatrix[[1]]))
-        stopifnot(ncol(y)!=1)
-        return (y)
+    singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=length(singularProdCrossDSC), function(dscbigmatrix) {
+        dscMatList <- lapply(dscbigmatrix, function(dsc) {
+            dscMat <- as.matrix(attach.big.matrix(dscbigmatrix[[1]]))
+            stopifnot(ncol(dscMat)==1)
+            return (dscMat)
+        })
+        return (dscMatList)
     })
     return(singularProdCross)
     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
