@@ -211,13 +211,20 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         return (y)
     })
         
-    # crossProdSelfDSC  <- datashield.aggregate(opals, 
-    #                                           as.call(list(as.symbol('pushValue'),
-    #                                                        as.symbol('tcrossProdSelf'),
-    #                                                        .encode.arg(names(opals)))), async=T)
-    return(crossProdSelf)
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
-    singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
+    #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
+    datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
+    command <- paste0("dscPush(FD, '", 
+                      .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(singularProdCross), dsSSCP:::.encode.arg('", names(opals)[1], "')))")), 
+                      "', async=T)")
+    cat("Command: ", command, "\n")
+    singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+    singularProdCross <- mclapply(singularProdCrossDSC, function(dscbigmatrix) {
+        y <- as.matrix(attach.big.matrix(dscbigmatrix[[1]]))
+        stopifnot(isSymmetric(y))
+        return (y)
+    })
+    return(singularProdCross)
     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
     #prodDataCross     <- datashield.aggregate(opals, as.symbol('tripleProd(centeredData, crossProdMate)'), async=F)
     ## N.B. save-load increase numeric imprecision!!!
