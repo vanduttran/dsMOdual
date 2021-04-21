@@ -23,7 +23,7 @@
 pushValue <- function(value, name) {
     valued <- dsSwissKnife:::.decode.arg(value)
     if (is.list(valued)) valued <- do.call(rbind, valued)
-    stopifnot(isSymmetric(valued))
+    stopifnot(ncol(valued)!=1)
     dscbigmatrix <- describe(as.big.matrix(valued))
     save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
     return (dscbigmatrix)
@@ -221,7 +221,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     singularProdCross <- mclapply(singularProdCrossDSC, function(dscbigmatrix) {
         y <- as.matrix(attach.big.matrix(dscbigmatrix[[1]]))
-        stopifnot(isSymmetric(y))
+        stopifnot(ncol(y)!=1)
         return (y)
     })
     return(singularProdCross)
