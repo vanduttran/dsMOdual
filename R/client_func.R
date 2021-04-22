@@ -32,8 +32,8 @@ pushValue <- function(value, name) {
         })
     } else {
         valued.mat <- do.call(rbind, valued)
-        stopifnot(ncol(valued.mat)==1)
-        dscbigmatrix <- list(describe(as.big.matrix(valued)))
+        stopifnot(isSymmetric(valued.mat))
+        dscbigmatrix <- list(describe(as.big.matrix(valued.mat)))
     }
     return (dscbigmatrix)
 }
