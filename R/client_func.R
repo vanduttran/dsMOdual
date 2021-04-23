@@ -222,7 +222,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
-    return (NULL)
+    return (crossProdSelf)
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(singularProdCross), dsSSCP:::.encode.arg('", names(opals)[1], "')))")), 
                       "', async=T)")
