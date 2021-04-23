@@ -202,7 +202,6 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
     }))
     datashield.symbols(opals)
-    
     #-----
     
     ##  (X_i) * (X_i)'
