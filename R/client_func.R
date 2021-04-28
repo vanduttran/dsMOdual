@@ -235,17 +235,18 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
         ## retrieve the blocks as matrices
-        uptcp <- lapply(dscblocks[[1]], function(dscblock) {
+        matblocks <- lapply(dscblocks[[1]], function(dscblock) {
             lapply(dscblock, function(dsc) {
                 as.matrix(attach.big.matrix(dsc))
             })
         })
+        uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
         ## combine the blocks into one matrix
         if (length(uptcp)>1) {
             ## without the first layer of blocks
             no1tcp <- lapply(2:length(uptcp), function(i) {
                 cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-                    t(do.call(rbind, uptcp[[j]][[i-j+1]]))
+                    t(do.call(rbind, matblocks[[j]][[i-j+1]]))
                 })), uptcp[[i]])
             })
             ## with the first layer of blocks
