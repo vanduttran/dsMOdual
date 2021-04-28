@@ -38,17 +38,20 @@
 #     return (dscbigmatrix)
 # }
 pushValue <- function(value, name) {
+    valued <- value
     stopifnot(is.list(valued) && length(valued)>0)
-    if (is.list(valued[[1]])) {
+    if (FALSE) {#is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
             x.mat <- do.call(rbind, x)
             stopifnot(ncol(x.mat)==1)
             return (describe(as.big.matrix(x.mat)))
         })
     } else {
-        dscbigmatrix <- mclapply(value, mc.cores=min(length(value), detectCores()), function(x) {
-            x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
-            return (describe(as.big.matrix(x.mat)))
+        dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(y) {
+            return (lapply(y, function(x) {
+                x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
+                return (describe(as.big.matrix(x.mat)))
+            }))
         })
     }
     return (dscbigmatrix)
