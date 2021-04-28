@@ -21,8 +21,23 @@
 #' @description Push matrix data into the federated server
 #' @import bigmemory
 #' @export
+# pushValue.bak <- function(value, name) {
+#     valued <- dsSwissKnife:::.decode.arg(value)
+#     stopifnot(is.list(valued) && length(valued)>0)
+#     if (is.list(valued[[1]])) {
+#         dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
+#             x.mat <- do.call(rbind, x)
+#             stopifnot(ncol(x.mat)==1)
+#             return (describe(as.big.matrix(x.mat)))
+#         })
+#     } else {
+#         valued.mat <- do.call(rbind, valued)
+#         stopifnot(isSymmetric(valued.mat))
+#         dscbigmatrix <- list(describe(as.big.matrix(valued.mat)))
+#     }
+#     return (dscbigmatrix)
+# }
 pushValue <- function(value, name) {
-    valued <- dsSwissKnife:::.decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     if (is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
@@ -31,9 +46,10 @@ pushValue <- function(value, name) {
             return (describe(as.big.matrix(x.mat)))
         })
     } else {
-        valued.mat <- do.call(rbind, valued)
-        stopifnot(isSymmetric(valued.mat))
-        dscbigmatrix <- list(describe(as.big.matrix(valued.mat)))
+        dscbigmatrix <- mclapply(value, mc.cores=min(length(value), detectCores()), function(x) {
+            x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
+            return (describe(as.big.matrix(x.mat)))
+        })
     }
     return (dscbigmatrix)
 }
@@ -213,16 +229,34 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
-    crossProdSelf <- mclapply(crossProdSelfDSC, function(dscbigmatrix) {
-        y <- as.matrix(attach.big.matrix(dscbigmatrix[[1]][[1]]))
-        stopifnot(isSymmetric(y))
-        return (y)
+    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
+        ## retrieve the blocks as matrices
+        uptcp <- lapply(dscblocks, function(dscblock) {
+            lapply(dscblock, function(dsc) {
+                as.matrix(attach.big.matrix(dsc))
+            })
+        })
+        ## combine the blocks into one matrix
+        if (length(uptcp)>1) {
+            ## without the first layer of blocks
+            no1tcp <- lapply(2:length(uptcp), function(i) {
+                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+                    t(do.call(rbind, uptcp[[j]][[i-j+1]]))
+                })), uptcp[[i]])
+            })
+            ## with the first layer of blocks
+            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+        } else {
+            tcp <- uptcp[[1]]
+        }
+        stopifnot(isSymmetric(tcp))
+        return (tcp)
     })
-        
+    return (crossProdSelf)
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
-    return (crossProdSelf)
+    
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(singularProdCross), dsSSCP:::.encode.arg('", names(opals)[1], "')))")), 
                       "', async=T)")
@@ -230,7 +264,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=length(singularProdCrossDSC), function(dscbigmatrix) {
         dscMatList <- lapply(dscbigmatrix, function(dsc) {
-            dscMat <- as.matrix(attach.big.matrix(dscbigmatrix[[1]]))
+            dscMat <- as.matrix(attach.big.matrix(dsc[[1]]))
             stopifnot(ncol(dscMat)==1)
             return (dscMat)
         })
