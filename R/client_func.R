@@ -235,7 +235,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
         ## retrieve the blocks as matrices
-        uptcp <- lapply(dscblocks, function(dscblock) {
+        uptcp <- lapply(dscblocks[[1]], function(dscblock) {
             lapply(dscblock, function(dsc) {
                 as.matrix(attach.big.matrix(dsc))
             })
