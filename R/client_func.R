@@ -47,8 +47,11 @@ pushValue <- function(value, name) {
             return (describe(as.big.matrix(x.mat)))
         })
     } else {
-        dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(y) {
-            return (lapply(y, function(x) {
+        dscbigmatrix <- mclapply(valued, mc.cores=1, function(y) {
+            ## N.B. mclapply with length(y) cores allows allocating memory for all blocks. 
+            ##      or only last mc.cores blocks are allocated.
+            ##      lapply allocates memory only for the last block in the list.
+            return (mclapply(y, mc.cores=length(y), function(x) {
                 x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
                 return (describe(as.big.matrix(x.mat)))
             }))
