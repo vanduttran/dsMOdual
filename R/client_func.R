@@ -37,7 +37,7 @@
 #     }
 #     return (dscbigmatrix)
 # }
-pushValue <- function(value, name) {
+pushValue <- function(value) {
     valued <- dsSwissKnife:::.decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
@@ -47,15 +47,37 @@ pushValue <- function(value, name) {
             return (describe(as.big.matrix(x.mat)))
         })
     } else {
-        dscbigmatrix <- mclapply(valued, mc.cores=1, function(y) {
-            ## N.B. mclapply with length(y) cores allows allocating memory for all blocks. 
-            ##      or only last mc.cores blocks are allocated.
-            ##      lapply allocates memory only for the last block in the list.
-            return (mclapply(y, mc.cores=length(y), function(x) {
-                x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
-                return (describe(as.big.matrix(x.mat)))
-            }))
+        # dscbigmatrix <- mclapply(valued, mc.cores=length(valued), function(y) {
+        #     ## N.B. mclapply with length(y) cores allows allocating memory for all blocks. 
+        #     ##      or only last mc.cores blocks are allocated.
+        #     ##      lapply allocates memory only for the last block in the list.
+        #     return (mclapply(y, mc.cores=length(y), function(x) {
+        #         x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
+        #         return (describe(as.big.matrix(x.mat)))
+        #     }))
+        # })
+        ## Possible solution: Rebuild the whole matrix here, and return its only allocation
+        matblocks <- mclapply(valued, mc.cores=length(valued), function(y) {
+            mclapply(y, mc.cores=length(y), function(x) {
+                return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
+            })
         })
+        uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+        ## combine the blocks into one matrix
+        if (length(uptcp)>1) {
+            ## without the first layer of blocks
+            no1tcp <- lapply(2:length(uptcp), function(i) {
+                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+                    t(matblocks[[j]][[i-j+1]])
+                })), uptcp[[i]])
+            })
+            ## with the first layer of blocks
+            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+        } else {
+            tcp <- uptcp[[1]]
+        }
+        stopifnot(isSymmetric(tcp))
+        dscbigmatrix <- describe(as.big.matrix(tcp))
     }
     return (dscbigmatrix)
 }
@@ -237,6 +259,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
+        return (as.matrix(attach.big.matrix(dscblocks[[1]])))
         ## retrieve the blocks as matrices
         matblocks <- lapply(dscblocks[[1]], function(dscblock) {
             lapply(dscblock, function(dsc) {
