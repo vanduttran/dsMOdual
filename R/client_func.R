@@ -39,6 +39,7 @@
 # }
 pushValue <- function(value) {
     valued <- dsSwissKnife:::.decode.arg(value)
+    print("first")
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
@@ -57,12 +58,15 @@ pushValue <- function(value) {
         #     }))
         # })
         ## Possible solution: Rebuild the whole matrix here, and return its only allocation
+        
         matblocks <- mclapply(valued, mc.cores=length(valued), function(y) {
             mclapply(y, mc.cores=length(y), function(x) {
                 return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
             })
         })
+        print("second")
         uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+        print("third")
         ## combine the blocks into one matrix
         if (length(uptcp)>1) {
             ## without the first layer of blocks
@@ -76,8 +80,10 @@ pushValue <- function(value) {
         } else {
             tcp <- uptcp[[1]]
         }
+        print("fourth")
         stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
+        print("fifth")
     }
     return (dscbigmatrix)
 }
