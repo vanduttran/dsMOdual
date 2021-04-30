@@ -6,7 +6,7 @@
 #' @param some.object the object to be encoded
 #' @return encoded text with offending characters replaced by strings
 #' @keywords internal
-.encode.arg <- function(some.object){
+.encode.arg <- function(some.object) {
     encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'));
     # go fishing for '+', '/' and '=', opal rejects them :
     my.dictionary <- c('\\/' = '-slash-', '\\+' = '-plus-', '\\=' = '-equals-')
@@ -14,6 +14,15 @@
         encoded[1] <<- gsub(x, my.dictionary[x], encoded[1])
     })
     return(paste0(encoded[1],'base64'))
+}
+
+
+#' @title Garbage collection
+#' @description Call gc in the central server
+#' @export
+garbageCollect <- function() {
+    gc(reset=T)
+    return (NULL)
 }
 
 
@@ -253,9 +262,15 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     ##  (X_i) * (X_i)'
     #crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
     datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
+    
+    command <- paste0("crossAggregate(FD, '", 
+                      .encode.arg(paste0("as.call(list(as.symbol('garbageCollect')", "))")), 
+                      "', async=T)")
+    cat("Command: ", command, "\n")
+    datashield.assign(opals, "GC", as.symbol(command), async=T)
+    
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
-                      #.encode.arg(paste0("as.call(list(as.symbol('pushValue'), tcrossProdSelf, dsSSCP:::.encode.arg('", names(opals)[1], "')))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
@@ -285,7 +300,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         stopifnot(isSymmetric(tcp))
         return (tcp)
     })
-    gc(reset=T)
+    gc(reset=F)
     return (crossProdSelf)
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
