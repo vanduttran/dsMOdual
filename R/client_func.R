@@ -28,7 +28,9 @@ garbageCollect <- function() {
 
 #' @title Cross push
 #' @description Push matrix data into the federated server
-#' @import bigmemory, parallel
+#' @param value An encoded valued to be pushed
+#' @import bigmemory parallel
+#' @return Description of the pushed value
 #' @export
 # pushValue.bak <- function(value, name) {
 #     valued <- dsSwissKnife:::.decode.arg(value)
