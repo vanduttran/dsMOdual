@@ -49,7 +49,9 @@ garbageCollect <- function() {
 #     return (dscbigmatrix)
 # }
 pushValue <- function(value) {
+    print("hello")
     valued <- dsSwissKnife:::.decode.arg(value)
+    print("decoded")
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
@@ -68,13 +70,14 @@ pushValue <- function(value) {
         #     }))
         # })
         ## Possible solution: Rebuild the whole matrix here, and return its only allocation
-        
         matblocks <- mclapply(valued, mc.cores=length(valued), function(y) {
             mclapply(y, mc.cores=length(y), function(x) {
                 return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
             })
         })
+        rm(list=c("valued"))
         uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+        rm(list=c("matblocks"))
         ## combine the blocks into one matrix
         if (length(uptcp)>1) {
             ## without the first layer of blocks
