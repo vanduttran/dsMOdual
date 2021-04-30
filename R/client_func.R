@@ -227,7 +227,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
                       variables=vardata, async=T)
     datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
-    datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData)'), async=T)
+    datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
 
     ##- received by node i from other nodes ----
     invisible(mclapply(names(opals), mc.cores=1, function(opn) {
@@ -268,11 +268,11 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     #crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
     datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
     
-    command <- paste0("crossAggregate(FD, '", 
-                      .encode.arg(paste0("as.call(list(as.symbol('garbageCollect')", "))")), 
-                      "', async=T)")
-    cat("Command: ", command, "\n")
-    #datashield.assign(opals, "GC", as.symbol(command), async=T)
+    # command <- paste0("crossAggregate(FD, '", 
+    #                   .encode.arg(paste0("as.call(list(as.symbol('garbageCollect')", "))")), 
+    #                   "', async=T)")
+    # cat("Command: ", command, "\n")
+    # datashield.assign(opals, "GC", as.symbol(command), async=T)
     
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
