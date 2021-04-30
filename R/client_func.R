@@ -90,7 +90,7 @@ pushValue <- function(value) {
         }
         stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
-        rm(c("uptcp", "no1tcp", "tcp"))
+        rm(list=c("uptcp", "no1tcp", "tcp"))
     }
     return (dscbigmatrix)
 }
