@@ -269,7 +269,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
                       .encode.arg(paste0("as.call(list(as.symbol('garbageCollect')", "))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
-    datashield.assign(opals, "GC", as.symbol(command), async=T)
+    #datashield.assign(opals, "GC", as.symbol(command), async=T)
     
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
