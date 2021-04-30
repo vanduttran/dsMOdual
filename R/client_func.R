@@ -77,7 +77,6 @@ pushValue <- function(value) {
         })
         rm(list=c("valued"))
         uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
-        rm(list=c("matblocks"))
         ## combine the blocks into one matrix
         if (length(uptcp)>1) {
             ## without the first layer of blocks
@@ -93,7 +92,7 @@ pushValue <- function(value) {
         }
         stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
-        rm(list=c("uptcp", "no1tcp", "tcp"))
+        rm(list=c("matblocks", "uptcp", "no1tcp", "tcp"))
     }
     return (dscbigmatrix)
 }
