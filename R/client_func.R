@@ -39,7 +39,6 @@
 # }
 pushValue <- function(value) {
     valued <- dsSwissKnife:::.decode.arg(value)
-    print("first")
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
@@ -64,9 +63,7 @@ pushValue <- function(value) {
                 return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
             })
         })
-        print("second")
         uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
-        print("third")
         ## combine the blocks into one matrix
         if (length(uptcp)>1) {
             ## without the first layer of blocks
@@ -80,10 +77,9 @@ pushValue <- function(value) {
         } else {
             tcp <- uptcp[[1]]
         }
-        print("fourth")
         stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
-        print("fifth")
+        rm(c("uptcp", "no1tcp", "tcp"))
     }
     return (dscbigmatrix)
 }
@@ -289,6 +285,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         stopifnot(isSymmetric(tcp))
         return (tcp)
     })
+    gc(reset=T)
     return (crossProdSelf)
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
