@@ -2,6 +2,7 @@
 
 export(ComDimFD)
 export(dotprod)
+export(garbageCollect)
 export(pushValue)
 export(randomData)
 export(trscale)
