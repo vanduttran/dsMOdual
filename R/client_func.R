@@ -305,16 +305,17 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         return (tcp)
     })
     gc(reset=F)
-    #return (crossProdSelf)
+
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
-    return (crossProdSelf)
+    
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(singularProdCross), dsSSCP:::.encode.arg('", names(opals)[1], "')))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+    return (crossProdSelf)
     singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=length(singularProdCrossDSC), function(dscbigmatrix) {
         dscMatList <- lapply(dscbigmatrix, function(dsc) {
             dscMat <- as.matrix(attach.big.matrix(dsc[[1]]))
