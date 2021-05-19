@@ -329,7 +329,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         return (tcp)
     })
     gc(reset=F)
-    print(lapply(crossProdSelf, function(x) lapply(x, function(y) lapply(y, dim))))
+    #print(lapply(crossProdSelf, function(x) lapply(x, function(y) lapply(y, dim))))
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
@@ -348,9 +348,9 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         })
         return (dscMatList)
     })
-    print(lapply(singularProdCross, function(x) lapply(x, function(y) lapply(y, length))))
+    #print(lapply(singularProdCross, function(x) lapply(x, length)))
     gc(reset=F)
-    return(singularProdCross)
+    #return(singularProdCross)
     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
     #prodDataCross     <- datashield.aggregate(opals, as.symbol('tripleProd(centeredData, crossProdMate)'), async=F)
     ## N.B. save-load increase numeric imprecision!!!
