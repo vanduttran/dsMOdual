@@ -49,7 +49,7 @@ garbageCollect <- function() {
 #     return (dscbigmatrix)
 # }
 pushSymmMatrix <- function(value) {
-    print("symmatric")
+    print("symmetric")
     valued <- dsSwissKnife:::.decode.arg(value)
     print("decoded")
     stopifnot(is.list(valued) && length(valued)>0)
@@ -109,6 +109,7 @@ pushSingMatrix <- function(value) {
     valued <- dsSwissKnife:::.decode.arg(value)
     print(class(valued))
     print(lapply(valued, class))
+    print(lapply(valued, head))
     print("decoded")
     stopifnot(is.list(valued) && length(valued)>0)
     dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
