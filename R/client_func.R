@@ -339,7 +339,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
                       "', async=T)")
     cat("Command: ", command, "\n")
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-    return (crossProdSelf)
+    
     singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=length(singularProdCrossDSC), function(dscbigmatrix) {
         dscMatList <- lapply(dscbigmatrix, function(dsc) {
             dscMat <- as.matrix(attach.big.matrix(dsc[[1]]))
