@@ -48,8 +48,8 @@ garbageCollect <- function() {
 #     }
 #     return (dscbigmatrix)
 # }
-pushValue <- function(value) {
-    print("hello")
+pushSymmMatrix <- function(value) {
+    print("symmatric")
     valued <- dsSwissKnife:::.decode.arg(value)
     print("decoded")
     stopifnot(is.list(valued) && length(valued)>0)
@@ -94,6 +94,21 @@ pushValue <- function(value) {
         dscbigmatrix <- describe(as.big.matrix(tcp))
         rm(list=c("matblocks", "uptcp", "no1tcp", "tcp"))
     }
+    return (dscbigmatrix)
+}
+
+
+pushSingMatrix <- function(value) {
+    print("singular")
+    valued <- dsSwissKnife:::.decode.arg(value)
+    print("decoded")
+    stopifnot(is.list(valued) && length(valued)>0)
+    dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
+        x.mat <- do.call(rbind, x)
+        stopifnot(ncol(x.mat)==1)
+        return (describe(as.big.matrix(x.mat)))
+    })
+    
     return (dscbigmatrix)
 }
 
