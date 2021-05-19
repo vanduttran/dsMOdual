@@ -26,8 +26,8 @@ garbageCollect <- function() {
 }
 
 
-#' @title Cross push
-#' @description Push matrix data into the federated server
+#' @title Push a symmetric matrix
+#' @description Push symmetric matrix data into the federated server
 #' @param value An encoded valued to be pushed
 #' @import bigmemory parallel
 #' @return Description of the pushed value
@@ -98,6 +98,12 @@ pushSymmMatrix <- function(value) {
 }
 
 
+#' @title Push a one-column matrix
+#' @description Push one-column matrix data into the federated server
+#' @param value An encoded valued to be pushed
+#' @import bigmemory parallel
+#' @return Description of the pushed value
+#' @export
 pushSingMatrix <- function(value) {
     print("singular")
     valued <- dsSwissKnife:::.decode.arg(value)
