@@ -113,7 +113,7 @@ pushSingMatrix <- function(value) {
     print("decoded")
     stopifnot(is.list(valued) && length(valued)>0)
     dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
-        x.mat <- do.call(rbind, x)
+        x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
         stopifnot(ncol(x.mat)==1)
         return (describe(as.big.matrix(x.mat)))
     })
