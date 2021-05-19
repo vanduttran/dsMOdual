@@ -295,7 +295,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     # datashield.assign(opals, "GC", as.symbol(command), async=T)
     
     command <- paste0("dscPush(FD, '", 
-                      .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
+                      .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
@@ -332,7 +332,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     
     command <- paste0("dscPush(FD, '", 
-                      .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(singularProdCross)", "))")), 
+                      .encode.arg(paste0("as.call(list(as.symbol('pushSingMatrix'), dsSSCP:::.encode.arg(singularProdCross)", "))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
