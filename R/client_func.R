@@ -136,6 +136,10 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
         stop("r length shoud match ncol(XtX).")
     }
     if (length(Xr) != nrow(XXt)) {
+        print(head(Xr))
+        print(XXt[1:3,1:3])
+        print(length(Xr))
+        print(nrow(XXt))
         stop("Xr length shoud match nrow(XXt).")
     }
     if (max(abs(r)) < TOL) {
