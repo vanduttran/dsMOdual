@@ -107,6 +107,8 @@ pushSymmMatrix <- function(value) {
 pushSingMatrix <- function(value) {
     print("singular")
     valued <- dsSwissKnife:::.decode.arg(value)
+    print(class(valued))
+    print(lapply(valued, class))
     print("decoded")
     stopifnot(is.list(valued) && length(valued)>0)
     dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
