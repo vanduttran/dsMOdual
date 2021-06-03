@@ -354,7 +354,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     print(lapply(singularProdCross, length))
     print(lapply(singularProdCross, function(x) lapply(x, length)))
     print(lapply(singularProdCross, function(x) lapply(x, names)))
-    print(lapply(singularProdCross, function(x) lapply(x, function(xx) lapply(xx, class)))
+    print(lapply(singularProdCross, function(x) lapply(x, function(xx) lapply(xx, class))))
     gc(reset=F)
     #return(singularProdCross)
     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
