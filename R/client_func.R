@@ -250,8 +250,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     nNode <- length(opals)
     querytable <- unique(logindata$table)
 
-    datashield.assign(opals, "rawData", querytable,
-                      variables=vardata, async=T)
+    datashield.assign(opals, "rawData", querytable, variables=vardata, async=T)
     datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
@@ -309,7 +308,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
         return (as.matrix(attach.big.matrix(dscblocks[[1]])))
-        ## retrieve the blocks as matrices
+        ## retrieve the blocks as matrices: on FD
         matblocks <- lapply(dscblocks[[1]], function(dscblock) {
             lapply(dscblock, function(dsc) {
                 as.matrix(attach.big.matrix(dsc))
@@ -333,7 +332,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         return (tcp)
     })
     gc(reset=F)
-    #print(lapply(crossProdSelf, function(x) lapply(x, function(y) lapply(y, dim))))
+    print(lapply(crossProdSelf, dim))
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
@@ -346,13 +345,16 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     
     singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=length(singularProdCrossDSC), function(dscbigmatrix) {
         dscMatList <- lapply(dscbigmatrix, function(dsc) {
-            dscMat <- as.matrix(attach.big.matrix(dsc[[1]]))
+            dscMat <- as.matrix(attach.big.matrix(dsc[[1]])) #TOCHECK: with more than 2 servers
             stopifnot(ncol(dscMat)==1)
             return (dscMat)
         })
         return (dscMatList)
     })
-    #print(lapply(singularProdCross, function(x) lapply(x, length)))
+    print(lapply(singularProdCross, length))
+    print(lapply(singularProdCross, function(x) lapply(x, length)))
+    print(lapply(singularProdCross, function(x) lapply(x, names)))
+    print(lapply(singularProdCross, function(x) lapply(x, function(xx) lapply(xx, class)))
     gc(reset=F)
     #return(singularProdCross)
     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
