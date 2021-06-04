@@ -353,6 +353,8 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         })
         return (dscMatList)
     })
+    print(names(singularProdCross))
+    print(lapply(singularProdCross, names))
     print(lapply(singularProdCross, length))
     print(lapply(singularProdCross, function(x) lapply(x, dim)))
     print(lapply(singularProdCross, function(x) lapply(x, class)))
