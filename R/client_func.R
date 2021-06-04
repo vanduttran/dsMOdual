@@ -344,6 +344,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
     singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=length(singularProdCrossDSC), function(dscbigmatrix) {
+        print(names(dscbigmatrix))
         dscMatList <- lapply(dscbigmatrix, function(dsc) {
             dscMat <- matrix(as.matrix(attach.big.matrix(dsc[[1]])), ncol=1) #TOCHECK: with more than 2 servers
             print("here")
