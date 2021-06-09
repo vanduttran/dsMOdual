@@ -18,7 +18,7 @@
 
 
 #' @title Garbage collection
-#' @description Call gc in the central server
+#' @description Call gc on the federated server
 #' @export
 garbageCollect <- function() {
     gc(reset=T)
@@ -233,13 +233,15 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 }
 
 
-#' @title Federated ComDim
-#' @param logins Login info
+#' @title Federated SSCP
+#' @description Function for computing the federated SSCP matrix
+#' @param loginFD Login information of the FD server
+#' @param logins Login information of the servers containing cohort data
 #' @param variables Variables
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
-#' @export
-ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
+#' @keywords internal
+federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
     require(DSOpal)
 
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
@@ -332,7 +334,7 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
         return (tcp)
     })
     gc(reset=F)
-    print(lapply(crossProdSelf, dim))
+
     ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
@@ -344,24 +346,13 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
     singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=length(singularProdCrossDSC), function(dscbigmatrix) {
-        print(names(dscbigmatrix[[1]]))
         dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
             dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
-            print("here")
-            print(dim(dscMat))
             stopifnot(ncol(dscMat)==1)
             return (dscMat)
         })
         return (dscMatList)
     })
-    print(names(singularProdCross))
-    print(lapply(singularProdCross, names))
-    print(lapply(singularProdCross, length))
-    print(lapply(singularProdCross, function(x) lapply(x, dim)))
-    print(lapply(singularProdCross, function(x) lapply(x, class)))
-    print(lapply(singularProdCross, function(x) lapply(x, length)))
-    print(lapply(singularProdCross, function(x) lapply(x, names)))
-    print(lapply(singularProdCross, function(x) lapply(x, function(xx) lapply(xx, class))))
     gc(reset=F)
     #return(singularProdCross)
     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
@@ -402,5 +393,354 @@ ComDimFD <- function(loginFD, logins, variables, TOL = 1e-10) {
     }))
     
     return (XXt)
+}
+
+
+#' @title Federated ComDim
+#' @description Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
+#' Finding common dimensions in multitable data (Xk, k=1...K)
+#' @usage federateComDim(X,group,H=2,scale="none",option="none",threshold=1e-10)
+#'
+#' @param loginFD Login information of the FD server
+#' @param logins Login information of the servers containing cohort data
+#' @param variables Variables
+#' @param TOL Tolerance of 0
+#' @param XX  :	        list of dataframes XX = X %*% t(X)
+#' @param group :       named list of variables for each table
+#' @param H :           number of common dimensions
+#' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table
+#' @param option weighting of te tables \cr
+#'        "none" :  no weighting of the tables - (default) \cr
+#'      "uniform": weighting to set the table at the same inertia \cr
+#' @param threshold if the difference of fit<threshold then break the iterative loop (default 1E-10)
+#' @return \item{group}{ input parameter group }
+#' @return \item{scale}{ scaling factor applied to the dataset X}
+#' @return \item{Q}{common scores (nrow x ndim)}
+#' @return \item{saliences}{weights associated to each table for each dimension}
+#' @return \item{explained}{retun total variance explained}
+#' @return \item{RV}{RV coefficients between each table (Xk) and compromise table}
+#' @return \item{Block}{results associated with each table. You will find block component ...
+#'         \itemize{
+#'                \item {Qk}{: Block component}
+#'                \item {Wk}{: Block component}
+#'                \item {Pk}{: Block component}
+#'        }}
+#'
+#' @return \item{call}{: call of the method }
+#' @importFrom utils setTxtProgressBar
+#' @importFrom DSI datashield.aggregate
+#' @export
+federateComDim <- function(loginFD, logins, group, size = NA, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
+    XX <- sapply(groups, function(variables) {
+        federateSSCP(loginFD, logins, variables, TOL)
+    })
+##ComDimFD <- function (opals, XX, group, size=NA, H=2, scale="none", option="none", threshold=1e-10)  {
+    loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
+    logindata <- dsSwissKnife:::.decode.arg(logins)
+    vardata <- dsSwissKnife:::.decode.arg(variables)
+    
+    opals <- DSI::datashield.login(logins=logindata)
+    nNode <- length(opals)
+    querytable <- unique(logindata$table)
+    
+    datashield.assign(opals, "rawData", querytable, variables=vardata, async=T)
+    datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    return(NULL)
+    inertie <- function(tab) {
+        return(sum(diag(tab)))    #Froebenius norm
+        #     return(sum(diag(V))/n) #inertia (biased variance)
+        #     sum(1/n*diag(V))
+    }
+    # end: computing the total variance of a dataset
+    
+    ## computing the RV between WX and WY
+    coefficientRV <- function(WX, WY) {
+        rv <- sum(diag(WX %*% WY))/((sum(diag(WX %*% WX)) * sum(diag(WY %*% WY)))^0.5)
+        return(rv)
+    }
+    # ---------------------------------------------------------------------------
+    # 0. Preliminary tests
+    # ---------------------------------------------------------------------------
+    if (any(sapply(XX, is.na)))
+        stop("No NA values are allowed")
+    nsamples <- unique(unlist(apply(sapply(XX, dim), 1, unique))) ## number of samples
+    if (length(nsamples) > 1)
+        stop("XX elements should be symmetric of the same dimension")
+    samples <- sapply(XX, function(x) union(rownames(x), colnames(x)))
+    if (is.list(samples) && max(lengths(samples))==0) {
+        XX <- lapply(XX, function(x) {
+            rownames(x) <- colnames(x) <- paste("X", 1:nsamples, sep='.')
+            return (x)
+        })
+    }
+    if (is.list(samples) || is.list(apply(samples, 1, unique)))
+        stop("XX elements should have the same rownames and colnames")
+    
+    if (is.null(names(group)))
+        names(group) <- paste("Tab", 1:length(group), sep=".")
+    
+    ## TOREVIEW
+    # if (is.character(scale)) {
+    #   if (!scale %in% c("none","sd"))
+    #     stop("Non convenient scaling parameter")
+    # }
+    # else {
+    #   if (!is.numeric(scale) | length(scale)!=ncol(X))
+    #     stop("Non convenient scaling parameter")
+    # }
+    # if (!option %in% c("none","uniform"))
+    #   stop("Non convenient weighting parameter")
+    
+    
+    # ---------------------------------------------------------------------------
+    # 1. Output preparation
+    # ---------------------------------------------------------------------------
+    ntab <- length(XX)
+    nvar <- lengths(group)
+    W <- array(0, dim=c(nsamples, nsamples, ntab+1)) # association matrices
+    
+    LAMBDA <- matrix(0, nrow=ntab, ncol=H)   # will contains the saliences
+    Q <- matrix(0, nrow=nsamples, ncol=H)    # will contain common components
+    J <- rep(1:ntab, times=nvar)             # indicates which block each variable belongs to
+    names.H <- paste("Dim.", 1:H, sep="")
+    Q.b <- array(0, dim=c(nsamples,H,ntab))  # components for the block components
+    dimnames(Q.b) <- list(rownames(XX[[1]]), names.H, names(group))
+    W.b <- vector("list",length=ntab)        # weights for the block components
+    P.b <- vector("list",length=ntab)        # loadings for the block components
+    for (k in 1:ntab) {
+        W.b[[k]] <- matrix(0,nrow=nvar[k],ncol=H)
+        P.b[[k]] <- matrix(0,nrow=nvar[k],ncol=H)
+        rownames(W.b[[k]]) <- rownames(P.b[[k]]) <- group[[k]]
+        colnames(W.b[[k]]) <- colnames(P.b[[k]]) <- names.H
+    }
+    We <- Pe <- matrix(0,nrow=sum(nvar),ncol=H)
+    Res <- NULL              # Results to be returned
+    
+    explained.block <- matrix(0, nrow=ntab+1,ncol=H)      # percentage of inertia recovered
+    
+    # ---------------------------------------------------------------------------
+    # 2. Required parameters and data preparation
+    # ---------------------------------------------------------------------------
+    
+    
+    #Xscale$mean <- apply(X, 2, mean)
+    #X<-scale(X, center=Xscale$mean, scale=FALSE)   #default centering
+    
+    
+    # if (scale=="none") {
+    #   Xscale$scale <-rep(1,times=ncol(X))
+    # }
+    # else {
+    #   if (scale=="sd") {
+    #     sd.tab <- apply(X, 2, function (x) {return(sqrt(sum(x^2)/length(x)))})   #sd based on biased variance
+    #     temp <- sd.tab < 1e-14
+    #     if (any(temp)) {
+    #       warning("Variables with null variance not standardized.")
+    #       sd.tab[temp] <- 1
+    #     }
+    #     X <- sweep(X, 2, sd.tab, "/")
+    #     Xscale$scale <-sd.tab
+    #   }
+    #   else {     #specific scaling depending on blocks defined as a vector with a scaling parameter for each variable
+    #       X <- sweep(X, 2, scale, "/")
+    #       Xscale$scale <-scale
+    #   }
+    # }
+    
+    # Pre-processing: block weighting
+    inertia <- sapply(1:ntab, function(k) inertie(XX[[k]]))
+    # if (option=="uniform") {
+    #    #set each block inertia equal 1
+    #   w.tab <- rep(sqrt(inertia), times=nvar)     # weighting parameter applied to each variable
+    #   X <- sweep(X, 2, w.tab, "/")
+    #   Xscale$scale<- Xscale$scale*w.tab
+    #   inertia <- rep(1, times=ntab)
+    # }
+    if (option=="uniform") {
+        XX <- lapply(1:ntab, function(k) {
+            XX[[k]]/inertia[k]
+        })
+        inertia0.sqrt <- sqrt(inertia)
+        inertia <- rep(1, times=ntab)
+    }
+    
+    # Computation of association matrices
+    W[,,1:ntab] <- array(as.numeric(unlist(XX)), dim=c(nsamples, nsamples, ntab))
+    tvar <- sapply(1:ntab, function(k) sum(as.matrix(W[,,k])^2))
+    Itot <- sum(tvar) # Total inertia of all dataset sum(trace(Wj*Wj))
+    
+    #X0 <- X            #keep initial values with standardisation and weighting scheme
+    # ---------------------------------------------------------------------------
+    # 3. computation of Q and LAMBDA for the various dimensions
+    # ---------------------------------------------------------------------------
+    explained <- matrix(0, nrow=H, ncol=1)
+    
+    pb <- txtProgressBar(min=0, max=H, style=3)
+    
+    for (dimension in 1:H)  {
+        Sys.sleep(0.1)
+        
+        previousfit <- 100000;
+        lambda <- rep(1, ntab)
+        deltafit <- 1000000;
+        while (deltafit > threshold) {
+            W[,,ntab+1] <- Reduce("+", lapply(1:ntab, function(k) lambda[k]*W[,,k]))
+            Svdw <- svd(as.matrix(W[,,ntab+1]))
+            q <- Svdw$u[,1,drop=F]
+            
+            fit <- 0
+            for (k in 1:ntab) {
+                # estimating residuals
+                lambda[k]  <- (t(q) %*% as.matrix(W[,,k]) %*% q)
+                pred       <- lambda[k]*q %*% t(q)
+                aux        <- as.matrix(W[,,k]) - pred
+                fit        <- fit + sum(aux^2)
+            }
+            deltafit <- previousfit - fit
+            previousfit <- fit
+        } #deltafit>threshold
+        
+        explained[dimension,1] <- 100*sum(lambda^2)/Itot  ## vca modif
+        LAMBDA[,dimension] <- lambda
+        Q[,dimension] <- q
+        
+        # updating association matrices
+        proj <- diag(1, nsamples) - tcrossprod(q)
+        for (k in 1:ntab)   {
+            #W.b[[k]][,dimension] <- t(X[,J==k]) %*% q
+            ##TODO
+            
+            #Q.b[,dimension,k]    <- X[,J==k]%*%matrix(W.b[[k]][,dimension],ncol=1)
+            Q.b[,dimension,k] <- W[,,k] %*% q
+            
+            #P.b[[k]][,dimension] <- t(W.b[[k]][,dimension])#t(q)%*%X[,J==k]
+            ##TODO
+            
+            #Pe[J==k,dimension]   <- P.b[[k]][,dimension]
+            ##TODO
+            
+            #X <- as.matrix(X)
+            #X.hat <- q%*%matrix(P.b[[k]][,dimension],nrow=1)
+            ##TODO
+            
+            #explained.block[k,dimension] <- inertie(X.hat)
+            explained.block[k,dimension] <- inertie(tcrossprod(q) %*% W[,,k] %*% tcrossprod(q))
+            
+            #X[,J==k] <- X[,J==k]-X.hat
+            ##TODO
+            
+            #W[,,k] <- X[,J==k]%*%t(X[,J==k]);
+            W[,,k] <- proj %*% W[,,k] %*% t(proj)
+        }
+        explained.block[ntab+1,dimension]<- sum(explained.block[1:ntab,dimension])
+        #We[,dimension]   <- unlist(sapply(1:ntab,function(j){lambda[j]*W.b[[j]][,dimension]}))
+        #We[,dimension]   <- We[,dimension] / sum(lambda^2)
+        setTxtProgressBar(pb, dimension)
+    }
+    
+    ## loadings
+    if (is.na(size)) {
+        size <- sapply(dsSwissKnifeClient::dssDim(datasources=opals, x="centeredData"), function(x) x[1])
+    }
+    size <- c(0, size)
+    func <- function(x, y) {x %*% y}
+    Qlist <- setNames(lapply(2:length(size), function(i) {
+        Qi <- Q[(cumsum(size)[i-1]+1):cumsum(size)[i],,drop=F]
+        ## As Q is orthonormal, Qi == Qi.iter
+        # Qi.iter <- sapply(1:H, function(dimension) {
+        #   projs <- lapply(setdiff(1:dimension, dimension), function(dimprev) {
+        #     return (diag(1, size[i]) - tcrossprod(Qi[,dimprev]))
+        #   })
+        #   projs <- c(Id=list(diag(1, size[i])), projs)
+        #   return (crossprod(Reduce(func, projs), Qi[,dimension,drop=F]))
+        # })
+        # return (Qi.iter)
+    }), names(opals))
+    W.b <- lapply(1:ntab, function(k) {
+        #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
+        Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
+            expr <- list(as.symbol("crossProd"),
+                         as.symbol("centeredData"),
+                         dsSwissKnifeClient:::.encode.arg(Qlist[[opn]]))
+            loadings <- datashield.aggregate(opals[opn], as.call(expr), async=F)
+            return (loadings)
+        }), recursive = F))
+        
+        colnames(Wbk) <- names.H
+        return (Wbk/inertia0.sqrt)
+    })
+    We <- do.call(rbind, lapply(1:ntab, function(k) W.b[[k]] %*% diag(LAMBDA[k,]))) #crossprod(as.matrix(X[,J==k]), Q)
+    
+    P.b <- W.b #lapply(W.b, function(x) t(x))
+    Pe  <- do.call(rbind, P.b)
+    We  <- sapply(1:H, function(dimension) We[,dimension]/sum(LAMBDA[,dimension]^2))
+    colnames(We) <- names.H
+    
+    # ---------------------------------------------------------------------------
+    # 4.1 Preparation of the results Global
+    # ---------------------------------------------------------------------------
+    
+    close(pb)
+    
+    # Overall agreement
+    if (H==1) {
+        LambdaMoyen <- apply(LAMBDA, 2, mean)
+        C <- Q*LambdaMoyen
+    } else {
+        LambdaMoyen <- apply(LAMBDA,2,mean)
+        C <- Q %*% sqrt(diag(LambdaMoyen))
+    }
+    
+    rownames(C) <- rownames(XX[[1]])
+    colnames(C) <- names.H
+    
+    RV <- sapply(1:ntab, function(k) {
+        coefficientRV(XX[[k]], tcrossprod(C))
+    })
+    names(RV) <- names(group)
+    
+    # global components, saliences and explained variances
+    Res$saliences <- LAMBDA
+    colnames(Res$saliences) <- names.H
+    rownames(Res$saliences) <- names(group)
+    Res$Q <- Q
+    rownames(Res$Q) <- rownames(XX[[1]])
+    colnames(Res$Q) <- names.H
+    Res$C  <- C
+    Res$RV <- RV
+    Res$W  <- We
+    Res$Wm <- We %*% solve(t(Pe)%*%We)
+    rownames(Res$Wm) <- rownames(Res$W)
+    colnames(Res$Wm) <- colnames(Res$W) <- names.H
+    
+    fit <- matrix(0,nrow=H,ncol=2)
+    fit[,1] <- explained
+    fit[,2] <- cumsum(fit[,1])
+    Res$fit <- fit
+    rownames(Res$fit) <- names.H
+    colnames(Res$fit) <- c("%Fit", "%Cumul Fit")
+    
+    inertia                 <- c(inertia, sum(inertia))
+    Res$explained           <- sweep(explained.block, 1, inertia, "/")
+    rownames(Res$explained) <- c(rownames(Res$saliences), 'global')
+    colnames(Res$explained) <- colnames(Res$saliences)
+    
+    
+    # ---------------------------------------------------------------------------
+    # 4.2 Preparation of the results Blocks
+    # ---------------------------------------------------------------------------
+    Block     <- NULL
+    Block$Q.b <- Q.b
+    Block$W.b <- W.b
+    Block$P.b <- P.b
+    Res$Block <- Block
+    
+    # ---------------------------------------------------------------------------
+    # Return Res
+    # ---------------------------------------------------------------------------
+    Res$call   <- match.call()
+    class(Res) <- c("ComDimSSCP")
+    
+    return(Res)
 }
 
