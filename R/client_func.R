@@ -433,7 +433,7 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
 #' @export
 federateComDim <- function(loginFD, logins, group, size = NA, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
     ## compute SSCP matrix for each centered data table
-    XX <- sapply(dsSwissKnife:::.decode.arg(group), function(variables) {
+    XX <- lapply(dsSwissKnife:::.decode.arg(group), function(variables) {
         federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
     return (XX)
