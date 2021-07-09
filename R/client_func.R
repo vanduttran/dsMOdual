@@ -28,7 +28,7 @@ garbageCollect <- function() {
 
 #' @title Push a symmetric matrix
 #' @description Push symmetric matrix data into the federated server
-#' @param value An encoded valued to be pushed
+#' @param value An encoded value to be pushed
 #' @import bigmemory parallel
 #' @return Description of the pushed value
 #' @export
@@ -100,7 +100,7 @@ pushSymmMatrix <- function(value) {
 
 #' @title Push a one-column matrix
 #' @description Push one-column matrix data into the federated server
-#' @param value An encoded valued to be pushed
+#' @param value An encoded value to be pushed
 #' @import bigmemory parallel
 #' @return Description of the pushed value
 #' @export
@@ -292,7 +292,7 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
     datashield.symbols(opals)
     #-----
     
-    ##  (X_i) * (X_i)'
+    ## (X_i) * (X_i)': push this symmetric matrix from server i to FD
     #crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
     datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
     
@@ -335,7 +335,7 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
     })
     gc(reset=F)
 
-    ##  (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
+    ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]: push this single-column matrix from server i to FD
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     
@@ -391,6 +391,7 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
         }))
         return (cbind(lower.opi, crossProdSelf[[opi]], upper.opi))
     }))
+    datashield.logout(opals)
     
     return (XXt)
 }
@@ -431,29 +432,29 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
 #' @importFrom DSI datashield.aggregate
 #' @export
 federateComDim <- function(loginFD, logins, group, size = NA, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
-    XX <- sapply(groups, function(variables) {
-        federateSSCP(loginFD, logins, variables, TOL)
+    ## compute SSCP matrix for each centered data table
+    XX <- sapply(group, function(variables) {
+        federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
-##ComDimFD <- function (opals, XX, group, size=NA, H=2, scale="none", option="none", threshold=1e-10)  {
+    return (XX)
+    ## set up the centered data table on every node
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata <- dsSwissKnife:::.decode.arg(logins)
-    vardata <- dsSwissKnife:::.decode.arg(variables)
-    
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
     querytable <- unique(logindata$table)
-    
-    datashield.assign(opals, "rawData", querytable, variables=vardata, async=T)
-    datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    stopifnot(length(querytable) == 1)
+    datashield.assign(opals, "rawAllData", querytable, variables=unlist(group), async=T)
+    datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
+
     return(NULL)
-    inertie <- function(tab) {
-        return(sum(diag(tab)))    #Froebenius norm
-        #     return(sum(diag(V))/n) #inertia (biased variance)
-        #     sum(1/n*diag(V))
-    }
-    # end: computing the total variance of a dataset
     
-    ## computing the RV between WX and WY
+    # compute the total variance of a dataset
+    inertie <- function(tab) {
+        return (sum(diag(tab)))    #Froebenius norm
+    }
+
+    ## compute the RV between WX and WY
     coefficientRV <- function(WX, WY) {
         rv <- sum(diag(WX %*% WY))/((sum(diag(WX %*% WX)) * sum(diag(WY %*% WY)))^0.5)
         return(rv)
@@ -640,7 +641,7 @@ federateComDim <- function(loginFD, logins, group, size = NA, H = 2, scale = "no
     
     ## loadings
     if (is.na(size)) {
-        size <- sapply(dsSwissKnifeClient::dssDim(datasources=opals, x="centeredData"), function(x) x[1])
+        size <- sapply(dsSwissKnifeClient::dssDim(datasources=opals, x="centeredAllData"), function(x) x[1])
     }
     size <- c(0, size)
     func <- function(x, y) {x %*% y}
