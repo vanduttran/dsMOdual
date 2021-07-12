@@ -453,7 +453,6 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     } else (
         stop("querytab should contain 1 or length(queryvar) names.")
     )
-    return (XX)
 
     # compute the total variance of a dataset
     inertie <- function(tab) {
