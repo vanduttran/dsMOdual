@@ -432,8 +432,9 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
 #' @importFrom DSI datashield.aggregate
 #' @export
 federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
+    group <- dsSwissKnife:::.decode.arg(queryvar)
     ## compute SSCP matrix for each centered data table
-    XX <- lapply(dsSwissKnife:::.decode.arg(queryvar), function(variables) {
+    XX <- lapply(group, function(variables) {
         federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
 
@@ -445,7 +446,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     querytabd <- dsSwissKnife:::.decode.arg(querytab)
     if (length(querytabd)==1) {
         ## TODO: make sure different blocks have the same samples (rownames)
-        datashield.assign(opals, "rawAllData", querytabd, variables=unlist(dsSwissKnife:::.decode.arg(queryvar)), async=T)
+        datashield.assign(opals, "rawAllData", querytabd, variables=unlist(group), async=T)
         datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
     } else if (length(querytabd)==length(queryvar)) {
         stop("Not yet implemented.")
@@ -478,6 +479,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
             rownames(x) <- colnames(x) <- paste("X", 1:nsamples, sep='.')
             return (x)
         })
+        samples <- sapply(XX, function(x) union(rownames(x), colnames(x)))
     }
     if (is.list(samples) || is.list(apply(samples, 1, unique)))
         stop("XX elements should have the same rownames and colnames")
