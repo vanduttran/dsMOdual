@@ -431,24 +431,28 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
 #' @importFrom utils setTxtProgressBar
 #' @importFrom DSI datashield.aggregate
 #' @export
-federateComDim <- function(loginFD, logins, group, size = NA, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
+federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
     ## compute SSCP matrix for each centered data table
-    XX <- lapply(dsSwissKnife:::.decode.arg(group), function(variables) {
+    XX <- lapply(dsSwissKnife:::.decode.arg(queryvar), function(variables) {
         federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
-    return (XX)
+
     ## set up the centered data table on every node
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata <- dsSwissKnife:::.decode.arg(logins)
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-    querytable <- unique(logindata$table)
-    stopifnot(length(querytable) == 1)
-    datashield.assign(opals, "rawAllData", querytable, variables=unlist(group), async=T)
-    datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
+    if (length(querytab)==1) {
+        ## TODO: make sure different blocks have the same samples (rownames)
+        datashield.assign(opals, "rawAllData", querytab, variables=unlist(dsSwissKnife:::.decode.arg(queryvar)), async=T)
+        datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
+    } else if (length(querytab)==length(queryvar)) {
+        stop("Not yet implemented.")
+    } else (
+        stop("querytab should contain 1 or length(queryvar) names.")
+    )
+    #return (XX)
 
-    return(NULL)
-    
     # compute the total variance of a dataset
     inertie <- function(tab) {
         return (sum(diag(tab)))    #Froebenius norm
@@ -641,6 +645,7 @@ federateComDim <- function(loginFD, logins, group, size = NA, H = 2, scale = "no
     
     ## loadings
     if (is.na(size)) {
+        # number of samples on each node
         size <- sapply(dsSwissKnifeClient::dssDim(datasources=opals, x="centeredAllData"), function(x) x[1])
     }
     size <- c(0, size)
@@ -657,6 +662,7 @@ federateComDim <- function(loginFD, logins, group, size = NA, H = 2, scale = "no
         # })
         # return (Qi.iter)
     }), names(opals))
+    return (size)
     W.b <- lapply(1:ntab, function(k) {
         #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
         Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
