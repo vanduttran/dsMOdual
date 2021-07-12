@@ -442,11 +442,12 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     logindata <- dsSwissKnife:::.decode.arg(logins)
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-    if (length(querytab)==1) {
+    querytabd <- dsSwissKnife:::.decode.arg(querytab)
+    if (length(querytabd)==1) {
         ## TODO: make sure different blocks have the same samples (rownames)
-        datashield.assign(opals, "rawAllData", querytab, variables=unlist(dsSwissKnife:::.decode.arg(queryvar)), async=T)
+        datashield.assign(opals, "rawAllData", querytabd, variables=unlist(dsSwissKnife:::.decode.arg(queryvar)), async=T)
         datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
-    } else if (length(querytab)==length(queryvar)) {
+    } else if (length(querytabd)==length(queryvar)) {
         stop("Not yet implemented.")
     } else (
         stop("querytab should contain 1 or length(queryvar) names.")
