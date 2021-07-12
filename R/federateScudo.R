@@ -15,6 +15,7 @@
 federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA) {
     group <- dsSwissKnife:::.decode.arg(queryvar)
     ## compute SSCP matrix for each centered data table
+    h = 5
     XX <- lapply(group, function(variables) {
         federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
