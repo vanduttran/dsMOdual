@@ -14,7 +14,8 @@ AggregateMethods:
     federateComDim,
     garbageCollect,
     pushSymmMatrix,
-    pushSingMatrix
+    pushSingMatrix,
+    federateScudo
 AssignMethods:
     randomData,
     trscale
