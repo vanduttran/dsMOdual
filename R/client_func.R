@@ -172,6 +172,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     })
     eignum <- length(vals[[1]])
     poseignum <- unique(sapply(vals, function(x) {
+        print(head(x, 10))
         max(which(x > 0))
     }))
     cat("Number of strictly positive eigenvalues:", poseignum, "\n")
