@@ -648,7 +648,9 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     ## loadings
     if (is.na(size)) {
         # number of samples on each node
-        size <- sapply(dsSwissKnifeClient::dssDim(datasources=opals, x="centeredAllData"), function(x) x[1])
+        #size <- sapply(dsSwissKnifeClient::dssDim(datasources=opals, x="centeredAllData"), function(x) x[1])
+        #size <- sapply(dsDim(datasources=opals, x="centeredAllData"), function(x) x[1])
+        size <- sapply(datashield.aggregate(datasources=opals, as.symbol('dimDSS(centeredAllData)')), function(x) x[1])
     }
     size <- c(0, size)
     func <- function(x, y) {x %*% y}
