@@ -676,7 +676,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
         # })
         # return (Qi.iter)
     }), names(opals))
-    print(size)
+    return (size)
     W.b <- lapply(1:ntab, function(k) {
         #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
         Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
