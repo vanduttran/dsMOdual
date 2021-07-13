@@ -17,7 +17,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA, TOL = 
     
 
     ScudoResults <- setClass("ScudoResults",
-                         slots = list(
+                           slots = list(
                            distMatrix = "matrix",
                            upSignatures = "data.frame",
                            downSignatures = "data.frame",
@@ -26,31 +26,40 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA, TOL = 
                            consensusDownSignatures = "data.frame",
                            selectedFeatures = "character",
                            scudoParams = "list"))
-
-
-    group <- dsSwissKnife:::.decode.arg(queryvar)
+    
+   # loginFD <-dsSwissKnife:::.decode.arg(loginFD)
+   # logins <- dsSwissKnife:::.decode.arg(logins)
+   group <- dsSwissKnife:::.decode.arg(queryvar)
     ## compute SSCP matrix for each centered data table
+
+   # opals <- datashield.login(logins=logins)
+   # nNode <- length(opals)
+   # querytable <- unique(logindata$table)
+  
+   # datashield.assign(opals, 'rawData', querytable,
+   #                 variables=queryvar, async=T)
+
+   # datashield.assign(opals, "center", as.symbol('center(rawData)'), async=T)
 
     XX <- lapply(group, function(variables) {
         federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
     
-
-
-      
-  dimensions = datashield.aggregate(opals, as.symbol('dsDim(filtered)'), async=T)
-  print(dimensions)
+    dimensions = list(server1 = c(101,5), server2 = c(101, 5))
+    #dimensions = datashield.aggregate(opals, as.symbol('dimDSS(center)'), async=T)
+    #print(dimensions)
   
-  x1_cov = XX[1:dimensions[[1]][1], 1:dimensions[[1]][1]] /(dimensions[[1]][2]-1)
-  print(dim(x1_cov))
-  x2_cov = XX[(dimensions[[1]][1]+1): nrow(XX), (dimensions[[1]][1]+1): ncol(XX)] /(dimensions[[2]][2]-1) 
-  x1x2_cov = XX[1:dimensions[[1]][1], (dimensions[[1]][1]+1): ncol(XX)] / (dimensions[[1]][2]-1) 
-  x2x1_cov = XX[(dimensions[[1]][1]+1): nrow(XX),1:dimensions[[1]][1]] / (dimensions[[1]][2]-1) 
+    x1_cov = XX[1:dimensions[[1]][1], 1:dimensions[[1]][1]] /(dimensions[[1]][2]-1)
+    print(dim(x1_cov))
+    x2_cov = XX[(dimensions[[1]][1]+1): nrow(XX), (dimensions[[1]][1]+1): ncol(XX)] /(dimensions[[2]][2]-1) 
+    x1x2_cov = XX[1:dimensions[[1]][1], (dimensions[[1]][1]+1): ncol(XX)] / (dimensions[[1]][2]-1) 
+    x2x1_cov = XX[(dimensions[[1]][1]+1): nrow(XX),1:dimensions[[1]][1]] / (dimensions[[1]][2]-1) 
   
-  block = rbind(cbind(x1_cov, x1y2_cov), cbind(x2x1_cov,x2_cov))
+    block = rbind(cbind(x1_cov, x1y2_cov), cbind(x2x1_cov,x2_cov))
   
-  print(dim(block))
-  correlation <- function(Cxx){
+    print(dim(block))
+    
+    correlation <- function(Cxx){
     
     inv_var_x = diag(1/sqrt(diag(Cxx)), ncol(Cxx), ncol(Cxx))
     
@@ -77,3 +86,9 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA, TOL = 
                scudoParams = pars)
   
 }
+
+
+
+:w2q
+:wq
+
