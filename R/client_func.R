@@ -687,9 +687,10 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     colnames(Wbk) <- names.H
     csnvar <- cumsum(nvar)
     W.b <- mclapply(1:length(nvar), mc.cores=length(nvar), function(k) {
-        Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k],,drop=F]/inertia0.sqrt[k]
+        if (option=="uniform") return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F]/inertia0.sqrt[k])
+        return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F])
     })
-    return(list(W.b=W.b, LAMBDA=LAMBDA))
+    return (list(W.b=W.b, LAMBDA=LAMBDA))
     # W.b <- lapply(1:ntab, function(k) {
     #     #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
     #     Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
