@@ -446,7 +446,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     XX <- lapply(group, function(variables) {
         federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
-    return (XX)
+    
     ## set up the centered data table on every node
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata <- dsSwissKnife:::.decode.arg(logins)
