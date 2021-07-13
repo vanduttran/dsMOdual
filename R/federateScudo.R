@@ -12,6 +12,7 @@
 #' @return XX
 #' @importFrom utils setTxtProgressBar
 #' @importFrom DSI datashield.aggregate
+#' @import rScudo
 #' @export
 federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA, TOL = 1e-10) {
     
