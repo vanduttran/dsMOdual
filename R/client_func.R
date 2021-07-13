@@ -682,7 +682,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
         Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
             expr <- list(as.symbol("crossProd"),
                          as.symbol("centeredData"),
-                         dsSwissKnifeClient:::.encode.arg(Qlist[[opn]]))
+                         .encode.arg(Qlist[[opn]]))
             loadings <- datashield.aggregate(opals[opn], as.call(expr), async=F)
             return (loadings)
         }), recursive = F))
