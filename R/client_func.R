@@ -128,6 +128,7 @@ pushSingMatrix <- function(value) {
 #' @param XtX X'X
 #' @param r A non-null vector of length \code{ncol(t(X)*X)}
 #' @param Xr A vector of length \code{nrow(X * t(X))}, equals to the product X %*% r
+#' @param TOL Tolerance of 0
 #' @import parallel
 #' @importFrom Matrix rankMatrix
 #' @keywords internal
@@ -414,7 +415,7 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of the servers containing cohort data
 #' @param variables Variables
-#' @param TOL Tolerance of 0
+#' @param TOL Tolerance of 0, deprecated
 #' @param XX  :	        list of dataframes XX = X %*% t(X)
 #' @param group :       named list of variables for each table
 #' @param H :           number of common dimensions
@@ -675,7 +676,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
         # })
         # return (Qi.iter)
     }), names(opals))
-    return (size)
+    
     W.b <- lapply(1:ntab, function(k) {
         #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
         Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
@@ -689,6 +690,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
         colnames(Wbk) <- names.H
         return (Wbk/inertia0.sqrt)
     })
+    return (W.b)
     We <- do.call(rbind, lapply(1:ntab, function(k) W.b[[k]] %*% diag(LAMBDA[k,]))) #crossprod(as.matrix(X[,J==k]), Q)
     
     P.b <- W.b #lapply(W.b, function(x) t(x))
