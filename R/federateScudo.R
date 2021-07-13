@@ -14,11 +14,66 @@
 #' @importFrom DSI datashield.aggregate
 #' @export
 federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA, TOL = 1e-10) {
+    
+
+    ScudoResults <- setClass("ScudoResults",
+                         slots = list(
+                           distMatrix = "matrix",
+                           upSignatures = "data.frame",
+                           downSignatures = "data.frame",
+                           groupsAnnotation = "factor",
+                           consensusUpSignatures = "data.frame",
+                           consensusDownSignatures = "data.frame",
+                           selectedFeatures = "character",
+                           scudoParams = "list"))
+
+
     group <- dsSwissKnife:::.decode.arg(queryvar)
     ## compute SSCP matrix for each centered data table
 
     XX <- lapply(group, function(variables) {
         federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
-    return (XX)
+    
+
+
+      
+  dimensions = datashield.aggregate(opals, as.symbol('dsDim(filtered)'), async=T)
+  print(dimensions)
+  
+  x1_cov = XX[1:dimensions[[1]][1], 1:dimensions[[1]][1]] /(dimensions[[1]][2]-1)
+  print(dim(x1_cov))
+  x2_cov = XX[(dimensions[[1]][1]+1): nrow(XX), (dimensions[[1]][1]+1): ncol(XX)] /(dimensions[[2]][2]-1) 
+  x1x2_cov = XX[1:dimensions[[1]][1], (dimensions[[1]][1]+1): ncol(XX)] / (dimensions[[1]][2]-1) 
+  x2x1_cov = XX[(dimensions[[1]][1]+1): nrow(XX),1:dimensions[[1]][1]] / (dimensions[[1]][2]-1) 
+  
+  block = rbind(cbind(x1_cov, x1y2_cov), cbind(x2x1_cov,x2_cov))
+  
+  print(dim(block))
+  correlation <- function(Cxx){
+    
+    inv_var_x = diag(1/sqrt(diag(Cxx)), ncol(Cxx), ncol(Cxx))
+    
+    corr = inv_var_x %*% Cxx %*% inv_var_x
+    rownames(corr) = rownames(Cxx)
+    colnames(corr) = colnames(Cxx)
+    return(corr)
+    
+  }
+  
+  
+  distances = 1 - correlation(block)
+  
+  #define output
+  pars = list(nTop, nBottom)
+  
+  ScudoResults(distMatrix = distances, 
+               upSignatures = NULL, 
+               downSignatures = NULL, 
+               groupsAnnotation = groups,
+               consensusUpSignatures = NULL, 
+               consensusDownSignatures = NULL, 
+               selectedFeatures = rownames(expressionData), 
+               scudoParams = pars)
+  
 }

@@ -128,6 +128,7 @@ pushSingMatrix <- function(value) {
 #' @param XtX X'X
 #' @param r A non-null vector of length \code{ncol(t(X)*X)}
 #' @param Xr A vector of length \code{nrow(X * t(X))}, equals to the product X %*% r
+#' @param TOL Tolerance of 0
 #' @import parallel
 #' @importFrom Matrix rankMatrix
 #' @keywords internal
@@ -414,7 +415,7 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of the servers containing cohort data
 #' @param variables Variables
-#' @param TOL Tolerance of 0
+#' @param TOL Tolerance of 0, deprecated
 #' @param XX  :	        list of dataframes XX = X %*% t(X)
 #' @param group :       named list of variables for each table
 #' @param H :           number of common dimensions
@@ -446,7 +447,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     XX <- lapply(group, function(variables) {
         federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
-    return (XX)
+    
     ## set up the centered data table on every node
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata <- dsSwissKnife:::.decode.arg(logins)
@@ -675,21 +676,39 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
         # })
         # return (Qi.iter)
     }), names(opals))
-    return (size)
-    W.b <- lapply(1:ntab, function(k) {
-        #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
-        Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
-            expr <- list(as.symbol("crossProd"),
-                         as.symbol("centeredData"),
-                         dsSwissKnifeClient:::.encode.arg(Qlist[[opn]]))
-            loadings <- datashield.aggregate(opals[opn], as.call(expr), async=F)
-            return (loadings)
-        }), recursive = F))
-        
-        colnames(Wbk) <- names.H
-        return (Wbk/inertia0.sqrt)
+
+    Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
+        expr <- list(as.symbol("loadings"),
+                     as.symbol("centeredAllData"),
+                     .encode.arg(Qlist[[opn]]))
+        loadings <- datashield.aggregate(opals[opn], as.call(expr), async=T)
+        return (loadings)
+    }), recursive = F))
+    colnames(Wbk) <- names.H
+    csnvar <- cumsum(nvar)
+    W.b <- mclapply(1:length(nvar), mc.cores=length(nvar), function(k) {
+        Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k],,drop=F]/inertia0.sqrt[k]
     })
-    We <- do.call(rbind, lapply(1:ntab, function(k) W.b[[k]] %*% diag(LAMBDA[k,]))) #crossprod(as.matrix(X[,J==k]), Q)
+    # W.b <- lapply(1:ntab, function(k) {
+    #     #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
+    #     Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
+    #         expr <- list(as.symbol("loadings"),
+    #                      as.symbol("centeredAllData"),
+    #                      .encode.arg(Qlist[[opn]]))
+    #         loadings <- datashield.aggregate(opals[opn], as.call(expr), async=F)
+    #         return (loadings)
+    #     }), recursive = F))
+    #     
+    #     colnames(Wbk) <- names.H
+    #     return (Wbk/inertia0.sqrt)
+    # })
+    # return (W.b)
+    print(class(W.b[[1]]))
+    print(class(diag(LAMBDA[1,])))
+    print(sum(W.b[[1]]))
+    print(sum(diag(LAMBDA[1,])))
+    We <- do.call(rbind, lapply(1:ntab, function(k) tcrossprod(W.b[[k]], diag(LAMBDA[k,]))))
+    #We <- do.call(rbind, lapply(1:ntab, function(k) W.b[[k]] %*% diag(LAMBDA[k,]))) #crossprod(as.matrix(X[,J==k]), Q)
     
     P.b <- W.b #lapply(W.b, function(x) t(x))
     Pe  <- do.call(rbind, P.b)
@@ -759,7 +778,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     # Return Res
     # ---------------------------------------------------------------------------
     Res$call   <- match.call()
-    class(Res) <- c("ComDimSSCP")
+    class(Res) <- c("federateComDim")
     
     return(Res)
 }
