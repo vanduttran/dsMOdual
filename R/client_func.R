@@ -129,6 +129,7 @@ pushSingMatrix <- function(value) {
 #' @param r A non-null vector of length \code{ncol(t(X)*X)}
 #' @param Xr A vector of length \code{nrow(X * t(X))}, equals to the product X %*% r
 #' @import parallel
+#' @importFrom Matrix rankMatrix
 #' @keywords internal
 #' @return X
 solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
@@ -159,24 +160,29 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     valB2 <- eB2$values                     # valB2 == union(valB1, 0)
     vecs <- list("XXt"=vecB1, "XtX"=vecB2)
     vals <- list("XXt"=valB1, "XtX"=valB2)
-    if (N2 > N1) {
-        tol <- max(abs(valB2[(N1+1):N2]))*10
-    } else if (N1 > N2) {
-        tol <- max(abs(valB1[(N2+1):N1]))*10
-    } else {
-        tol <- TOL
-    }
+    poseignum <- min(Matrix::rankMatrix(B1), Matrix::rankMatrix(B2))
     vals <- mclapply(vals, mc.cores=length(vals), function(x) {
-        x[abs(x) < tol] <- 0
+        x[(poseignum+1):length(x)] <- 0
         return (x)
     })
-    eignum <- length(vals[[1]])
-    poseignum <- unique(sapply(vals, function(x) {
-        print(head(x, 10))
-        max(which(x > 0))
-    }))
-    cat("Number of strictly positive eigenvalues:", poseignum, "with tolerance of", tol, "\n")
-    stopifnot(length(poseignum)==1)
+    # if (N2 > N1) {
+    #     tol <- max(abs(valB2[(N1+1):N2]))*10
+    # } else if (N1 > N2) {
+    #     tol <- max(abs(valB1[(N2+1):N1]))*10
+    # } else {
+    #     tol <- TOL
+    # }
+    # vals <- mclapply(vals, mc.cores=length(vals), function(x) {
+    #     x[abs(x) < tol] <- 0
+    #     return (x)
+    # })
+    # eignum <- length(vals[[1]])
+    # poseignum <- unique(sapply(vals, function(x) {
+    #     print(head(x, 10))
+    #     max(which(x > 0))
+    # }))
+    # cat("Number of strictly positive eigenvalues:", poseignum, "with tolerance of", tol, "\n")
+    # stopifnot(length(poseignum)==1)
     ## verify deduced info
     invisible(lapply(1:length(vecs), function(j) {
         vec <- vecs[[j]]
@@ -371,11 +377,13 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
             a1 <- solveSSCP(XXt=prodDataCross[[opni]][[opnj]],
                             XtX=prodDataCross[[opnj]][[opni]],
                             r=crossProdSelf[[opnj]][, 1, drop=F],
-                            Xr=singularProdCross[[opni]][[opnj]])
+                            Xr=singularProdCross[[opni]][[opnj]],
+                            TOL=TOL)
             a2 <- solveSSCP(XXt=prodDataCross[[opnj]][[opni]],
                             XtX=prodDataCross[[opni]][[opnj]],
                             r=crossProdSelf[[opni]][, 1, drop=F],
-                            Xr=singularProdCross[[opnj]][[opni]])
+                            Xr=singularProdCross[[opnj]][[opni]],
+                            TOL=TOL)
             cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))), "\n")
             return (a1)
         })
