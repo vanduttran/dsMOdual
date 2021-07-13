@@ -175,7 +175,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
         print(head(x, 10))
         max(which(x > 0))
     }))
-    cat("Number of strictly positive eigenvalues:", poseignum, "\n")
+    cat("Number of strictly positive eigenvalues:", poseignum, "with tolerance of", tol, "\n")
     stopifnot(length(poseignum)==1)
     ## verify deduced info
     invisible(lapply(1:length(vecs), function(j) {
