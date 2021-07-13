@@ -703,8 +703,12 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     #     return (Wbk/inertia0.sqrt)
     # })
     # return (W.b)
-    
-    We <- do.call(rbind, lapply(1:ntab, function(k) W.b[[k]] %*% diag(LAMBDA[k,]))) #crossprod(as.matrix(X[,J==k]), Q)
+    print(class(W.b[[1]]))
+    print(class(diag(LAMBDA[1,])))
+    print(sum(W.b[[1]]))
+    print(sum(diag(LAMBDA[1,])))
+    We <- do.call(rbind, lapply(1:ntab, function(k) tcrossprod(W.b[[k]], diag(LAMBDA[k,]))))
+    #We <- do.call(rbind, lapply(1:ntab, function(k) W.b[[k]] %*% diag(LAMBDA[k,]))) #crossprod(as.matrix(X[,J==k]), Q)
     
     P.b <- W.b #lapply(W.b, function(x) t(x))
     Pe  <- do.call(rbind, P.b)
