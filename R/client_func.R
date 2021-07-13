@@ -677,21 +677,33 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
         # return (Qi.iter)
     }), names(opals))
 
-    return (Qlist)
-    W.b <- lapply(1:ntab, function(k) {
-        #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
-        Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
-            expr <- list(as.symbol("crossProd"),
-                         as.symbol("centeredData"),
-                         .encode.arg(Qlist[[opn]]))
-            loadings <- datashield.aggregate(opals[opn], as.call(expr), async=F)
-            return (loadings)
-        }), recursive = F))
-        
-        colnames(Wbk) <- names.H
-        return (Wbk/inertia0.sqrt)
+    Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
+        expr <- list(as.symbol("loadings"),
+                     as.symbol("centeredAllData"),
+                     .encode.arg(Qlist[[opn]]))
+        loadings <- datashield.aggregate(opals[opn], as.call(expr), async=T)
+        return (loadings)
+    }), recursive = F))
+    colnames(Wbk) <- names.H
+    csnvar <- cumsum(nvar)
+    W.b <- mclapply(1:length(nvar), mc.cores=length(nvar), function(k) {
+        Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k],,drop=F]/inertia0.sqrt[k]
     })
-    return (W.b)
+    # W.b <- lapply(1:ntab, function(k) {
+    #     #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
+    #     Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
+    #         expr <- list(as.symbol("loadings"),
+    #                      as.symbol("centeredAllData"),
+    #                      .encode.arg(Qlist[[opn]]))
+    #         loadings <- datashield.aggregate(opals[opn], as.call(expr), async=F)
+    #         return (loadings)
+    #     }), recursive = F))
+    #     
+    #     colnames(Wbk) <- names.H
+    #     return (Wbk/inertia0.sqrt)
+    # })
+    # return (W.b)
+    
     We <- do.call(rbind, lapply(1:ntab, function(k) W.b[[k]] %*% diag(LAMBDA[k,]))) #crossprod(as.matrix(X[,J==k]), Q)
     
     P.b <- W.b #lapply(W.b, function(x) t(x))
@@ -762,7 +774,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     # Return Res
     # ---------------------------------------------------------------------------
     Res$call   <- match.call()
-    class(Res) <- c("ComDimSSCP")
+    class(Res) <- c("federateComDim")
     
     return(Res)
 }
