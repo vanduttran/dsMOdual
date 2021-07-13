@@ -172,9 +172,10 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     })
     eignum <- length(vals[[1]])
     poseignum <- unique(sapply(vals, function(x) {
+        print(head(x, 10))
         max(which(x > 0))
     }))
-    cat("Number of strictly positive eigenvalues:", poseignum, "\n")
+    cat("Number of strictly positive eigenvalues:", poseignum, "with tolerance of", tol, "\n")
     stopifnot(length(poseignum)==1)
     ## verify deduced info
     invisible(lapply(1:length(vecs), function(j) {
@@ -437,7 +438,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     XX <- lapply(group, function(variables) {
         federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
     })
-
+    return (XX)
     ## set up the centered data table on every node
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata <- dsSwissKnife:::.decode.arg(logins)
@@ -648,7 +649,9 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     ## loadings
     if (is.na(size)) {
         # number of samples on each node
-        size <- sapply(dsSwissKnifeClient::dssDim(datasources=opals, x="centeredAllData"), function(x) x[1])
+        #size <- sapply(dsSwissKnifeClient::dssDim(datasources=opals, x="centeredAllData"), function(x) x[1])
+        #size <- sapply(dsDim(datasources=opals, x="centeredAllData"), function(x) x[1])
+        size <- sapply(datashield.aggregate(opals, as.symbol('dimDSS(centeredAllData)'), async=T), function(x) x[1])
     }
     size <- c(0, size)
     func <- function(x, y) {x %*% y}
