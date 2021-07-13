@@ -90,6 +90,5 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA, TOL = 
 
 
 
-:w2q
-:wq
+
 
