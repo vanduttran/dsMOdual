@@ -19,17 +19,6 @@
 #' @export
 federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10, labels = "NA", size = NA, TOL = 1e-10) {
     
-
-    ScudoResults <- setClass("ScudoResults",
-                           slots = list(
-                           distMatrix = "matrix",
-                           upSignatures = "data.frame",
-                           downSignatures = "data.frame",
-                           groupsAnnotation = "factor",
-                           consensusUpSignatures = "data.frame",
-                           consensusDownSignatures = "data.frame",
-                           selectedFeatures = "character",
-                           scudoParams = "list"))
        
     loginFD <-dsSwissKnife:::.decode.arg(loginFD)
     logins <- dsSwissKnife:::.decode.arg(logins)
@@ -66,34 +55,34 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     colnames(corr) = colnames(Cxx)
     return(corr)
     
-   }
+    }
   
   
-   distances =  lapply(XXcov, function(x) {abs(1- correlation(x))})[[1]]
+    distances =  lapply(XXcov, function(x) {abs(1- correlation(x))})[[1]]
 
   
-   #define output
-   pars = list(nTop, nBottom)
-   y <- c(rep(0,101),rep(1,101))
-   labels <- factor(y, labels = c("Smoker-tumor","Normal"))
+    #define output
+    pars = list(nTop, nBottom)
+    y <- c(rep(0,101),rep(1,101))
+    labels <- factor(y, labels = c("Smoker-tumor","Normal"))
 
-   upSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nTop, ncol(distances)))
-   colnames(upSignatures) = colnames(distances)
+    upSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nTop, ncol(distances)))
+    colnames(upSignatures) = colnames(distances)
   
-   downSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nBott, ncol(distances)))
-   colnames(downSignatures) = colnames(distances)
+    downSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nBott, ncol(distances)))
+    colnames(downSignatures) = colnames(distances)
   
   
-   consensusUpSignatures = as.data.frame(matrix("NA", nTop, length(unique(labels))))
-   colnames(consensusUpSignatures) = unique(labels)
+    consensusUpSignatures = as.data.frame(matrix("NA", nTop, length(unique(labels))))
+    colnames(consensusUpSignatures) = unique(labels)
   
-   consensusDownSignatures = as.data.frame(matrix("NA", nBott, length(unique(labels))))
-   colnames(consensusDownSignatures) = unique(labels)
+    consensusDownSignatures = as.data.frame(matrix("NA", nBott, length(unique(labels))))
+    colnames(consensusDownSignatures) = unique(labels)
   
-   pars$foldChange = 0
-   pars$groupedFoldChange = 0
+    pars$foldChange = 0
+    pars$groupedFoldChange = 0
   
-   res = ScudoResults(distMatrix = distances, 
+    res = list(distMatrix = distances, 
                upSignatures = NULL, 
                downSignatures = NULL, 
                groupsAnnotation = labels,
@@ -103,10 +92,55 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
                scudoParams = pars)
 
 
-   to_plot = scudoNetwork(res, 0.2)
-   scudoPlot(to_plot)
+    
+    addColors <-function(result, object, colors) {
+    if (length(object$groupsAnnotation) == 0) {
+      igraph::V(result)$color <- rep("#FFFFFF", dim(object$distMatrix)[1])
+    } else {
+      igraph::V(result)$group <- as.character(object$groupsAnnotation)
+      
+      if (length(colors) == 0) {
+        pal <- grDevices::rainbow(length(levels(object$groupsAnnotation)))
+        pal <- stringr::str_extract(pal, "^#[0-9a-fA-F]{6}")
+        igraph::V(result)$color <- pal[as.integer(object$groupsAnnotation)]
+      } else {
+        igraph::V(result)$color <- stringr::str_extract(colors,
+                                                        "^#[0-9a-fA-F]{6}")
+      }
+    }
+    
+    result
+  }
 
-  
+
+    scudoNetwork = function(object, N, colors = character()) {
+    
+    # input checks
+    stopifnot(rScudo:::.isSinglePositiveNumber(N),
+              N <= 1.0,
+              is.character(colors),
+              is.vector(colors)
+    )
+    
+    if (length(colors) != 0) {
+      if (any(is.na(colors))) stop("colors contains NAs")
+      if (length(colors) != dim(object$distMatrix)[1]) {
+        stop(paste("length of colors differs from number of samples",
+                   "in object"))
+      }
+      if (any(is.na(stringr::str_match(colors, "^#[0-9a-fA-F]{6,8}$")))) {
+        stop(paste("colors contains invalid hexadecimal colors (see",
+                   "documentation for correct format)"))
+      }
+    }
+    
+    # get distance matrix and generate igraph object
+    result <- rScudo:::.makeNetwork(res$distMatrix, N)
+    
+    # add group and color annotation
+    
+    addColors(result, object, colors)
+  }
 }
 
 
