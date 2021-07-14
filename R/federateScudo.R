@@ -17,7 +17,7 @@
 #' @importFrom DSI datashield.aggregate
 #' @import rScudo
 #' @export
-federateScudo <- function(loginFD, logins, queryvar, querytab, nTop, nBott, labels, size = NA, TOL = 1e-10) {
+federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10, labels = "NA", size = NA, TOL = 1e-10) {
     
 
     ScudoResults <- setClass("ScudoResults",
@@ -73,7 +73,8 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop, nBott, labe
   
   #define output
   pars = list(nTop, nBottom)
-  
+  y <- c(rep(0,101),rep(1,101))
+  labels <- factor(y, labels = c("Smoker-tumor","Normal"))
 
   upSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nTop, ncol(distances)))
   colnames(upSignatures) = colnames(distances)
@@ -82,11 +83,11 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop, nBott, labe
   colnames(downSignatures) = colnames(distances)
   
   
-  consensusUpSignatures = as.data.frame(matrix("NA", nTop, length(unique(groups))))
-  colnames(consensusUpSignatures) = unique(groups)
+  consensusUpSignatures = as.data.frame(matrix("NA", nTop, length(unique(labels))))
+  colnames(consensusUpSignatures) = unique(labels)
   
-  consensusDownSignatures = as.data.frame(matrix("NA", nBott, length(unique(groups))))
-  colnames(consensusDownSignatures) = unique(groups)
+  consensusDownSignatures = as.data.frame(matrix("NA", nBott, length(unique(labels))))
+  colnames(consensusDownSignatures) = unique(labels)
   
   pars$foldChange = 0
   pars$groupedFoldChange = 0
