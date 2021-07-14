@@ -244,23 +244,24 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 #' @title Federated SSCP
 #' @description Function for computing the federated SSCP matrix
 #' @param loginFD Login information of the FD server
-#' @param logins Login information of the servers containing cohort data
-#' @param variables Variables
+#' @param logins Login information of data repositories
+#' @param querytab Encoded name of a table reference in data repositories
+#' @param queryvar Encoded variables from the table reference
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
-    require(DSOpal)
+federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
+    #require(DSOpal)
 
-    loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
-    logindata <- dsSwissKnife:::.decode.arg(logins)
-    vardata <- dsSwissKnife:::.decode.arg(variables)
+    loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
+    logindata      <- dsSwissKnife:::.decode.arg(logins)
+    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-    querytable <- unique(logindata$table)
 
-    datashield.assign(opals, "rawData", querytable, variables=vardata, async=T)
+    datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
     datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
@@ -274,9 +275,9 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
         datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async=F)
         
         command.opn <- list(paste0("crossAssign(mates, symbol='rawDataMate', value='", 
-                                   .encode.arg(querytable), 
+                                   querytab, 
                                    "', value.call=F, variables='",
-                                   variables,
+                                   queryvar,
                                    "', async=F)"),
                             paste0("crossAssign(mates, symbol='centeredDataMate', value='",
                                    .encode.arg("center(rawDataMate)"),
@@ -442,10 +443,12 @@ federateSSCP <- function(loginFD, logins, variables, TOL = 1e-10) {
 #' @importFrom DSI datashield.aggregate
 #' @export
 federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
-    group <- dsSwissKnife:::.decode.arg(queryvar)
+    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    
     ## compute SSCP matrix for each centered data table
-    XX <- lapply(group, function(variables) {
-        federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
+    XX <- lapply(queryvariables, function(variables) {
+        federateSSCP(loginFD, logins, querytable, .encode.arg(variables), TOL)
     })
     
     ## set up the centered data table on every node
@@ -453,12 +456,12 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     logindata <- dsSwissKnife:::.decode.arg(logins)
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-    querytabd <- dsSwissKnife:::.decode.arg(querytab)
-    if (length(querytabd)==1) {
+    
+    if (length(querytable)==1) {
         ## TODO: make sure different blocks have the same samples (rownames)
-        datashield.assign(opals, "rawAllData", querytabd, variables=unlist(group), async=T)
+        datashield.assign(opals, "rawAllData", querytable, variables=unlist(queryvariables), async=T)
         datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
-    } else if (length(querytabd)==length(queryvar)) {
+    } else if (length(querytable)==length(queryvariables)) {
         stop("Not yet implemented.")
     } else (
         stop("querytab should contain 1 or length(queryvar) names.")
