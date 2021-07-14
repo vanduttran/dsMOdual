@@ -31,8 +31,8 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
                            selectedFeatures = "character",
                            scudoParams = "list"))
        
-   # loginFD <-dsSwissKnife:::.decode.arg(loginFD)
-   # logins <- dsSwissKnife:::.decode.arg(logins)
+    loginFD <-dsSwissKnife:::.decode.arg(loginFD)
+    logins <- dsSwissKnife:::.decode.arg(logins)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
 
@@ -66,34 +66,34 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     colnames(corr) = colnames(Cxx)
     return(corr)
     
-  }
+   }
   
   
-  distances =  lapply(XXcov, function(x) {abs(1- correlation(x))})[[1]]
+   distances =  lapply(XXcov, function(x) {abs(1- correlation(x))})[[1]]
 
   
-  #define output
-  pars = list(nTop, nBottom)
-  y <- c(rep(0,101),rep(1,101))
-  labels <- factor(y, labels = c("Smoker-tumor","Normal"))
+   #define output
+   pars = list(nTop, nBottom)
+   y <- c(rep(0,101),rep(1,101))
+   labels <- factor(y, labels = c("Smoker-tumor","Normal"))
 
-  upSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nTop, ncol(distances)))
-  colnames(upSignatures) = colnames(distances)
+   upSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nTop, ncol(distances)))
+   colnames(upSignatures) = colnames(distances)
   
-  downSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nBott, ncol(distances)))
-  colnames(downSignatures) = colnames(distances)
+   downSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nBott, ncol(distances)))
+   colnames(downSignatures) = colnames(distances)
   
   
-  consensusUpSignatures = as.data.frame(matrix("NA", nTop, length(unique(labels))))
-  colnames(consensusUpSignatures) = unique(labels)
+   consensusUpSignatures = as.data.frame(matrix("NA", nTop, length(unique(labels))))
+   colnames(consensusUpSignatures) = unique(labels)
   
-  consensusDownSignatures = as.data.frame(matrix("NA", nBott, length(unique(labels))))
-  colnames(consensusDownSignatures) = unique(labels)
+   consensusDownSignatures = as.data.frame(matrix("NA", nBott, length(unique(labels))))
+   colnames(consensusDownSignatures) = unique(labels)
   
-  pars$foldChange = 0
-  pars$groupedFoldChange = 0
+   pars$foldChange = 0
+   pars$groupedFoldChange = 0
   
-  res = ScudoResults(distMatrix = distances, 
+   res = ScudoResults(distMatrix = distances, 
                upSignatures = NULL, 
                downSignatures = NULL, 
                groupsAnnotation = labels,
@@ -103,8 +103,8 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
                scudoParams = pars)
 
 
-  to_plot = scudoNetwork(res, 0.2)
-  scudoPlot(to_plot)
+   to_plot = scudoNetwork(res, 0.2)
+   scudoPlot(to_plot)
 
   
 }
