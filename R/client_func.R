@@ -251,7 +251,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
 federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
-    #require(DSOpal)
+    require(DSOpal)
 
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
