@@ -684,6 +684,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
         loadings <- datashield.aggregate(opals[opn], as.call(expr), async=T)
         return (loadings)
     }), recursive = F))
+    datashield.logout(opals)
     colnames(Wbk) <- names.H
     csnvar <- cumsum(nvar)
     W.b <- mclapply(1:length(nvar), mc.cores=length(nvar), function(k) {
