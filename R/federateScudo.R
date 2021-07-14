@@ -33,7 +33,9 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     
    # loginFD <-dsSwissKnife:::.decode.arg(loginFD)
    # logins <- dsSwissKnife:::.decode.arg(logins)
-   group <- dsSwissKnife:::.decode.arg(queryvar)
+    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+
     ## compute SSCP matrix for each centered data table
 
    # opals <- datashield.login(logins=logins)
@@ -44,9 +46,8 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
    #                 variables=queryvar, async=T)
 
    # datashield.assign(opals, "center", as.symbol('center(rawData)'), async=T)
-
-    XX <- lapply(group, function(variables) {
-        federateSSCP(loginFD, logins, .encode.arg(variables), TOL)
+    XX <- lapply(queryvariables, function(variables) {
+        federateSSCP(loginFD, logins, querytable, .encode.arg(variables), TOL)
     })
     
     dimensions = list(server1 = c(101,5), server2 = c(101, 5))
