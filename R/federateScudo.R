@@ -38,10 +38,12 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     XX <- lapply(queryvariables, function(variables) {
         federateSSCP(loginFD, logins, querytable, .encode.arg(variables), TOL)
     })
+
+    print(lapply(XX, dim))
     
     dimensions = list(server1 = c(101,5), server2 = c(101, 5))
     #dimensions = datashield.aggregate(opals, as.symbol('dimDSS(center)'), async=T)
-    #print(dimensions)
+    print(dimensions)
   
     XXcov = lapply(XX, function(x) {x/(dimensions[[1]][2]-1)})
     print(lapply(XXcov, dim))
@@ -60,7 +62,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
   
     distances =  lapply(XXcov, function(x) {abs(1- correlation(x))})[[1]]
 
-  
+    print(distances)
     #define output
     pars = list(nTop, nBottom)
     y <- c(rep(0,101),rep(1,101))
@@ -92,7 +94,8 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
                scudoParams = pars)
 
 
-    
+    print(res)
+
     addColors <-function(result, object, colors) {
     if (length(object$groupsAnnotation) == 0) {
       igraph::V(result)$color <- rep("#FFFFFF", dim(object$distMatrix)[1])
