@@ -720,7 +720,6 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     # ---------------------------------------------------------------------------
     # 4.1 Preparation of the results Global
     # ---------------------------------------------------------------------------
-    return (list(W.b=W.b, LAMBDA=LAMBDA))
     close(pb)
     
     # Overall agreement
@@ -753,6 +752,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     Res$Wm <- We %*% solve(t(Pe)%*%We)
     rownames(Res$Wm) <- rownames(Res$W)
     colnames(Res$Wm) <- colnames(Res$W) <- names.H
+    return (Res)
     
     fit <- matrix(0,nrow=H,ncol=2)
     fit[,1] <- explained
