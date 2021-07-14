@@ -690,7 +690,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
         if (option=="uniform") return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F]/inertia0.sqrt[k])
         return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F])
     })
-    return (list(W.b=W.b, LAMBDA=LAMBDA))
+    
     # W.b <- lapply(1:ntab, function(k) {
     #     #Wbk <- crossprod(as.matrix(X[,J==k]), Q)
     #     Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
@@ -720,7 +720,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     # ---------------------------------------------------------------------------
     # 4.1 Preparation of the results Global
     # ---------------------------------------------------------------------------
-    
+    return (list(W.b=W.b, LAMBDA=LAMBDA))
     close(pb)
     
     # Overall agreement
