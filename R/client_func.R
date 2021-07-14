@@ -411,14 +411,13 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
 #' @title Federated ComDim
 #' @description Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
 #' Finding common dimensions in multitable data (Xk, k=1...K)
-#' @usage federateComDim(X,group,H=2,scale="none",option="none",threshold=1e-10)
+#' @usage federateComDim(loginFD, logins, queryvar, querytab, size = NA, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10)
 #'
 #' @param loginFD Login information of the FD server
-#' @param logins Login information of the servers containing cohort data
-#' @param variables Variables
+#' @param logins Login information of data repositories
+#' @param querytab Encoded name of a table reference in data repositories
+#' @param queryvar Encoded list of variables from the table reference
 #' @param TOL Tolerance of 0, deprecated
-#' @param XX  :	        list of dataframes XX = X %*% t(X)
-#' @param group :       named list of variables for each table
 #' @param H :           number of common dimensions
 #' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table
 #' @param option weighting of te tables \cr
@@ -442,7 +441,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
 #' @importFrom utils setTxtProgressBar
 #' @importFrom DSI datashield.aggregate
 #' @export
-federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
+federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     
@@ -496,8 +495,8 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     if (is.list(samples) || is.list(apply(samples, 1, unique)))
         stop("XX elements should have the same rownames and colnames")
     
-    if (is.null(names(group)))
-        names(group) <- paste("Tab", 1:length(group), sep=".")
+    if (is.null(names(queryvariables)))
+        names(queryvariables) <- paste("Tab", 1:length(queryvariables), sep=".")
     
     ## TOREVIEW
     # if (is.character(scale)) {
@@ -516,7 +515,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     # 1. Output preparation
     # ---------------------------------------------------------------------------
     ntab <- length(XX)
-    nvar <- lengths(group)
+    nvar <- lengths(queryvariables)
     W <- array(0, dim=c(nsamples, nsamples, ntab+1)) # association matrices
     
     LAMBDA <- matrix(0, nrow=ntab, ncol=H)   # will contains the saliences
@@ -524,13 +523,13 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     J <- rep(1:ntab, times=nvar)             # indicates which block each variable belongs to
     names.H <- paste("Dim.", 1:H, sep="")
     Q.b <- array(0, dim=c(nsamples,H,ntab))  # components for the block components
-    dimnames(Q.b) <- list(rownames(XX[[1]]), names.H, names(group))
+    dimnames(Q.b) <- list(rownames(XX[[1]]), names.H, names(queryvariables))
     W.b <- vector("list",length=ntab)        # weights for the block components
     P.b <- vector("list",length=ntab)        # loadings for the block components
     for (k in 1:ntab) {
         W.b[[k]] <- matrix(0,nrow=nvar[k],ncol=H)
         P.b[[k]] <- matrix(0,nrow=nvar[k],ncol=H)
-        rownames(W.b[[k]]) <- rownames(P.b[[k]]) <- group[[k]]
+        rownames(W.b[[k]]) <- rownames(P.b[[k]]) <- queryvariables[[k]]
         colnames(W.b[[k]]) <- colnames(P.b[[k]]) <- names.H
     }
     We <- Pe <- matrix(0,nrow=sum(nvar),ncol=H)
@@ -659,12 +658,9 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     }
     
     ## loadings
-    if (is.na(size)) {
-        # number of samples on each node
-        #size <- sapply(dsSwissKnifeClient::dssDim(datasources=opals, x="centeredAllData"), function(x) x[1])
-        #size <- sapply(dsDim(datasources=opals, x="centeredAllData"), function(x) x[1])
-        size <- sapply(datashield.aggregate(opals, as.symbol('dimDSS(centeredAllData)'), async=T), function(x) x[1])
-    }
+    
+    # number of samples on each node
+    size <- sapply(datashield.aggregate(opals, as.symbol('dimDSS(centeredAllData)'), async=T), function(x) x[1])
     size <- c(0, size)
     func <- function(x, y) {x %*% y}
     Qlist <- setNames(lapply(2:length(size), function(i) {
@@ -738,12 +734,12 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, size = NA, H = 2
     RV <- sapply(1:ntab, function(k) {
         coefficientRV(XX[[k]], tcrossprod(C))
     })
-    names(RV) <- names(group)
+    names(RV) <- names(queryvariables)
     
     # global components, saliences and explained variances
     Res$saliences <- LAMBDA
     colnames(Res$saliences) <- names.H
-    rownames(Res$saliences) <- names(group)
+    rownames(Res$saliences) <- names(queryvariables)
     Res$Q <- Q
     rownames(Res$Q) <- rownames(XX[[1]])
     colnames(Res$Q) <- names.H
