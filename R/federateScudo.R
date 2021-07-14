@@ -30,7 +30,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
                            consensusDownSignatures = "data.frame",
                            selectedFeatures = "character",
                            scudoParams = "list"))
-   return (NULL)    
+       
    # loginFD <-dsSwissKnife:::.decode.arg(loginFD)
    # logins <- dsSwissKnife:::.decode.arg(logins)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
