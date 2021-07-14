@@ -7,6 +7,9 @@
 #' @param logins Login information of the servers containing cohort data
 #' @param variables Variables
 #' @param XX  :	        list of dataframes XX = X %*% t(X)
+#' @param nTop how many of the most expressed features we select
+#' @param nBott how many of the least expressed features we select
+#' @param labels labels assigned to each group of samples
 #' @param TOL tolerance
 #' @param group :       named list of variables for each table
 #' @return XX
@@ -14,7 +17,7 @@
 #' @importFrom DSI datashield.aggregate
 #' @import rScudo
 #' @export
-federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA, TOL = 1e-10) {
+federateScudo <- function(loginFD, logins, queryvar, querytab, nTop, nBott, labels, size = NA, TOL = 1e-10) {
     
 
     ScudoResults <- setClass("ScudoResults",
@@ -50,15 +53,8 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA, TOL = 
     #dimensions = datashield.aggregate(opals, as.symbol('dimDSS(center)'), async=T)
     #print(dimensions)
   
-    x1_cov = XX[1:dimensions[[1]][1], 1:dimensions[[1]][1]] /(dimensions[[1]][2]-1)
-    print(dim(x1_cov))
-    x2_cov = XX[(dimensions[[1]][1]+1): nrow(XX), (dimensions[[1]][1]+1): ncol(XX)] /(dimensions[[2]][2]-1) 
-    x1x2_cov = XX[1:dimensions[[1]][1], (dimensions[[1]][1]+1): ncol(XX)] / (dimensions[[1]][2]-1) 
-    x2x1_cov = XX[(dimensions[[1]][1]+1): nrow(XX),1:dimensions[[1]][1]] / (dimensions[[1]][2]-1) 
-  
-    block = rbind(cbind(x1_cov, x1y2_cov), cbind(x2x1_cov,x2_cov))
-  
-    print(dim(block))
+    XXcov = lapply(XX, function(x) {x/(dimensions[[1]][2]-1)})
+    print(lapply(XXcov, dim))
     
     correlation <- function(Cxx){
     
@@ -72,19 +68,42 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, size = NA, TOL = 
   }
   
   
-  distances = 1 - correlation(block)
+  distances =  lapply(XXcov, function(x) {abs(1- correlation(x))})[[1]]
+
   
   #define output
   pars = list(nTop, nBottom)
   
-  ScudoResults(distMatrix = distances, 
+
+  upSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nTop, ncol(distances)))
+  colnames(upSignatures) = colnames(distances)
+  
+  downSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nBott, ncol(distances)))
+  colnames(downSignatures) = colnames(distances)
+  
+  
+  consensusUpSignatures = as.data.frame(matrix("NA", nTop, length(unique(groups))))
+  colnames(consensusUpSignatures) = unique(groups)
+  
+  consensusDownSignatures = as.data.frame(matrix("NA", nBott, length(unique(groups))))
+  colnames(consensusDownSignatures) = unique(groups)
+  
+  pars$foldChange = 0
+  pars$groupedFoldChange = 0
+  
+  res = ScudoResults(distMatrix = distances, 
                upSignatures = NULL, 
                downSignatures = NULL, 
-               groupsAnnotation = groups,
+               groupsAnnotation = labels,
                consensusUpSignatures = NULL, 
                consensusDownSignatures = NULL, 
                selectedFeatures = rownames(expressionData), 
                scudoParams = pars)
+
+
+  to_plot = scudoNetwork(res, 0.2)
+  scudoPlot(to_plot)
+
   
 }
 
