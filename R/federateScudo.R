@@ -92,7 +92,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
                selectedFeatures = "NA", 
                scudoParams = pars)
 
-    return(res)
+    
 
     addColors <-function(result, object, colors) {
     if (length(object$groupsAnnotation) == 0) {
@@ -136,11 +136,11 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     }
     
     # get distance matrix and generate igraph object
-    result <- rScudo:::.makeNetwork(res$distMatrix, N)
+    result <- rScudo:::.makeNetwork(object$server3$distMatrix, N)
        
     # add group and color annotation
     
-    addColors(result, object, colors)
+    addColors(result, object$server3, colors)
 
     return(result)
   }
