@@ -64,7 +64,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     
     
     #define output
-    pars = list(nTop, nBottom)
+    pars = list(nTop, nBott)
     y <- c(rep(0,101),rep(1,101))
     labels <- factor(y, labels = c("Smoker-tumor","Normal"))
 
