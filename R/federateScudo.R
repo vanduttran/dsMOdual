@@ -87,7 +87,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     res = ScudoResults(distMatrix = distances, 
                upSignatures = upSignatures, 
                downSignatures =  downSignatures, 
-               groupsAnnotation = groups,
+               groupsAnnotation = labels,
                consensusUpSignatures =  consensusUpSignatures, 
                consensusDownSignatures =  consensusDownSignatures, 
                selectedFeatures = "NA", 
