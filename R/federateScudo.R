@@ -68,28 +68,28 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     y <- c(rep(0,101),rep(1,101))
     labels <- factor(y, labels = c("Smoker-tumor","Normal"))
 
-    upSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nTop, ncol(distances)))
-    colnames(upSignatures) = colnames(distances)
+    #upSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nTop, ncol(distances)))
+    #colnames(upSignatures) = colnames(distances)
   
-    downSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nBott, ncol(distances)))
-    colnames(downSignatures) = colnames(distances)
+    #downSignatures = as.data.frame(matrix(rep("NA", ncol(distances)),nBott, ncol(distances)))
+    #colnames(downSignatures) = colnames(distances)
   
   
-    consensusUpSignatures = as.data.frame(matrix("NA", nTop, length(unique(labels))))
-    colnames(consensusUpSignatures) = unique(labels)
+    #consensusUpSignatures = as.data.frame(matrix("NA", nTop, length(unique(labels))))
+    #colnames(consensusUpSignatures) = unique(labels)
   
-    consensusDownSignatures = as.data.frame(matrix("NA", nBott, length(unique(labels))))
-    colnames(consensusDownSignatures) = unique(labels)
+    #consensusDownSignatures = as.data.frame(matrix("NA", nBott, length(unique(labels))))
+    #colnames(consensusDownSignatures) = unique(labels)
   
     pars$foldChange = 0
     pars$groupedFoldChange = 0
   
     res = ScudoResults(distMatrix = distances, 
-               upSignatures = upSignatures, 
-               downSignatures =  downSignatures, 
+               upSignatures = "Na", 
+               downSignatures =  "Na", 
                groupsAnnotation = labels,
-               consensusUpSignatures =  consensusUpSignatures, 
-               consensusDownSignatures =  consensusDownSignatures, 
+               consensusUpSignatures =  "Na", 
+               consensusDownSignatures =  "Na", 
                selectedFeatures = "NA", 
                scudoParams = pars)
 
