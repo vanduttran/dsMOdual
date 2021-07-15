@@ -38,7 +38,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     XX <- lapply(queryvariables, function(variables) {
         federateSSCP(loginFD, logins, querytable, .encode.arg(variables), TOL)
     })
-
+    return(XX)
     print(lapply(XX, dim))
     
     dimensions = list(server1 = c(101,5), server2 = c(101, 5))
