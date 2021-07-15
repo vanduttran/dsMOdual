@@ -84,7 +84,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     pars$foldChange = 0
     pars$groupedFoldChange = 0
   
-    res = ScudoResults(distMatrix = distances, 
+    res = list(distMatrix = distances, 
                upSignatures = "Na", 
                downSignatures =  "Na", 
                groupsAnnotation = labels,
