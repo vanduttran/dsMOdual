@@ -94,7 +94,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
                scudoParams = pars)
 
 
-    print(res)
+    return(res)
 
     addColors <-function(result, object, colors) {
     if (length(object$groupsAnnotation) == 0) {
