@@ -61,8 +61,8 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
   
   
     distances =  lapply(XXcov, function(x) {abs(1- correlation(x))})[[1]]
-    return(distances) 
-    print(distances)
+    
+    
     #define output
     pars = list(nTop, nBottom)
     y <- c(rep(0,101),rep(1,101))
@@ -139,10 +139,12 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     
     # get distance matrix and generate igraph object
     result <- rScudo:::.makeNetwork(res$distMatrix, N)
-    
+       
     # add group and color annotation
     
     addColors(result, object, colors)
+
+    return(result)
   }
 }
 
