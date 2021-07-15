@@ -116,35 +116,34 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
 
     scudoNetwork = function(object, N, colors = character()) {
     
-    # input checks
-    stopifnot(rScudo:::.isSinglePositiveNumber(N),
-              N <= 1.0,
-              is.character(colors),
-              is.vector(colors)
-    )
+       			 # input checks
+   			 stopifnot(rScudo:::.isSinglePositiveNumber(N),
+             		 N <= 1.0,
+             		 is.character(colors),
+             		 is.vector(colors) )
     
-    if (length(colors) != 0) {
-      if (any(is.na(colors))) stop("colors contains NAs")
-      if (length(colors) != dim(object$distMatrix)[1]) {
-        stop(paste("length of colors differs from number of samples",
-                   "in object"))
-      }
-      if (any(is.na(stringr::str_match(colors, "^#[0-9a-fA-F]{6,8}$")))) {
-        stop(paste("colors contains invalid hexadecimal colors (see",
-                   "documentation for correct format)"))
-      }
-    }
+   		 if (length(colors) != 0) {
+     			 if (any(is.na(colors))) stop("colors contains NAs")
+     			 if (length(colors) != dim(object$distMatrix)[1]) {
+       				 stop(paste("length of colors differs from number of samples",
+                  		 "in object"))
+     		     }
+     		 if (any(is.na(stringr::str_match(colors, "^#[0-9a-fA-F]{6,8}$")))) {
+       			 stop(paste("colors contains invalid hexadecimal colors (see",
+                  		 "documentation for correct format)"))
+     			 }
+   				 }
     
-    # get distance matrix and generate igraph object
-    result <- rScudo:::.makeNetwork(object$distMatrix, N)
+   	   # get distance matrix and generate igraph object
+   	   result <- rScudo:::.makeNetwork(object$distMatrix, N)
        
-    # add group and color annotation
+   	   # add group and color annotation
     
-    addColors(result, object, colors)
+   	   addColors(result, object, colors)
 
-    return(result)
-  }
-  return(res[[1]]) 
+    	 return(result)
+ 	 }
+  return(res) 
   to_plot = scudoNetwork(res$server3, 0.2)
   return(to_plot)
 }
