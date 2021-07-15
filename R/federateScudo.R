@@ -60,8 +60,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     }
   
   
-    distances =  lapply(XXcov, function(x) {abs(1- correlation(x))})[[1]]
-    distances = distances[[1]] 
+    distances =  lapply(XXcov, function(x) {abs(1- correlation(x))})[[1]] 
     
     #define output
     pars = list(nTop, nBott)
