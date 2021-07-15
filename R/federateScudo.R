@@ -144,7 +144,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
 
     return(result)
   }
-   
+  return(res$server3) 
   to_plot = scudoNetwork(res$server3, 0.2)
   return(to_plot)
 }
