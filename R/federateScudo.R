@@ -136,14 +136,17 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     }
     
     # get distance matrix and generate igraph object
-    result <- rScudo:::.makeNetwork(object$server3$distMatrix, N)
+    result <- rScudo:::.makeNetwork(object$distMatrix, N)
        
     # add group and color annotation
     
-    addColors(result, object$server3, colors)
+    addColors(result, object, colors)
 
     return(result)
   }
+   
+  to_plot = scudoNetwork(res$server3, 0.2)
+  return(to_plot)
 }
 
 
