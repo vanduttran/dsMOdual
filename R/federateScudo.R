@@ -84,15 +84,14 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
     pars$foldChange = 0
     pars$groupedFoldChange = 0
   
-    res = list(distMatrix = distances, 
-               upSignatures = NULL, 
-               downSignatures = NULL, 
-               groupsAnnotation = labels,
-               consensusUpSignatures = NULL, 
-               consensusDownSignatures = NULL, 
-               selectedFeatures = rownames(expressionData), 
+    res = ScudoResults(distMatrix = distances, 
+               upSignatures = upSignatures, 
+               downSignatures =  downSignatures, 
+               groupsAnnotation = groups,
+               consensusUpSignatures =  consensusUpSignatures, 
+               consensusDownSignatures =  consensusDownSignatures, 
+               selectedFeatures = "NA", 
                scudoParams = pars)
-
 
     return(res)
 
