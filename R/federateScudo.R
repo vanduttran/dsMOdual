@@ -20,8 +20,8 @@
 federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10, labels = "NA", size = NA, TOL = 1e-10) {
     
        
-    loginFD <-dsSwissKnife:::.decode.arg(loginFD)
-    logins <- dsSwissKnife:::.decode.arg(logins)
+    #loginFD <-dsSwissKnife:::.decode.arg(loginFD)
+    #logins <- dsSwissKnife:::.decode.arg(logins)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
 
