@@ -266,7 +266,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
 
-    ##- received by node i from other nodes ----
+    ##- received by each from other nodes ----
     invisible(mclapply(names(opals), mc.cores=1, function(opn) {
         logindata.opn <- logindata[logindata$server != opn, , drop=F]
         logindata.opn$user <- logindata.opn$userserver
@@ -301,7 +301,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     datashield.symbols(opals)
     #-----
     
-    ## (X_i) * (X_i)': push this symmetric matrix from server i to FD
+    ## (X_i) * (X_i)': push this symmetric matrix from each node to FD
     #crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
     datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
     
@@ -344,7 +344,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     })
     gc(reset=F)
 
-    ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]: push this single-column matrix from server i to FD
+    ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]: push this single-column matrix from each node to FD
     #singularProdCross <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
     
@@ -660,7 +660,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "
     ## loadings
     
     # number of samples on each node
-    size <- sapply(datashield.aggregate(opals, as.symbol('dimDSS(centeredAllData)'), async=T), function(x) x[1])
+    size <- sapply(datashield.aggregate(opals, as.symbol('dimDS(centeredAllData)'), async=T), function(x) x[1])
     size <- c(0, size)
     func <- function(x, y) {x %*% y}
     Qlist <- setNames(lapply(2:length(size), function(i) {
@@ -779,5 +779,84 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "
     class(Res) <- c("federateComDim")
     
     return(Res)
+}
+
+
+#' @title Federated covariance matrix
+#' @description Compute the covariance matrix for the virtual cohort
+#' @param logins Login information of the servers containing cohort data
+#' @param querytab Encoded name of a table reference in data repositories
+#' @param queryvar Encoded variables from the table reference
+#' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
+#' @import DSOpal parallel bigmemory
+#' @export
+federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
+    logindata      <- dsSwissKnife:::.decode.arg(logins)
+    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+    if (is.na(nameFD)) {
+        nameFD <- logindata$server[1]
+    } else {
+        stopifnot(nameFD %in% logindata$server)
+    }
+    opals <- DSI::datashield.login(logins=logindata)
+    nNode <- length(opals)
+    datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
+    datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
+    datashield.assign(opals[setdiff(names(opals), nameFD)], 'FD', as.symbol(paste0("crossLogin('", .encode.arg(logindata.FD), "')")), async=T)
+
+    command <- paste0("dscPush(FD, '", 
+                      .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
+                      "', async=T)")
+    cat("Command: ", command, "\n")
+    crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+    
+    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
+        return (as.matrix(attach.big.matrix(dscblocks[[1]])))
+        ## retrieve the blocks as matrices: on FD
+        matblocks <- lapply(dscblocks[[1]], function(dscblock) {
+            lapply(dscblock, function(dsc) {
+                as.matrix(attach.big.matrix(dsc))
+            })
+        })
+        uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+        ## combine the blocks into one matrix
+        if (length(uptcp)>1) {
+            ## without the first layer of blocks
+            no1tcp <- lapply(2:length(uptcp), function(i) {
+                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+                    t(matblocks[[j]][[i-j+1]])
+                })), uptcp[[i]])
+            })
+            ## with the first layer of blocks
+            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+        } else {
+            tcp <- uptcp[[1]]
+        }
+        stopifnot(isSymmetric(tcp))
+        return (tcp)
+    })
+    gc(reset=F)
+    return (crossProdSelf)
+    # logindata.FD <- logindata[logindata$server == nameFD, , drop=F]
+    # logindata.FD$user <- logindata.FD$userserver
+    # logindata.FD$password <- logindata.FD$passwordserver
+    # ##- received by FD from other nodes ----
+    # invisible(mclapply(setdiff(names(opals), nameFD), mc.cores=1, function(opn) {
+    #     opals.loc <- paste0("crossLogin('", .encode.arg(logindata.FD), "')")
+    #     datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async=F)
+    #     
+    #     command.opn <- paste0("crossAggregate(mates, '", 
+    #                           .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
+    #                           "', async=F)")
+    #     cat("Command: ", command.opn, "\n")
+    #     print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
+    # }))
+    # datashield.symbols(opals)
+    
+    #-----
+    
+    
 }
 
