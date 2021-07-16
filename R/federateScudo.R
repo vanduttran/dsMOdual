@@ -139,13 +139,14 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
        
    	   # add group and color annotation
     
-   	   addColors(result, object, colors)
+   	   result <- addColors(result, object, colors)
 
     	 return(result)
  	 }
    
   to_plot = scudoNetwork(res, 0.2)
-  return(list(res = res, plot = to_plot))
+
+  return(list(plot = to_plot, res = res))
 }
 
 
