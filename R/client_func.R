@@ -810,8 +810,6 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     logindata.FD$password <- logindata.FD$passwordserver
     
     DSI::datashield.assign(opals[setdiff(names(opals), nameFD)], 'FD', as.symbol(paste0("crossLogin('", .encode.arg(logindata.FD), "')")), async=T)
-    print(datashield.symbols(opals))
-    return(NULL)
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
                       "', async=T)")
