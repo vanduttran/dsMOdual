@@ -808,13 +808,14 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     logindata.FD <- logindata[logindata$server == nameFD, , drop=F]
     logindata.FD$user <- logindata.FD$userserver
     logindata.FD$password <- logindata.FD$passwordserver
-    
-    DSI::datashield.assign(opals[setdiff(names(opals), nameFD)], 'FD', as.symbol(paste0("crossLogin('", .encode.arg(logindata.FD), "')")), async=T)
+    print(logindata.FD)
+    opals.else <- opals[setdiff(names(opals), nameFD)]
+    DSI::datashield.assign(opals.else, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(logindata.FD), "')")), async=T)
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
-    crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
+    crossProdSelfDSC <- DSI::datashield.aggregate(opals.else, as.symbol(command), async=T)
     return(crossProdSelfDSC)
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
         return (as.matrix(attach.big.matrix(dscblocks[[1]])))
