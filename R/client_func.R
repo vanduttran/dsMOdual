@@ -788,9 +788,10 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "
 #' @param querytab Encoded name of a table reference in data repositories
 #' @param queryvar Encoded variables from the table reference
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
-#' @import DSOpal parallel bigmemory
+#' @import DSI parallel bigmemory
 #' @export
 federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
+    require(DSI)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
