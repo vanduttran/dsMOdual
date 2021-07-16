@@ -791,7 +791,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "
 #' @import DSI parallel bigmemory
 #' @export
 federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
-    require(DSI)
+    require(DSOpal)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
@@ -802,16 +802,16 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     }
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-    datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
-    datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
-    datashield.assign(opals[setdiff(names(opals), nameFD)], 'FD', as.symbol(paste0("crossLogin('", .encode.arg(logindata.FD), "')")), async=T)
+    DSI::datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
+    DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
+    DSI::datashield.assign(opals[setdiff(names(opals), nameFD)], 'FD', as.symbol(paste0("crossLogin('", .encode.arg(logindata.FD), "')")), async=T)
 
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
-    crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+    crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
     
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
         return (as.matrix(attach.big.matrix(dscblocks[[1]])))
