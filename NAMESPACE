@@ -2,6 +2,7 @@
 
 export(dotprod)
 export(federateComDim)
+export(federateCov)
 export(federateScudo)
 export(garbageCollect)
 export(pushSingMatrix)
