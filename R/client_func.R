@@ -790,7 +790,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
 #' @import DSI parallel bigmemory
 #' @export
-federateRCCA <- function(logins, querytab, queryvar, nameFD = NA) {
+federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     require(DSOpal)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
