@@ -317,7 +317,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
-    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
+    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (as.matrix(attach.big.matrix(dscblocks[[1]])))
         ## retrieve the blocks as matrices: on FD
         matblocks <- lapply(dscblocks[[1]], function(dscblock) {
@@ -354,7 +354,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     cat("Command: ", command, "\n")
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
-    singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=length(singularProdCrossDSC), function(dscbigmatrix) {
+    singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=min(length(singularProdCrossDSC), detectCores()), function(dscbigmatrix) {
         dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
             dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
             stopifnot(ncol(dscMat)==1)
@@ -816,8 +816,7 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
                       "', async=T)")
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- DSI::datashield.aggregate(opals.else, as.symbol(command), async=T)
-    return(crossProdSelfDSC)
-    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
+    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (as.matrix(attach.big.matrix(dscblocks[[1]])))
         ## retrieve the blocks as matrices: on FD
         matblocks <- lapply(dscblocks[[1]], function(dscblock) {
