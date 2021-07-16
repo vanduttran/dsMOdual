@@ -812,7 +812,7 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
                       "', async=T)")
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
-    
+    return(crossProdSelfDSC)
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
         return (as.matrix(attach.big.matrix(dscblocks[[1]])))
         ## retrieve the blocks as matrices: on FD
