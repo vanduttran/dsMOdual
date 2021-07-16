@@ -790,7 +790,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
 #' @import DSI parallel bigmemory
 #' @export
-federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
+federateRCCA <- function(logins, querytab, queryvar, nameFD = NA) {
     require(DSOpal)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
@@ -816,9 +816,17 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
                       "', async=T)")
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- DSI::datashield.aggregate(opals.else, as.symbol(command), async=T)
+    crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
+        return (dscblocks[[1]])
+    })
+    DSI::datashield.assign(opals[nameFD], "crossProdAll", as.symbol(paste0('sumMatrices(crossProdSelf, ', .encode.arg(crossProdSelfDSC), ')')), async=T)
+    return(crossProdSelfDSC)
+    
+    
+    
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         print(dscblocks)
-        return (as.matrix(attach.big.matrix(dscblocks[[1]])))
+        return (as.matrix(attach.big.matrix(dscblocks[[1]]))) ## it is on server3, cannot read memory on server1!!!
         ## retrieve the blocks as matrices: on FD
         matblocks <- lapply(dscblocks[[1]], function(dscblock) {
             lapply(dscblock, function(dsc) {
