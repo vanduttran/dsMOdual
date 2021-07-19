@@ -317,7 +317,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
-    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
+    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (as.matrix(attach.big.matrix(dscblocks[[1]])))
         ## retrieve the blocks as matrices: on FD
         matblocks <- lapply(dscblocks[[1]], function(dscblock) {
@@ -354,7 +354,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     cat("Command: ", command, "\n")
     singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
     
-    singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=length(singularProdCrossDSC), function(dscbigmatrix) {
+    singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=min(length(singularProdCrossDSC), detectCores()), function(dscbigmatrix) {
         dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
             dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
             stopifnot(ncol(dscMat)==1)
@@ -788,9 +788,10 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "
 #' @param querytab Encoded name of a table reference in data repositories
 #' @param queryvar Encoded variables from the table reference
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
-#' @import DSOpal parallel bigmemory
+#' @import DSI parallel bigmemory
 #' @export
 federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
+    require(DSOpal)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
@@ -801,19 +802,31 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     }
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-    datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
-    datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
-    datashield.assign(opals[setdiff(names(opals), nameFD)], 'FD', as.symbol(paste0("crossLogin('", .encode.arg(logindata.FD), "')")), async=T)
-
+    DSI::datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
+    DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
+    logindata.FD <- logindata[logindata$server == nameFD, , drop=F]
+    logindata.FD$user <- logindata.FD$userserver
+    logindata.FD$password <- logindata.FD$passwordserver
+    print(logindata.FD)
+    opals.else <- opals[setdiff(names(opals), nameFD)]
+    DSI::datashield.assign(opals.else, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(logindata.FD), "')")), async=T)
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
-    crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+    crossProdSelfDSC <- DSI::datashield.aggregate(opals.else, as.symbol(command), async=T)
+    crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
+        return (dscblocks[[1]])
+    })
+    DSI::datashield.assign(opals[nameFD], "crossProdAll", as.symbol(paste0('sumMatrices(crossProdSelf, ', .encode.arg(crossProdSelfDSC), ')')), async=T)
+    return(crossProdSelfDSC)
     
-    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(opals), detectCores()), function(dscblocks) {
-        return (as.matrix(attach.big.matrix(dscblocks[[1]])))
+    
+    
+    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
+        print(dscblocks)
+        return (as.matrix(attach.big.matrix(dscblocks[[1]]))) ## it is on server3, cannot read memory on server1!!!
         ## retrieve the blocks as matrices: on FD
         matblocks <- lapply(dscblocks[[1]], function(dscblock) {
             lapply(dscblock, function(dsc) {
