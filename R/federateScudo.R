@@ -152,4 +152,40 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
 
 
 
+#' @title Try weighted function
+#' @description Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
+#' Finding common dimensions in multitable data (Xk, k=1...K)
+#' @usage federateScudo(X,group,H=2,scale="none",option="none",threshold=1e-10)
+#'
+#' @param loginFD Login information of the FD server
+#' @param logins Login information of the servers containing cohort data
+#' @param variables Variables
+#' @param XX  :         list of dataframes XX = X %*% t(X)
+#' @param nTop how many of the most expressed features we select
+#' @param nBott how many of the least expressed features we select
+#' @param labels labels assigned to each group of samples
+#' @param TOL tolerance
+#' @param group :       named list of variables for each table
+#' @return XX
+#' @importFrom utils setTxtProgressBar
+#' @importFrom DSI datashield.aggregate
+#' @import rScudo
+#' @export
+federateTrial <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10, labels = "NA", size = NA, TOL = 1e-10) {
 
+
+    #loginFD <-dsSwissKnife:::.decode.arg(loginFD)
+    #logins <- dsSwissKnife:::.decode.arg(logins)
+    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+
+
+
+    XX <- lapply(queryvariables, function(variables) {
+        federateSSCPweight(loginFD, logins, querytable, .encode.arg(variables), TOL)
+    })
+
+    
+    return(XX)
+
+}
