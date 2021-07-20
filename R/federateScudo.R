@@ -212,8 +212,9 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
     nNode <- length(opals)
 
     datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
-    dssSubset('filtered', 'rawData', row.filter = 'complete.cases(rawData)', datasources = opals)
-    datashield.assign(opals, "indexMatrix", as.symbol('dsRank(filtered)'), async=T)
+    #When I print the matrices, Na appear!! But dssSubset doesn't work
+    #dssSubset('filtered', 'rawData', row.filter = 'complete.cases(rawData)', datasources = opals)
+    datashield.assign(opals, "indexMatrix", as.symbol('dsRank(rawData)'), async=T)
     datashield.assign(opals, "weightMatrix",as.symbol("computeWeights(rawData, indexMatrix)"), async = T)
     datashield.assign(opals, "centeredData", as.symbol('center(weightMatrix)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
