@@ -214,7 +214,7 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
     datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
     datashield.assign(opals, "indexMatrix", as.symbol('dsRank(rawData)'), async=T)
     datashield.assign(opals, "weightMatrix",as.symbol("computeWeights(rawData, indexMatrix)"), async = T)
-    datashield.assign(opals, "centeredData", as.symbol('center(computeWeights)'), async=T)
+    datashield.assign(opals, "centeredData", as.symbol('center(weightMatrix)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
 
