@@ -371,7 +371,7 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
     #print(".....")
 
 
-    return (samples)
+    return (XXt)
 }
 
 
