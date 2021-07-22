@@ -366,8 +366,8 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
     datashield.logout(opals)
 
 
-    #samples = datashield.aggregate(opals, as.symbol('aggRownames(rawData)'), async=T)
-    #print(samples)
+    samples = datashield.aggregate(opals, as.symbol('aggRownames(rawData)'), async=T)
+    print(samples)
     #print(".....")
 
 
