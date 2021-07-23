@@ -198,7 +198,7 @@ federateTrial <- function(loginFD, logins, queryvar, querytab, nTop=20, nBott=20
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-federateSSCPweight <- function(loginFD, logins, querytab, queryvar,ntop, nbottom, topweight, bottweight, TOL = 1e-10) {
+federateSSCPweight <- function(loginFD, logins, querytab, queryvar,ntop = 20, nbottom = 20, topweight = 1000, bottweight = 0.001, TOL = 1e-10) {
     require(DSOpal)
 
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
