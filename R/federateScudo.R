@@ -169,7 +169,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
 #' @importFrom DSI datashield.aggregate
 #' @import rScudo
 #' @export
-federateTrial <- function(loginFD, logins, queryvar, querytab, nTop = 20, nBott = 20, topweight = 1000, bottweight = 0.001, labels = "NA", size = NA, TOL = 1e-10) {
+federateTrial <- function(loginFD, logins, queryvar, querytab, nTop, nBott, topweight, bottweight, labels = "NA", size = NA, TOL = 1e-10) {
 
 
     #loginFD <-dsSwissKnife:::.decode.arg(loginFD)
