@@ -161,6 +161,8 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
 #' @param XX  :         list of dataframes XX = X %*% t(X)
 #' @param nTop how many of the most expressed features we select
 #' @param nBott how many of the least expressed features we select
+#' @param topweight weight for top genes
+#' @param bottweight weight for bottom genes
 #' @param labels labels assigned to each group of samples
 #' @param TOL tolerance
 #' @param group :       named list of variables for each table
@@ -217,7 +219,8 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar,nTop, nBott, 
     #When I print the matrices, Na appear!! But dssSubset doesn't work
     #dssSubset('filtered', 'rawData', row.filter = 'complete.cases(rawData)', datasources = opals)
     datashield.assign(opals, "indexMatrix", as.symbol('dsRank(rawData)'), async=T)
-    datashield.assign(opals, "weightMatrix",as.symbol("computeWeights(rawData, indexMatrix, nTop, nBott, topweight, bottweight)"), async = T)
+   #datashield.assign(opals, "weightMatrix",as.symbol("computeWeights(rawData, indexMatrix, nTop, nBott, topweight, bottweight)"), async = T)
+    datashield.assign(opals, "weightMatrix",as.symbol("computeWeights(rawData, indexMatrix)"), async = T)
     datashield.assign(opals, "centeredData", as.symbol('center(weightMatrix)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
