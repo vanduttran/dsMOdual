@@ -180,7 +180,7 @@ federateTrial <- function(loginFD, logins, queryvar, querytab, nTop=20, nBott=20
 
 
     XX <- lapply(queryvariables, function(variables) {
-        federateSSCPweight(loginFD, logins, querytable, .encode.arg(variables),ntop, nbottom, topweight, bottweight, TOL)
+        federateSSCPweight(loginFD, logins, querytable, .encode.arg(variables),ntop, nbott, topweight, bottweight, TOL)
     })
 
     
@@ -195,10 +195,14 @@ federateTrial <- function(loginFD, logins, queryvar, querytab, nTop=20, nBott=20
 #' @param logins Login information of data repositories
 #' @param querytab Encoded name of a table reference in data repositories
 #' @param queryvar Encoded variables from the table reference
+#' @param ntop most expressed genes considered
+#' @param nbott least expressed genes considered
+#' @param topweight
+#' @param bottweight
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-federateSSCPweight <- function(loginFD, logins, querytab, queryvar,ntop = 20, nbottom = 20, topweight = 1000, bottweight = 0.001, TOL = 1e-10) {
+federateSSCPweight <- function(loginFD, logins, querytab, queryvar,ntop, nbott, topweight, bottweight, TOL = 1e-10) {
     require(DSOpal)
 
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
@@ -213,7 +217,7 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar,ntop = 20, nb
     #When I print the matrices, Na appear!! But dssSubset doesn't work
     #dssSubset('filtered', 'rawData', row.filter = 'complete.cases(rawData)', datasources = opals)
     datashield.assign(opals, "indexMatrix", as.symbol('dsRank(rawData)'), async=T)
-    datashield.assign(opals, "weightMatrix",as.symbol("computeWeights(rawData, indexMatrix, ntop, nbottom, topweight, bottomweight)"), async = T)
+    datashield.assign(opals, "weightMatrix",as.symbol("computeWeights(rawData, indexMatrix, ntop, nbott, topweight, bottweight)"), async = T)
     datashield.assign(opals, "centeredData", as.symbol('center(weightMatrix)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
