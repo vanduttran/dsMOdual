@@ -27,18 +27,16 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
 
     ## compute SSCP matrix for each centered data table
 
-   # opals <- datashield.login(logins=logins)
-   # nNode <- length(opals)
-   # querytable <- unique(logindata$table)
-  
-   # datashield.assign(opals, 'rawData', querytable,
-   #                 variables=queryvar, async=T)
 
-   # datashield.assign(opals, "center", as.symbol('center(rawData)'), async=T)
-    XX <- lapply(queryvariables, function(variables) {
-        federateSSCP(loginFD, logins, querytable, .encode.arg(variables), TOL)
-    })
+   # XX <- lapply(queryvariables, function(variables) {
+   #     federateSSCP(loginFD, logins, querytable, .encode.arg(variables), TOL)
+   # })
     
+    XX <- lapply(queryvariables, function(variables) {
+        federateSSCPweight(loginFD, logins, querytable, .encode.arg(variables), TOL)
+    })
+
+
     print(lapply(XX, dim))
     
     dimensions = list(server1 = c(101,5), server2 = c(101, 5))
@@ -171,7 +169,7 @@ federateScudo <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
 #' @importFrom DSI datashield.aggregate
 #' @import rScudo
 #' @export
-federateTrial <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10, labels = "NA", size = NA, TOL = 1e-10) {
+federateTrial <- function(loginFD, logins, queryvar, querytab, nTop=20, nBott=20, topweight = 1000, bottweigh =0.001, labels = "NA", size = NA, TOL = 1e-10) {
 
 
     #loginFD <-dsSwissKnife:::.decode.arg(loginFD)
@@ -182,7 +180,7 @@ federateTrial <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
 
 
     XX <- lapply(queryvariables, function(variables) {
-        federateSSCPweight(loginFD, logins, querytable, .encode.arg(variables), TOL)
+        federateSSCPweight(loginFD, logins, querytable, .encode.arg(variables),ntop, nbottom, topweight, bottweight, TOL)
     })
 
     
@@ -200,7 +198,7 @@ federateTrial <- function(loginFD, logins, queryvar, querytab, nTop=10, nBott=10
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
+federateSSCPweight <- function(loginFD, logins, querytab, queryvar,ntop, nbottom, topweight, bottweight, TOL = 1e-10) {
     require(DSOpal)
 
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
@@ -215,7 +213,7 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
     #When I print the matrices, Na appear!! But dssSubset doesn't work
     #dssSubset('filtered', 'rawData', row.filter = 'complete.cases(rawData)', datasources = opals)
     datashield.assign(opals, "indexMatrix", as.symbol('dsRank(rawData)'), async=T)
-    datashield.assign(opals, "weightMatrix",as.symbol("computeWeights(rawData, indexMatrix)"), async = T)
+    datashield.assign(opals, "weightMatrix",as.symbol("computeWeights(rawData, indexMatrix, ntop, nbottom, topweight, bottomweight)"), async = T)
     datashield.assign(opals, "centeredData", as.symbol('center(weightMatrix)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
@@ -366,8 +364,8 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
     datashield.logout(opals)
 
 
-    samples = datashield.aggregate(opals, as.symbol('aggRownames(rawData)'), async=T)
-    print(samples)
+    #samples = datashield.aggregate(opals, as.symbol('aggRownames(rawData)'), async=T)
+    #print(samples)
     #print(".....")
 
 
