@@ -819,6 +819,7 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (dscblocks[[1]])
     })
+    return(crossProdSelfDSC)
     DSI::datashield.assign(opals[nameFD], "crossProdAll", as.symbol(paste0('sumMatrices(crossProdSelf, ', .encode.arg(crossProdSelfDSC), ')')), async=T)
     return(crossProdSelfDSC)
     
