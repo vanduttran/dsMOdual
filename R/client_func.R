@@ -660,7 +660,7 @@ federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "
     ## loadings
     
     # number of samples on each node
-    size <- sapply(datashield.aggregate(opals, as.symbol('dimDS(centeredAllData)'), async=T), function(x) x[1])
+    size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredAllData)'), async=T), function(x) x[1])
     size <- c(0, size)
     func <- function(x, y) {x %*% y}
     Qlist <- setNames(lapply(2:length(size), function(i) {

@@ -1,6 +1,6 @@
 Package: dsSSCPclient
 Title: Client Side Functions for Integrating Sum of Squares and Cross Products Matrices
-Version: 0.1.19
+Version: 0.1.20
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
