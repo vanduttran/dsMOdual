@@ -19,8 +19,7 @@ AggregateMethods:
     pushSymmMatrix,
     pushSingMatrix,
     federateScudo,
-    federateCov,
-    federateTrial
+    federateCov
 AssignMethods:
     randomData,
     trscale

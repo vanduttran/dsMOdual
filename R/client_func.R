@@ -873,6 +873,3 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     
 }
 
-
-
-    
