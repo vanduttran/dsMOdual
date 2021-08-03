@@ -824,7 +824,7 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     })
     print("OK")
     print(opals[nameFD])
-    print(as.symbol(paste0('sumMatrices(crossProdSelf, ', .encode.arg(crossProdSelfDSC), ')')))
+    print(paste0('sumMatrices(crossProdSelf, ', .encode.arg(crossProdSelfDSC), ')'))
     DSI::datashield.assign(opals[nameFD], "crossProdAll", as.symbol(paste0('sumMatrices(crossProdSelf, ', .encode.arg(crossProdSelfDSC), ')')))
     return(crossProdSelfDSC)
     
