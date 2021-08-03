@@ -795,16 +795,19 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     logindata      <- dsSwissKnife:::.decode.arg(logins)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+    ## use the first server as the FD server to sum Cov matrices if name FD is not given
     if (is.na(nameFD)) {
         nameFD <- logindata$server[1]
     } else {
         stopifnot(nameFD %in% logindata$server)
     }
+    ## assign Cov matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
     DSI::datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
     DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
+    ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
     logindata.FD <- logindata[logindata$server == nameFD, , drop=F]
     logindata.FD$user <- logindata.FD$userserver
     logindata.FD$password <- logindata.FD$passwordserver
@@ -819,7 +822,6 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (dscblocks[[1]])
     })
-    return(crossProdSelfDSC)
     DSI::datashield.assign(opals[nameFD], "crossProdAll", as.symbol(paste0('sumMatrices(crossProdSelf, ', .encode.arg(crossProdSelfDSC), ')')), async=T)
     return(crossProdSelfDSC)
     
