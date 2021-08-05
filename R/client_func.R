@@ -441,7 +441,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
 #' @importFrom utils setTxtProgressBar
 #' @importFrom DSI datashield.aggregate
 #' @export
-federateComDim <- function(loginFD, logins, queryvar, querytab, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
+federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     
@@ -828,7 +828,7 @@ federateCov <- function(logins, querytab, queryvar, nameFD = NA) {
     print(names(crossProdSelfDSC[[1]]))
     print(crossProdSelfDSC[[1]])
     #print(.encode.arg(crossProdSelfDSC))
-    #print(paste0('sumMatrices(crossProdSelf, ', .encode.arg(crossProdSelfDSC), ')'))
+    print(paste0('sumMatrices(crossProdSelf, ', crossProdSelfDSC, ')'))
     DSI::datashield.assign(opals[nameFD], "crossProdAll", as.symbol(paste0('sumMatrices(crossProdSelf, ', crossProdSelfDSC, ')')))
     return(crossProdSelfDSC)
     
