@@ -260,7 +260,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-
+    tryCatch({
     datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
     datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
@@ -315,8 +315,9 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
                       .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
-    crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-    
+    tryCatch({
+        crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+    }, error=function(e) {e; datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)})
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=max(2, min(length(crossProdSelfDSC), detectCores())), function(dscblocks) {
         return (as.matrix(attach.big.matrix(dscblocks[[1]])))
         ## retrieve the blocks as matrices: on FD
@@ -352,8 +353,9 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
                       .encode.arg(paste0("as.call(list(as.symbol('pushSingMatrix'), dsSSCP:::.encode.arg(singularProdCross)", "))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
-    singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-    
+    tryCatch({
+        singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+    }, error=function(e) e, finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
     singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
         dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
             dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
@@ -370,6 +372,8 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
                                                                   as.symbol("centeredData"), 
                                                                   .encode.arg(names(opals)))), async=T)
+    }, finally=datashield.logout(opals))
+    
     ## deduced from received info by federation
     crossProductPair <- lapply(1:(nNode-1), function(opi) {
         crossi <- lapply((opi+1):(nNode), function(opj) {
@@ -402,8 +406,7 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
         }))
         return (cbind(lower.opi, crossProdSelf[[opi]], upper.opi))
     }))
-    datashield.logout(opals)
-    
+
     return (XXt)
 }
 
@@ -458,8 +461,10 @@ federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "
     
     if (length(querytable)==1) {
         ## TODO: make sure different blocks have the same samples (rownames)
-        datashield.assign(opals, "rawAllData", querytable, variables=unlist(queryvariables), async=T)
-        datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
+        tryCatch({
+            datashield.assign(opals, "rawAllData", querytable, variables=unlist(queryvariables), async=T)
+            datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
+        }, error=function(e) {e; datashield.logout(opals)})
     } else if (length(querytable)==length(queryvariables)) {
         stop("Not yet implemented.")
     } else (
@@ -660,7 +665,9 @@ federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "
     ## loadings
     
     # number of samples on each node
-    size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredAllData)'), async=T), function(x) x[1])
+    tryCatch({
+        size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredAllData)'), async=T), function(x) x[1])
+    }, error=function(e) {e; datashield.logout(opals)})
     size <- c(0, size)
     func <- function(x, y) {x %*% y}
     Qlist <- setNames(lapply(2:length(size), function(i) {
@@ -675,15 +682,15 @@ federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "
         # })
         # return (Qi.iter)
     }), names(opals))
-
-    Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
-        expr <- list(as.symbol("loadings"),
-                     as.symbol("centeredAllData"),
-                     .encode.arg(Qlist[[opn]]))
-        loadings <- datashield.aggregate(opals[opn], as.call(expr), async=T)
-        return (loadings)
-    }), recursive = F))
-    datashield.logout(opals)
+    tryCatch({
+        Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
+            expr <- list(as.symbol("loadings"),
+                         as.symbol("centeredAllData"),
+                         .encode.arg(Qlist[[opn]]))
+            loadings <- datashield.aggregate(opals[opn], as.call(expr), async=T)
+            return (loadings)
+        }), recursive = F))
+    }, error=function(e) e, finally=datashield.logout(opals)})
     colnames(Wbk) <- names.H
     csnvar <- cumsum(nvar)
     W.b <- mclapply(1:length(nvar), mc.cores=length(nvar), function(k) {
