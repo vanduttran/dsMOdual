@@ -431,7 +431,8 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
 federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
-    
+    print(querytable)
+    print(queryvariables)
     ## compute SSCP matrix for each centered data table
     XX <- lapply(queryvariables, function(variables) {
         federateSSCP(loginFD, logins, querytable, .encode.arg(variables), TOL)
