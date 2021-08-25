@@ -49,9 +49,7 @@ garbageCollect <- function() {
 #     return (dscbigmatrix)
 # }
 pushSymmMatrix <- function(value) {
-    print("symmetric")
     valued <- dsSwissKnife:::.decode.arg(value)
-    print("decoded")
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
@@ -105,12 +103,7 @@ pushSymmMatrix <- function(value) {
 #' @return Description of the pushed value
 #' @export
 pushSingMatrix <- function(value) {
-    print("singular")
     valued <- dsSwissKnife:::.decode.arg(value)
-    print(class(valued))
-    print(lapply(valued, class))
-    print(lapply(valued, head))
-    print("decoded")
     stopifnot(is.list(valued) && length(valued)>0)
     dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
         x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
@@ -138,10 +131,6 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
         stop("r length shoud match ncol(XtX).")
     }
     if (length(Xr) != nrow(XXt)) {
-        print(head(Xr))
-        print(XXt[1:3,1:3])
-        print(length(Xr))
-        print(nrow(XXt))
         stop("Xr length shoud match nrow(XXt).")
     }
     if (max(abs(r)) < TOL) {
