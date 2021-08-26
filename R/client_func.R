@@ -239,19 +239,17 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
+federateSSCP <- function(loginFD, logins, querytable, queryvariable, TOL = 1e-10) {
     require(DSOpal)
 
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
-    querytable     <- dsSwissKnife:::.decode.arg(querytab)
-    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
     if (nNode==1) {
         tryCatch({
-            datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
+            datashield.assign(opals, "rawData", querytable, variables=queryvariable, async=T)
             datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
@@ -267,23 +265,24 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
         }, finally=datashield.logout(opals))
     } else {
         tryCatch({
-            datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
+            datashield.assign(opals, "rawData", querytable, variables=queryvariable, async=T)
             datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
             datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
             
             ##- received by each from other nodes ----
             invisible(mclapply(names(opals), mc.cores=1, function(opn) {
-                logindata.opn <- logindata[logindata$server != opn, , drop=F]
+                ind.opn <- which(logindata$server == opn)
+                logindata.opn <- logindata[-ind.opn, , drop=F]
                 logindata.opn$user <- logindata.opn$userserver
                 logindata.opn$password <- logindata.opn$passwordserver
                 opals.loc <- paste0("crossLogin('", .encode.arg(logindata.opn), "')")
                 datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async=F)
                 
                 command.opn <- list(paste0("crossAssign(mates, symbol='rawDataMate', value='", 
-                                           querytab, 
+                                           .encode.arg(querytable[-ind.opn]),
                                            "', value.call=F, variables='",
-                                           queryvar,
+                                           .encode.arg(queryvariable),
                                            "', async=F)"),
                                     paste0("crossAssign(mates, symbol='centeredDataMate', value='",
                                            .encode.arg("center(rawDataMate)"),
@@ -430,11 +429,11 @@ federateSSCP <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
 #' @export
 federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    querytables     <- dsSwissKnife:::.decode.arg(querytab)
 
     ## compute SSCP matrix for each centered data table
-    XX <- lapply(queryvariables, function(variables) {
-        federateSSCP(loginFD, logins, querytable, .encode.arg(variables), TOL)
+    XX <- lapply(1:length(queryvariables), function(i) {
+        federateSSCP(loginFD, logins, querytables[[i]], variables[[i]], TOL)
     })
     
     ## set up the centered data table on every node
