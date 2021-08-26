@@ -429,10 +429,14 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, TOL = 1e-10
 #' @export
 federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    querytables     <- dsSwissKnife:::.decode.arg(querytab)
-
+    querytables    <- dsSwissKnife:::.decode.arg(querytab)
+    ntab <- length(queryvariables)
+    
+    ## if only one table is given for each server, it is duplicated
+    if (length(querytables)==1) querytables <- rep(querytables, 2)
+    
     ## compute SSCP matrix for each centered data table
-    XX <- lapply(1:length(queryvariables), function(i) {
+    XX <- lapply(1:ntab, function(i) {
         federateSSCP(loginFD, logins, querytables[[i]], queryvariables[[i]], TOL)
     })
     
@@ -441,18 +445,16 @@ federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "
     logindata <- dsSwissKnife:::.decode.arg(logins)
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-    
-    if (length(querytable)==1) {
+
+    if (length(unique(querytables))==1) {
         ## TODO: make sure different blocks have the same samples (rownames)
         tryCatch({
-            datashield.assign(opals, "rawAllData", querytable, variables=unlist(queryvariables), async=T)
+            datashield.assign(opals, "rawAllData", unlist(unique(querytables)), variables=unlist(queryvariables), async=T)
             datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
         }, error=function(e) {e; datashield.logout(opals)})
-    } else if (length(querytable)==length(queryvariables)) {
-        stop("Not yet implemented.")
-    } else (
-        stop("querytab should contain 1 or length(queryvar) names.")
-    )
+    } else {
+        stop("Multi-tables on each server: not yet implemented for ComDim")
+    }
 
     # compute the total variance of a dataset
     inertie <- function(tab) {
@@ -502,7 +504,6 @@ federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "
     # ---------------------------------------------------------------------------
     # 1. Output preparation
     # ---------------------------------------------------------------------------
-    ntab <- length(XX)
     nvar <- lengths(queryvariables)
     W <- array(0, dim=c(nsamples, nsamples, ntab+1)) # association matrices
     
