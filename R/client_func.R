@@ -433,7 +433,9 @@ federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "
 
     ## compute SSCP matrix for each centered data table
     XX <- lapply(1:length(queryvariables), function(i) {
-        federateSSCP(loginFD, logins, querytables[[i]], variables[[i]], TOL)
+        print(querytables[[i]])
+        print(variables[[i]])
+        federateSSCP(loginFD, logins, querytables[[i]], queryvariables[[i]], TOL)
     })
     
     ## set up the centered data table on every node
