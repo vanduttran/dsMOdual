@@ -286,8 +286,8 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, byColumn = 
                                                .encode.arg(queryvariable),
                                                "', async=F)"),
                                         paste0("crossAssign(mates, symbol='centeredDataMate', value='",
-                                               .encode.arg(paste0("center(rawData, subset=NULL, byColumn=", byColumn, ")")),
-                                               #.encode.arg("center(rawDataMate)"),
+                                               #.encode.arg(paste0("center(rawData, subset=NULL, byColumn=", byColumn, ")")),
+                                               .encode.arg("center(rawDataMate)"),
                                                "', value.call=T, async=F)")
                     )
                     for (command in command.opn) {
