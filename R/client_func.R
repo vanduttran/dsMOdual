@@ -287,7 +287,6 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, byColumn = 
                                                "', async=F)"),
                                         paste0("crossAssign(mates, symbol='centeredDataMate', value='",
                                                .encode.arg(paste0("center(rawDataMate, subset=NULL, byColumn=", byColumn, ")")),
-                                               #.encode.arg("center(rawDataMate)"),
                                                "', value.call=T, async=F)")
                     )
                     for (command in command.opn) {
@@ -786,7 +785,7 @@ federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "
 #' @param queryvar Encoded list of variables from the table reference
 #' @import SNFtool
 #' @export
-federateSNF <- function(loginFD, logins, querytab, queryvar) {
+federateSNF <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     querytables    <- dsSwissKnife:::.decode.arg(querytab)
     ntab <- length(queryvariables)
