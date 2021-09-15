@@ -785,6 +785,7 @@ federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "
 #' @param querytab Encoded name of a table reference in data repositories
 #' @param queryvar Encoded list of variables from the table reference
 #' @import SNFtool
+#' @export
 federateSNF <- function(loginFD, logins, querytab, queryvar) {
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     querytables    <- dsSwissKnife:::.decode.arg(querytab)
