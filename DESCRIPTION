@@ -1,6 +1,6 @@
 Package: dsSSCPclient
 Title: Client Side Functions for Integrating Sum of Squares and Cross Products Matrices
-Version: 0.1.22
+Version: 0.1.23
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
@@ -9,7 +9,7 @@ Authors@R:
              comment = c(ORCID = "0000-0003-2074-5029")),
       person(given = "Riccardo",
              family = "Giuliani",
-             role = c("ctb", "aut")))
+             role = c("ctb")))
 Depends: DSI, dsSwissKnife, DSOpal
 Imports: Matrix, bigmemory, parallel, rScudo
 Description: Client side functions for integrating sum of squares and cross products matrices.
@@ -19,7 +19,7 @@ AggregateMethods:
     pushSymmMatrix,
     pushSingMatrix,
     federateScudo,
-    federateCov
+    federateSNF
 AssignMethods:
     randomData,
     trscale
