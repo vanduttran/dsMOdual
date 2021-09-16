@@ -191,6 +191,8 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     tmprhs1 <- crossprod(vecs[[1]], Xr)
     if (poseignum < N1) cat("Precision on tmprhs1's zero:", max(abs(tmprhs1[(poseignum+1):N1, 1])), "\n")
     ## S * vecB2' * rmX2 = S * lhs1 = 1/E * tmprhs1 = rhs1
+    print(length(vals[[1]]))
+    print(length(sqrt(vals[[1]][1:poseignum])))
     E <- diag(sqrt(vals[[1]][1:poseignum]))
     invE <- diag(1/diag(E))
     print(head(E))
