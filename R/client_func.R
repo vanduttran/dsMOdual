@@ -195,8 +195,8 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     invE <- diag(1/diag(E))
     print(poseignum)
     print(dim(invE))
-    print(dim(tmprhs1))
-    print(tmprhs1[1:5,1:5])
+    print(dim(tmprhs1[1:poseignum, , drop=F]))
+    print(head(tmprhs1))
     rhs1 <- crossprod(t(invE), tmprhs1[1:poseignum, , drop=F])
     lhs1 <- crossprod(vecs[[2]], r)
     signs1 <- rhs1[1:poseignum,]/lhs1[1:poseignum,]
