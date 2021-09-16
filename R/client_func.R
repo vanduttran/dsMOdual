@@ -808,12 +808,5 @@ federateSNF <- function(loginFD, logins, querytab, queryvar, neighbors = 20, alp
     W <- SNF(Ws, neighbors, iter)
     
     return (W)
-    
-    ## set up the centered data table on every node
-    loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
-    logindata <- dsSwissKnife:::.decode.arg(logins)
-    opals <- DSI::datashield.login(logins=logindata)
-    nNode <- length(opals)
-    
 }
 
