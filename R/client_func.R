@@ -798,7 +798,7 @@ federateSNF <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     
     ## compute SSCP matrix for each centered data table
     XX <- lapply(1:ntab, function(i) {
-        federateSSCP(loginFD=loginFD, logins=logins, querytable=querytables[[i]], queryvariable=queryvariables[[i]], byColumn=FALSE, TOL=TOL)
+        federateSSCP(loginFD=loginFD, logins=logins, querytable=querytables[[i]], queryvariable=queryvariables[[i]], byColumn=TRUE, TOL=TOL)
     })
     return (XX)
     ## set up the centered data table on every node
