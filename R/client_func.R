@@ -197,7 +197,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     cat("adsf: ", sqrt(vals[[1]][1:poseignum]), "\n")
     print("WTH")
     E <- diag(sqrt(vals[[1]][1:poseignum]), ncol=poseignum, nrow=poseignum)
-    invE <- diag(1/diag(E))
+    invE <- diag(1/diag(E), ncol=poseignum, nrow=poseignum)
     print(head(E))
     print(dim(E))
     print(poseignum)
@@ -207,7 +207,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     rhs1 <- crossprod(t(invE), tmprhs1[1:poseignum, , drop=F])
     lhs1 <- crossprod(vecs[[2]], r)
     signs1 <- rhs1[1:poseignum,]/lhs1[1:poseignum,]
-    S <- cbind(diag(signs1), matrix(0, nrow=poseignum, ncol=N2-poseignum)) # S = [signs1 0]
+    S <- cbind(diag(signs1, ncol=poseignum, nrow=poseignum), matrix(0, nrow=poseignum, ncol=N2-poseignum)) # S = [signs1 0]
     D <- rbind(crossprod(t(E), S), matrix(0, nrow=N1-poseignum, ncol=N2))  # D = E %*% S
     a1 <- tcrossprod(tcrossprod(vecs[[1]], t(D)), vecs[[2]]) # a = vecs[["A*A'"]] %*% D %*% t(vecs[["A'*A"]])
     
