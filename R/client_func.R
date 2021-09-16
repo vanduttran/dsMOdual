@@ -193,6 +193,8 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     ## S * vecB2' * rmX2 = S * lhs1 = 1/E * tmprhs1 = rhs1
     E <- diag(sqrt(vals[[1]][1:poseignum]))
     invE <- diag(1/diag(E))
+    print(head(E))
+    print(dim(E))
     print(poseignum)
     print(dim(invE))
     print(dim(tmprhs1[1:poseignum, , drop=F]))
