@@ -193,6 +193,10 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     ## S * vecB2' * rmX2 = S * lhs1 = 1/E * tmprhs1 = rhs1
     E <- diag(sqrt(vals[[1]][1:poseignum]))
     invE <- diag(1/diag(E))
+    print(poseignum)
+    print(dim(invE))
+    print(dim(tmprhs1))
+    print(tmprhs1[1:5,1:5])
     rhs1 <- crossprod(t(invE), tmprhs1[1:poseignum, , drop=F])
     lhs1 <- crossprod(vecs[[2]], r)
     signs1 <- rhs1[1:poseignum,]/lhs1[1:poseignum,]
@@ -360,10 +364,6 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, byColumn = 
             crossi <- lapply((opi+1):(nNode), function(opj) {
                 opni <- names(opals)[opi]
                 opnj <- names(opals)[opj]
-                print(dim(crossProdSelf[[opnj]]))
-                print(crossProdSelf[[opnj]][1:3,1:3])
-                print(dim(crossProdSelf[[opni]]))
-                print(crossProdSelf[[opni]][1:3,1:3])
                 a1 <- solveSSCP(XXt=prodDataCross[[opni]][[opnj]],
                                 XtX=prodDataCross[[opnj]][[opni]],
                                 r=crossProdSelf[[opnj]][, 1, drop=F],
