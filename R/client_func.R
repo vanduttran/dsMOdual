@@ -196,7 +196,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     cat("adsf: ", vals[[1]][1:poseignum], "\n")
     cat("adsf: ", sqrt(vals[[1]][1:poseignum]), "\n")
     print("WTH")
-    E <- diag(sqrt(vals[[1]][1:poseignum]))
+    E <- diag(sqrt(vals[[1]][1:poseignum]), ncol=poseignum, nrow=poseignum)
     invE <- diag(1/diag(E))
     print(head(E))
     print(dim(E))
