@@ -191,19 +191,8 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     tmprhs1 <- crossprod(vecs[[1]], Xr)
     if (poseignum < N1) cat("Precision on tmprhs1's zero:", max(abs(tmprhs1[(poseignum+1):N1, 1])), "\n")
     ## S * vecB2' * rmX2 = S * lhs1 = 1/E * tmprhs1 = rhs1
-    print(length(vals[[1]]))
-    print(length(sqrt(vals[[1]][1:poseignum])))
-    cat("adsf: ", vals[[1]][1:poseignum], "\n")
-    cat("adsf: ", sqrt(vals[[1]][1:poseignum]), "\n")
-    print("WTH")
     E <- diag(sqrt(vals[[1]][1:poseignum]), ncol=poseignum, nrow=poseignum)
     invE <- diag(1/diag(E), ncol=poseignum, nrow=poseignum)
-    print(head(E))
-    print(dim(E))
-    print(poseignum)
-    print(dim(invE))
-    print(dim(tmprhs1[1:poseignum, , drop=F]))
-    print(head(tmprhs1))
     rhs1 <- crossprod(t(invE), tmprhs1[1:poseignum, , drop=F])
     lhs1 <- crossprod(vecs[[2]], r)
     signs1 <- rhs1[1:poseignum,]/lhs1[1:poseignum,]
@@ -795,7 +784,7 @@ federateComDim <- function(loginFD, logins, querytab, queryvar, H = 2, scale = "
 #' @param queryvar Encoded list of variables from the table reference
 #' @import SNFtool
 #' @export
-federateSNF <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
+federateSNF <- function(loginFD, logins, querytab, queryvar, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10) {
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     querytables    <- dsSwissKnife:::.decode.arg(querytab)
     ntab <- length(queryvariables)
@@ -804,11 +793,22 @@ federateSNF <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10) {
     if (length(querytables)==1) querytables <- rep(querytables, ntab)
     stopifnot("tables and variables must be of the same length"=length(querytables)==ntab)
     
-    ## compute SSCP matrix for each centered data table
+    ## compute correlation between samples for each data table 
     XX <- lapply(1:ntab, function(i) {
-        federateSSCP(loginFD=loginFD, logins=logins, querytable=querytables[[i]], queryvariable=queryvariables[[i]], byColumn=FALSE, TOL=TOL)
+        federateSSCP(loginFD=loginFD, logins=logins, 
+                     querytable=querytables[[i]], queryvariable=queryvariables[[i]], 
+                     byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
     })
-    return (XX)
+    
+    ## similarity graphs
+    Ws <- lapply(XX, function(distmat) {
+        affinityMatrix(distmat, neighbors, alpha)
+    })
+    ## fuse similarity graphs
+    W <- SNF(Ws, neighbors, iter)
+    
+    return (W)
+    
     ## set up the centered data table on every node
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata <- dsSwissKnife:::.decode.arg(logins)
