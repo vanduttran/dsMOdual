@@ -193,7 +193,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     ## S * vecB2' * rmX2 = S * lhs1 = 1/E * tmprhs1 = rhs1
     print(length(vals[[1]]))
     print(length(sqrt(vals[[1]][1:poseignum])))
-    print(sqrt(vals[[1]][1:poseignum]))
+    cat("adsf: ", sqrt(vals[[1]][1:poseignum]), "\n")
     print("WTH")
     E <- diag(sqrt(vals[[1]][1:poseignum]))
     invE <- diag(1/diag(E))
