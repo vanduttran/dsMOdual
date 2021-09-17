@@ -804,6 +804,7 @@ federateSNF <- function(loginFD, logins, querytab, queryvar, neighbors = 20, alp
     Ws <- lapply(XX, function(distmat) {
         affinityMatrix(distmat, neighbors, alpha)
     })
+    
     ## fuse similarity graphs
     W <- SNF(Ws, neighbors, iter)
     
