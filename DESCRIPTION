@@ -11,7 +11,7 @@ Authors@R:
              family = "Giuliani",
              role = c("ctb")))
 Depends: DSI, dsSwissKnife, DSOpal
-Imports: Matrix, bigmemory, parallel, rScudo
+Imports: Matrix, bigmemory, parallel, SNFtool, rScudo
 Description: Client side functions for integrating sum of squares and cross products matrices.
 AggregateMethods:
     federateComDim,
