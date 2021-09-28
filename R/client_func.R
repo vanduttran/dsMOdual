@@ -255,7 +255,7 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, byColumn = 
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             tryCatch({
                 command <- paste0("dscPush(FD, '", 
-                                  .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
+                                  .encode.arg(paste0("as.call(list(as.symbol('dsSSCPclient::pushSymmMatrix'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
@@ -318,7 +318,7 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, byColumn = 
                 # datashield.assign(opals, "GC", as.symbol(command), async=T)
                 
                 command <- paste0("dscPush(FD, '", 
-                                  .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
+                                  .encode.arg(paste0("as.call(list(as.symbol('dsSSCPclient::pushSymmMatrix'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
