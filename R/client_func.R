@@ -800,6 +800,8 @@ federateSNF <- function(loginFD, logins, querytab, queryvar, neighbors = 20, alp
                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
     })
     print(lapply(XX, max))
+    print(lapply(XX, min))
+    return(XX)
     ## similarity graphs
     Ws <- lapply(XX, function(distmat) {
         affinityMatrix((1-distmat)/2, neighbors, alpha)
