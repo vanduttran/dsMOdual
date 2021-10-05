@@ -236,6 +236,9 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 #' @param logins Login information of data repositories
 #' @param querytab Encoded name of a table reference in data repositories
 #' @param queryvar Encoded variables from the table reference
+#' @param byColumn A logical value indicating whether the input data is centered by column or row.
+#' Default, TRUE, centering by column. Constant variables across samples are removed. 
+#' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
@@ -799,9 +802,7 @@ federateSNF <- function(loginFD, logins, querytab, queryvar, neighbors = 20, alp
                      querytable=querytables[[i]], queryvariable=queryvariables[[i]], 
                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
     })
-    print(lapply(XX, max))
-    print(lapply(XX, min))
-    return(XX)
+
     ## similarity graphs
     Ws <- lapply(XX, function(distmat) {
         affinityMatrix((1-distmat)/2, neighbors, alpha)
@@ -813,3 +814,35 @@ federateSNF <- function(loginFD, logins, querytab, queryvar, neighbors = 20, alp
     return (W)
 }
 
+
+
+#' @title Test federateSSCP
+#' @description Deprecated
+#' @param loginFD Login information of the FD server
+#' @param logins Login information of data repositories
+#' @param querytab Encoded name of a table reference in data repositories
+#' @param queryvar Encoded variables from the table reference
+#' @param byColumn A logical value indicating whether the input data is centered by column or row.
+#' Default, TRUE, centering by column. Constant variables across samples are removed. 
+#' If FALSE, centering and scaling by row. Constant samples across variables are removed.
+#' @param TOL Tolerance of 0
+#' @import DSOpal parallel bigmemory
+#' @export
+testSSCP <- function(loginFD, logins, querytab, queryvar, byColumn=TRUE, TOL = 1e-10) {
+    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+    querytables    <- dsSwissKnife:::.decode.arg(querytab)
+    ntab <- length(queryvariables)
+    
+    ## if only one table is given for each server, it will be replicated
+    if (length(querytables)==1) querytables <- rep(querytables, ntab)
+    stopifnot("tables and variables must be of the same length"=length(querytables)==ntab)
+    
+    ## compute correlation between samples for each data table 
+    XX <- lapply(1:ntab, function(i) {
+        federateSSCP(loginFD=loginFD, logins=logins, 
+                     querytable=querytables[[i]], queryvariable=queryvariables[[i]], 
+                     byColumn=byColumn, TOL=TOL)
+    })
+
+    return (XX)
+}
