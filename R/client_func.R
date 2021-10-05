@@ -802,13 +802,13 @@ federateSNF <- function(loginFD, logins, querytab, queryvar, neighbors = 20, alp
                      querytable=querytables[[i]], queryvariable=queryvariables[[i]], 
                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
     })
-
+    print(lapply(XX, dim))
     ## take common samples
     commons <- Reduce(intersect, lapply(XX, rownames))
     XX <- lapply(XX, function(distmat) {
         distmat[commons,commons]
     })
-    
+    print(lapply(XX, dim))
     ## similarity graphs
     Ws <- lapply(XX, function(distmat) {
         affinityMatrix((1-distmat)/2, neighbors, alpha)
