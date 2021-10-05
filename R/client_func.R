@@ -256,6 +256,7 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, byColumn = 
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(rawData, subset=NULL, byColumn=", byColumn, ")")), async=T)
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
+            samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
             tryCatch({
                 command <- paste0("dscPush(FD, '", 
                                   .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixClient'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
@@ -265,6 +266,7 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, byColumn = 
             }, error=function(e) e, finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
+            rownames(XXt) <- colnames(XXt) <- unlist(samplenames, use.names=F)
             gc(reset=F)
         }, error=function(e) e, finally=datashield.logout(opals))
     } else {
@@ -273,7 +275,7 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, byColumn = 
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(rawData, subset=NULL, byColumn=", byColumn, ")")), async=T)
             datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
-            
+            samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
             ##- received by each from other nodes ----
             invisible(mclapply(names(opals), mc.cores=1, function(opn) {
                 ind.opn <- which(logindata$server == opn)
@@ -389,7 +391,9 @@ federateSSCP <- function(loginFD, logins, querytable, queryvariable, byColumn = 
             }))
             return (cbind(lower.opi, crossProdSelf[[opi]], upper.opi))
         }))
+        rownames(XXt) <- colnames(XXt) <- unlist(samplenames[names(opals)], use.names=F)
     }
+    
     return (XXt)
 }
 
