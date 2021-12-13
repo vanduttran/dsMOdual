@@ -832,13 +832,10 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
     querytables <- dsSwissKnife:::.decode.arg(symbol)
     ntab <- length(querytables)
     
-    # ## if only one table is given for each server, it will be replicated
-    # if (length(querytables)==1) querytables <- rep(querytables, ntab)
-    # stopifnot("tables and variables must be of the same length"=length(querytables)==ntab)
-    
     ## compute correlation between samples for each data table 
     XX <- lapply(1:ntab, function(i) {
-        federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+        federateSSCP(loginFD=loginFD, logins=logins, 
+                     funcPreProc=funcPreProc, querytables=querytables, ind=i, 
                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
     })
     ## take common samples
@@ -858,32 +855,31 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
 }
 
 
-
 #' @title Test federateSSCP
 #' @description Deprecated
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
-#' @param querytab Encoded name of a table reference in data repositories
-#' @param queryvar Encoded variables from the table reference
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variables will be used as the input raw data.
+#' Other assigned R variables in \code{func} are ignored.
 #' @param byColumn A logical value indicating whether the input data is centered by column or row.
 #' Default, TRUE, centering by column. Constant variables across samples are removed. 
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @export
-testSSCP <- function(loginFD, logins, querytab, queryvar, byColumn=TRUE, TOL = 1e-10) {
-    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    querytables    <- dsSwissKnife:::.decode.arg(querytab)
-    ntab <- length(queryvariables)
-    
-    ## if only one table is given for each server, it will be replicated
-    if (length(querytables)==1) querytables <- rep(querytables, ntab)
-    stopifnot("tables and variables must be of the same length"=length(querytables)==ntab)
+testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, TOL = 1e-10) {
+    funcPreProc <- dsSwissKnife:::.decode.arg(func)
+    querytables <- dsSwissKnife:::.decode.arg(symbol)
+    ntab <- length(querytables)
     
     ## compute correlation between samples for each data table 
     XX <- lapply(1:ntab, function(i) {
         federateSSCP(loginFD=loginFD, logins=logins, 
-                     querytable=querytables[[i]], queryvariable=queryvariables[[i]], 
+                     funcPreProc=funcPreProc, querytables=querytables, ind=i,
                      byColumn=byColumn, TOL=TOL)
     })
 
