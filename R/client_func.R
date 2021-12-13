@@ -266,6 +266,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 #' @keywords internal
 federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, TOL = 1e-10) {
     require(DSOpal)
+    require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
     
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
@@ -330,7 +331,8 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                     command.opn <- paste0("crossAggregate(mates, '", .encode.arg('singularProd(centeredDataMate)'), "', async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=F))
-                    
+                    print("singularProdMate")
+                    print(ds.summary("singularProdMate", datasources = opals[opn]))
                     # command.opn <- paste0("crossAggregate(mates, '", 
                     #                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
                     #                       "', async=F)")
