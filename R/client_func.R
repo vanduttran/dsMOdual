@@ -415,12 +415,16 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
 #' @title Federated ComDim
 #' @description Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
 #' Finding common dimensions in multitable data (Xk, k=1...K)
-#' @usage federateComDim(loginFD, logins, queryvar, querytab, size = NA, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10)
+#' @usage federateComDim(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10)
 #'
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
-#' @param querytab Encoded name of a table reference in data repositories
-#' @param queryvar Encoded list of variables from the table reference
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variables will be used as the input raw data.
+#' Other assigned R variables in \code{func} are ignored.
 #' @param TOL Tolerance of 0, deprecated
 #' @param H Number of common dimensions
 #' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table
@@ -445,20 +449,14 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
 #' @importFrom utils setTxtProgressBar
 #' @importFrom DSI datashield.aggregate
 #' @export
-federateComDim <- function(loginFD, logins, func, symbol, querytab, queryvar, H = 2, scale = "none", option = "none", threshold = 1e-10, TOL = 1e-10) {
+federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10) {
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
     querytables <- dsSwissKnife:::.decode.arg(symbol)
     ntab <- length(querytables)
-    #queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    #querytables    <- dsSwissKnife:::.decode.arg(querytab)
-    #ntab <- length(queryvariables)
-    
-    ## if only one table is given for each server, it will be replicated
-    #if (length(querytables)==1) querytables <- rep(querytables, ntab)
     
     ## compute SSCP matrix for each centered data table
     XX <- lapply(1:ntab, function(i) {
-        federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, which=i, byColumn=TRUE, TOL=TOL)
+        federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, TOL=TOL)
     })
     
     ## set up the centered data table on every node
@@ -800,36 +798,38 @@ federateComDim <- function(loginFD, logins, func, symbol, querytab, queryvar, H 
 
 #' @title Federated SNF
 #' @description Function for SNF federated analysis on the virtual cohort combining multiple cohorts
-#' @usage federateSNF(loginFD, logins, queryvar, querytab, size = NA, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10)
-#'
+#' @usage federateSNF(loginFD, logins, func, symbol, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10)
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
-#' @param querytab Encoded name of a table reference in data repositories
-#' @param queryvar Encoded list of variables from the table reference
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variables will be used as the input raw data.
+#' Other assigned R variables in \code{func} are ignored.
+#' @param TOL Tolerance of 0, deprecated
+#' @param ... see \code{SNFtool::SNF}
 #' @import SNFtool
 #' @export
-federateSNF <- function(loginFD, logins, querytab, queryvar, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10) {
-    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    querytables    <- dsSwissKnife:::.decode.arg(querytab)
-    ntab <- length(queryvariables)
+federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10) {
+    funcPreProc <- dsSwissKnife:::.decode.arg(func)
+    querytables <- dsSwissKnife:::.decode.arg(symbol)
+    ntab <- length(querytables)
     
-    ## if only one table is given for each server, it will be replicated
-    if (length(querytables)==1) querytables <- rep(querytables, ntab)
-    stopifnot("tables and variables must be of the same length"=length(querytables)==ntab)
+    # ## if only one table is given for each server, it will be replicated
+    # if (length(querytables)==1) querytables <- rep(querytables, ntab)
+    # stopifnot("tables and variables must be of the same length"=length(querytables)==ntab)
     
     ## compute correlation between samples for each data table 
     XX <- lapply(1:ntab, function(i) {
-        federateSSCP(loginFD=loginFD, logins=logins, 
-                     querytable=querytables[[i]], queryvariable=queryvariables[[i]], 
+        federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, 
                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
     })
-    print(lapply(XX, dim))
     ## take common samples
     commons <- Reduce(intersect, lapply(XX, rownames))
     XX <- lapply(XX, function(distmat) {
         distmat[commons,commons]
     })
-    print(lapply(XX, dim))
     ## similarity graphs
     Ws <- lapply(XX, function(distmat) {
         affinityMatrix((1-distmat)/2, neighbors, alpha)
