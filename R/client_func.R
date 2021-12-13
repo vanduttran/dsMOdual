@@ -325,7 +325,9 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                     )
                     for (command in command.opn) {
                         cat("Command: ", command, "\n")
+                        cat("BEGIN\n")
                         print(datashield.aggregate(opals[opn], as.symbol(command), async=F))
+                        cat("OKKKKKK\n")
                     }
                     
                     command.opn <- paste0("crossAggregate(mates, '", .encode.arg('singularProd(centeredDataMate)'), "', async=F)")
