@@ -318,7 +318,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                                                .encode.arg(funcPreProc, serialize.it=T),
                                                "', symbol='",
                                                .encode.arg(querytables),
-                                               "'"),
+                                               "')"),
                                         paste0("crossAssign(mates, symbol='centeredDataMate', value='",
                                                .encode.arg(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")),
                                                "', value.call=T, async=F)")
