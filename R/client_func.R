@@ -379,6 +379,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
             gc(reset=F)
             lapply(singularProdCross, function(x) print(dim(x)))
             print(datashield.symbols(opals))
+            cat("OKKKKKKK3\n")
             print(ds.summary("crossProdSelf"), datasources=opals)
             print(ds.summary("tcrossProdSelf"), datasources=opals)
             print(ds.summary("singularProdMate"), datasources=opals)
