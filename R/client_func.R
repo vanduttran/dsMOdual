@@ -355,6 +355,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                 })
                 gc(reset=F)
                 cat("OKKKKKKK1\n")
+                lapply(crossProdSelf, function(x) print(dim(x)))
                 ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]: push this single-column matrix from each node to FD
                 datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
                 
@@ -364,6 +365,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                 cat("Command: ", command, "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
                 cat("OKKKKKKK2\n")
+                
             }, error=function(e) e, finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
@@ -375,7 +377,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                 return (dscMatList)
             })
             gc(reset=F)
-            
+            lapply(singularProdCross, function(x) print(dim(x)))
             ##  (X_i) * (X_j)' * (X_j) * (X_i)'
             #prodDataCross     <- datashield.aggregate(opals, as.symbol('tripleProd(centeredData, crossProdMate)'), async=F)
             ## N.B. save-load increase numeric imprecision!!!
