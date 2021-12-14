@@ -325,16 +325,14 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                     )
                     for (command in command.opn) {
                         cat("Command: ", command, "\n")
-                        cat("BEGIN\n")
                         print(datashield.aggregate(opals[opn], as.symbol(command), async=F))
-                        cat("OKKKKKK\n")
                     }
                     
                     command.opn <- paste0("crossAggregate(mates, '", .encode.arg('singularProd(centeredDataMate)'), "', async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=F))
-                    print("singularProdMate")
-                    print(ds.summary("singularProdMate", datasources = opals[opn]))
+                    #print("singularProdMate")
+                    #print(ds.summary("singularProdMate", datasources = opals[opn]))
                     # command.opn <- paste0("crossAggregate(mates, '", 
                     #                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
                     #                       "', async=F)")
@@ -343,6 +341,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                                           "', async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
+                    cat("OKKKKKKK\n")
                 }, error=function(e) e, finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
             }))
             #-----
