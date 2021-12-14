@@ -475,7 +475,14 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     ## apply funcPreProc for preparation of querytables on opals
     ## TODO: control hacking!
     funcPreProc(conns=opals, symbol=querytables)
-    datashield.assign(opals, "centeredAllData", as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn = TRUE, na.rm = FALSE)')), async=T)
+    queryvariables <- lapply(querytables, function(querytable) {
+        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colnames(', querytable, ')')), async=F)[[1]]
+    })
+    names(queryvariables) <- querytables
+    
+    DSI::datashield.assign(opals, "centeredAllData", 
+                           as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn = TRUE, na.rm = FALSE)')), 
+                           async=T)
     # if (length(unique(querytables))==1) {
     #     ## TODO: make sure different blocks have the same samples (rownames)
     #     tryCatch({
@@ -490,7 +497,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     #     })
     # }
 
-    # compute the total variance of a dataset
+    ## compute the total variance of a dataset
     inertie <- function(tab) {
         return (sum(diag(tab)))    #Froebenius norm
     }
@@ -519,8 +526,8 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     if (is.list(samples) || is.list(apply(samples, 1, unique)))
         stop("XX elements should have the same rownames and colnames")
     
-    if (is.null(names(queryvariables)))
-        names(queryvariables) <- paste("Tab", 1:length(queryvariables), sep=".")
+    #if (is.null(names(queryvariables)))
+    #    names(queryvariables) <- paste("Tab", 1:length(queryvariables), sep=".")
     
     ## TOREVIEW
     # if (is.character(scale)) {
@@ -546,7 +553,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     J <- rep(1:ntab, times=nvar)             # indicates which block each variable belongs to
     names.H <- paste("Dim.", 1:H, sep="")
     Q.b <- array(0, dim=c(nsamples,H,ntab))  # components for the block components
-    dimnames(Q.b) <- list(rownames(XX[[1]]), names.H, names(queryvariables))
+    dimnames(Q.b) <- list(rownames(XX[[1]]), names.H, querytables)#names(queryvariables))
     W.b <- vector("list",length=ntab)        # weights for the block components
     P.b <- vector("list",length=ntab)        # loadings for the block components
     for (k in 1:ntab) {
