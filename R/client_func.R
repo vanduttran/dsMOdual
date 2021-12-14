@@ -379,7 +379,10 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
             gc(reset=F)
             lapply(singularProdCross, function(x) print(dim(x)))
             print(datashield.symbols(opals))
-            print(ds.summary("tripleProd"), )
+            print(ds.summary("crossProdSelf"), datasources=opals)
+            print(ds.summary("tcrossProdSelf"), datasources=opals)
+            print(ds.summary("singularProdMate"), datasources=opals)
+            print(ds.summary("singularProdCross"), datasources=opals)
             ##  (X_i) * (X_j)' * (X_j) * (X_i)'
             #prodDataCross     <- datashield.aggregate(opals, as.symbol('tripleProd(centeredData, crossProdMate)'), async=F)
             ## N.B. save-load increase numeric imprecision!!!
