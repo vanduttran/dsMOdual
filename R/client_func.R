@@ -7,7 +7,7 @@
 #' @param some.object the object to be encoded
 #' @return encoded text with offending characters replaced by strings
 #' @keywords internal
-.encode.arg <- .encode.arg <- function(some.object, serialize.it = TRUE){
+.encode.arg <- function(some.object, serialize.it = TRUE){
     if(serialize.it){
         encoded <- paste0(RCurl::base64Encode(jsonlite::serializeJSON(some.object)), 'serialized')
     } else {
@@ -19,19 +19,7 @@
         encoded[1] <<- gsub(x, my.dictionary[x], encoded[1])
     })
     return(paste0(encoded[1],'base64'))
-    
 }
-#     
-#     function(some.object) {
-#     encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'));
-#     # go fishing for '+', '/' and '=', opal rejects them :
-#     my.dictionary <- c('\\/' = '-slash-', '\\+' = '-plus-', '\\=' = '-equals-')
-#     sapply(names(my.dictionary), function(x){
-#         encoded[1] <<- gsub(x, my.dictionary[x], encoded[1])
-#     })
-#     return(paste0(encoded[1],'base64'))
-#     
-# }
 
 
 #' @title Garbage collection
@@ -301,6 +289,8 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
         tryCatch({
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")), async=T)
             datashield.assign(opals, "crossProdSelf", as.symbol('crossProdrm(centeredData)'), async=T)
+            print("crossProdSelf")
+            print(ds.summary("crossProdSelf", opals))
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
             ##- received by each from other nodes ----
