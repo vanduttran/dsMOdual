@@ -289,8 +289,6 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
         tryCatch({
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")), async=T)
             datashield.assign(opals, "crossProdSelf", as.symbol('crossProdrm(centeredData)'), async=T)
-            print("crossProdSelf")
-            print(ds.summary("crossProdSelf", opals))
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
             ##- received by each from other nodes ----
@@ -354,8 +352,6 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                     return (as.matrix(attach.big.matrix(dscblocks[[1]])))
                 })
                 gc(reset=F)
-                cat("OKKKKKKK1\n")
-                lapply(crossProdSelf, function(x) print(dim(x)))
                 ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]: push this single-column matrix from each node to FD
                 datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
                 
@@ -364,8 +360,6 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-                cat("OKKKKKKK2\n")
-                
             }, error=function(e) e, finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
@@ -377,13 +371,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                 return (dscMatList)
             })
             gc(reset=F)
-            lapply(singularProdCross, function(x) print(dim(x)))
-            print(datashield.symbols(opals))
-            cat("OKKKKKKK3\n")
-            print(ds.summary("crossProdSelf", datasources=opals))
-            print(ds.summary("tcrossProdSelf", datasources=opals))
-            print(ds.summary("singularProdMate", datasources=opals))
-            print(ds.summary("singularProdCross", datasources=opals))
+
             ##  (X_i) * (X_j)' * (X_j) * (X_i)'
             #prodDataCross     <- datashield.aggregate(opals, as.symbol('tripleProd(centeredData, crossProdMate)'), async=F)
             ## N.B. save-load increase numeric imprecision!!!
@@ -476,26 +464,31 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     XX <- lapply(1:ntab, function(i) {
         federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, TOL=TOL)
     })
+    names(XX) <- querytables
     
     ## set up the centered data table on every node
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata <- dsSwissKnife:::.decode.arg(logins)
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
-
-    if (length(unique(querytables))==1) {
-        ## TODO: make sure different blocks have the same samples (rownames)
-        tryCatch({
-            datashield.assign(opals, "rawAllData", unlist(unique(querytables)), variables=unlist(queryvariables), async=T)
-            datashield.assign(opals, "centeredAllData", as.symbol('center(rawAllData)'), async=T)
-        }, error=function(e) {e; datashield.logout(opals)})
-    } else {
-        stop("Multi-tables on each server: not yet implemented for ComDim")
-        tryCatch({
-            ##TODO
-            datashield.assign(opals, "rawAllData", unlist(unique(querytables)), variables=unlist(queryvariables), async=T)
-        })
-    }
+    
+    ## apply funcPreProc for preparation of querytables on opals
+    ## TODO: control hacking!
+    funcPreProc(conns=opals, symbol=querytables)
+    datashield.assign(opals, "centeredAllData", as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn = TRUE, na.rm = FALSE)')), async=T)
+    # if (length(unique(querytables))==1) {
+    #     ## TODO: make sure different blocks have the same samples (rownames)
+    #     tryCatch({
+    #         #datashield.assign(opals, "rawAllData", unlist(unique(querytables)), variables=unlist(queryvariables), async=T)
+    #         datashield.assign(opals, "centeredAllData", as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn = TRUE, na.rm = FALSE)')), async=T)
+    #     }, error=function(e) {e; datashield.logout(opals)})
+    # } else {
+    #     stop("Multi-tables on each server: not yet implemented for ComDim")
+    #     tryCatch({
+    #         ##TODO
+    #         datashield.assign(opals, "rawAllData", unlist(unique(querytables)), variables=unlist(queryvariables), async=T)
+    #     })
+    # }
 
     # compute the total variance of a dataset
     inertie <- function(tab) {
