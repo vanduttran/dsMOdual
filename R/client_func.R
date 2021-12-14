@@ -476,7 +476,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     ## TODO: control hacking!
     funcPreProc(conns=opals, symbol=querytables)
     queryvariables <- lapply(querytables, function(querytable) {
-        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colnames(', querytable, ')')), async=F)[[1]]
+        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
     })
     names(queryvariables) <- querytables
     
