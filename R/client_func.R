@@ -327,7 +327,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                     #                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
                     #                       "', async=F)")
                     command.opn <- paste0("crossAggregate(mates, '", 
-                                          .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf)))")), 
+                                          .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf, serialize.it=F)))")), 
                                           "', async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
@@ -346,7 +346,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                 # datashield.assign(opals, "GC", as.symbol(command), async=T)
                 
                 command <- paste0("dscPush(FD, '", 
-                                  .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixClient'), dsSSCP:::.encode.arg(tcrossProdSelf)", "))")), 
+                                  .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixClient'), dsSSCP:::.encode.arg(tcrossProdSelf, serialize.it=F)", "))")), 
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
