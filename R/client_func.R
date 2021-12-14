@@ -323,12 +323,12 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                     print(datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=F))
                     #print("singularProdMate")
                     #print(ds.summary("singularProdMate", datasources = opals[opn]))
-                    # command.opn <- paste0("crossAggregate(mates, '", 
-                    #                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
-                    #                       "', async=F)")
-                    command.opn <- paste0("crossAggregate(mates, '", 
-                                          .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf, serialize.it=F)))")), 
+                    command.opn <- paste0("crossAggregate(mates, '",
+                                          .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")),
                                           "', async=F)")
+                    # command.opn <- paste0("crossAggregate(mates, '",
+                    #                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf, serialize.it=F)))")), 
+                    #                       "', async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
                 }, error=function(e) e, finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
@@ -378,6 +378,8 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
             })
             gc(reset=F)
             lapply(singularProdCross, function(x) print(dim(x)))
+            print(datashield.symbols(opals))
+            print(ds.summary("tripleProd"), )
             ##  (X_i) * (X_j)' * (X_j) * (X_i)'
             #prodDataCross     <- datashield.aggregate(opals, as.symbol('tripleProd(centeredData, crossProdMate)'), async=F)
             ## N.B. save-load increase numeric imprecision!!!
