@@ -824,6 +824,21 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
     querytables <- dsSwissKnife:::.decode.arg(symbol)
     ntab <- length(querytables)
     
+    logindata <- dsSwissKnife:::.decode.arg(logins)
+    opals <- DSI::datashield.login(logins=logindata)
+
+    ## apply funcPreProc for preparation of querytables on opals
+    ## TODO: control hacking!
+    ## TODO: control identical colnames!
+    funcPreProc(conns=opals, symbol=querytables)
+    
+    ## take variables (colnames)
+    queryvariables <- lapply(querytables, function(querytable) {
+        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    })
+    names(queryvariables) <- querytables
+    datashield.logout(opals)
+    
     ## compute correlation between samples for each data table 
     XX <- lapply(1:ntab, function(i) {
         federateSSCP(loginFD=loginFD, logins=logins, 
