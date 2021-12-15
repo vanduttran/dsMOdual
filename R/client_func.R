@@ -474,29 +474,22 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     
     ## apply funcPreProc for preparation of querytables on opals
     ## TODO: control hacking!
+    ## TODO: control identical colnames!
     funcPreProc(conns=opals, symbol=querytables)
+    
+    ## take variables (colnames)
     queryvariables <- lapply(querytables, function(querytable) {
         DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
     })
     names(queryvariables) <- querytables
     
+    ## centered cbind-ed centered data matrix
     DSI::datashield.assign(opals, "centeredAllData", 
-                           as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn = TRUE, na.rm = FALSE)')), 
+                           as.symbol(paste0('center(rawAllData, byColumn=TRUE, na.rm=FALSE)')), 
                            async=T)
-    # if (length(unique(querytables))==1) {
-    #     ## TODO: make sure different blocks have the same samples (rownames)
-    #     tryCatch({
-    #         #datashield.assign(opals, "rawAllData", unlist(unique(querytables)), variables=unlist(queryvariables), async=T)
-    #         datashield.assign(opals, "centeredAllData", as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn = TRUE, na.rm = FALSE)')), async=T)
-    #     }, error=function(e) {e; datashield.logout(opals)})
-    # } else {
-    #     stop("Multi-tables on each server: not yet implemented for ComDim")
-    #     tryCatch({
-    #         ##TODO
-    #         datashield.assign(opals, "rawAllData", unlist(unique(querytables)), variables=unlist(queryvariables), async=T)
-    #     })
-    # }
-
+    # DSI::datashield.assign(opals, "centeredAllData", 
+    #                        as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn=TRUE, na.rm=FALSE)')), 
+    #                        async=T)
     ## compute the total variance of a dataset
     inertie <- function(tab) {
         return (sum(diag(tab)))    #Froebenius norm
@@ -526,9 +519,6 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     if (is.list(samples) || is.list(apply(samples, 1, unique)))
         stop("XX elements should have the same rownames and colnames")
     
-    #if (is.null(names(queryvariables)))
-    #    names(queryvariables) <- paste("Tab", 1:length(queryvariables), sep=".")
-    
     ## TOREVIEW
     # if (is.character(scale)) {
     #   if (!scale %in% c("none","sd"))
@@ -552,17 +542,17 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     Q <- matrix(0, nrow=nsamples, ncol=H)    # will contain common components
     J <- rep(1:ntab, times=nvar)             # indicates which block each variable belongs to
     names.H <- paste("Dim.", 1:H, sep="")
-    Q.b <- array(0, dim=c(nsamples,H,ntab))  # components for the block components
-    dimnames(Q.b) <- list(rownames(XX[[1]]), names.H, querytables)#names(queryvariables))
-    W.b <- vector("list",length=ntab)        # weights for the block components
-    P.b <- vector("list",length=ntab)        # loadings for the block components
+    Q.b <- array(0, dim=c(nsamples, H, ntab))  # components for the block components
+    dimnames(Q.b) <- list(rownames(XX[[1]]), names.H, querytables)
+    W.b <- vector("list", length=ntab)        # weights for the block components
+    P.b <- vector("list", length=ntab)        # loadings for the block components
     for (k in 1:ntab) {
-        W.b[[k]] <- matrix(0,nrow=nvar[k],ncol=H)
-        P.b[[k]] <- matrix(0,nrow=nvar[k],ncol=H)
+        W.b[[k]] <- matrix(0, nrow=nvar[k], ncol=H)
+        P.b[[k]] <- matrix(0, nrow=nvar[k], ncol=H)
         rownames(W.b[[k]]) <- rownames(P.b[[k]]) <- queryvariables[[k]]
         colnames(W.b[[k]]) <- colnames(P.b[[k]]) <- names.H
     }
-    We <- Pe <- matrix(0,nrow=sum(nvar),ncol=H)
+    We <- Pe <- matrix(0, nrow=sum(nvar), ncol=H)
     Res <- NULL              # Results to be returned
     
     explained.block <- matrix(0, nrow=ntab+1,ncol=H)      # percentage of inertia recovered
@@ -618,7 +608,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     tvar <- sapply(1:ntab, function(k) sum(as.matrix(W[,,k])^2))
     Itot <- sum(tvar) # Total inertia of all dataset sum(trace(Wj*Wj))
     
-    #X0 <- X            #keep initial values with standardisation and weighting scheme
+    #X0 <- X            #keep initial values with standardization and weighting scheme
     # ---------------------------------------------------------------------------
     # 3. computation of Q and LAMBDA for the various dimensions
     # ---------------------------------------------------------------------------
@@ -635,7 +625,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
         while (deltafit > threshold) {
             W[,,ntab+1] <- Reduce("+", lapply(1:ntab, function(k) lambda[k]*W[,,k]))
             Svdw <- svd(as.matrix(W[,,ntab+1]))
-            q <- Svdw$u[,1,drop=F]
+            q <- Svdw$u[, 1, drop=F]
             
             fit <- 0
             for (k in 1:ntab) {
@@ -756,7 +746,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
         LambdaMoyen <- apply(LAMBDA, 2, mean)
         C <- Q*LambdaMoyen
     } else {
-        LambdaMoyen <- apply(LAMBDA,2,mean)
+        LambdaMoyen <- apply(LAMBDA, 2, mean)
         C <- Q %*% sqrt(diag(LambdaMoyen))
     }
     
@@ -778,11 +768,11 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     Res$C  <- C
     Res$RV <- RV
     Res$W  <- We
-    Res$Wm <- We %*% solve(t(Pe)%*%We)
+    Res$Wm <- We %*% solve(t(Pe) %*% We)
     rownames(Res$Wm) <- rownames(Res$W)
     colnames(Res$Wm) <- colnames(Res$W) <- names.H
     
-    fit <- matrix(0,nrow=H,ncol=2)
+    fit <- matrix(0, nrow=H, ncol=2)
     fit[,1] <- explained
     fit[,2] <- cumsum(fit[,1])
     Res$fit <- fit
