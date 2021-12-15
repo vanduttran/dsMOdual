@@ -484,12 +484,12 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     names(queryvariables) <- querytables
     
     ## centered cbind-ed centered data matrix
-    DSI::datashield.assign(opals, "centeredAllData", 
-                           as.symbol(paste0('center(rawAllData, byColumn=TRUE, na.rm=FALSE)')), 
-                           async=T)
     # DSI::datashield.assign(opals, "centeredAllData", 
-    #                        as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn=TRUE, na.rm=FALSE)')), 
+    #                        as.symbol(paste0('center(rawAllData, byColumn=TRUE, na.rm=FALSE)')), 
     #                        async=T)
+    DSI::datashield.assign(opals, "centeredAllData",
+                           as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn=TRUE, na.rm=FALSE)')),
+                           async=T)
     ## compute the total variance of a dataset
     inertie <- function(tab) {
         return (sum(diag(tab)))    #Froebenius norm
@@ -837,7 +837,7 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
         DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
     })
     names(queryvariables) <- querytables
-    datashield.logout(opals)
+    DSI::datashield.logout(opals)
     
     ## compute correlation between samples for each data table 
     XX <- lapply(1:ntab, function(i) {
