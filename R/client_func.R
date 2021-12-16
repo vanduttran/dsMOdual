@@ -259,7 +259,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
     
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
-    opals <- DSI::datashield.login(logins=logindata)
+    opals <- datashield.login(logins=logindata)
     nNode <- length(opals)
     
     ## apply funcPreProc for preparation of querytables on opals
@@ -469,7 +469,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     ## set up the centered data table on every node
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata <- dsSwissKnife:::.decode.arg(logins)
-    opals <- DSI::datashield.login(logins=logindata)
+    opals <- datashield.login(logins=logindata)
     nNode <- length(opals)
     
     ## apply funcPreProc for preparation of querytables on opals
@@ -825,7 +825,7 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
     ntab <- length(querytables)
     
     logindata <- dsSwissKnife:::.decode.arg(logins)
-    opals <- DSI::datashield.login(logins=logindata)
+    opals <- datashield.login(logins=logindata)
 
     ## apply funcPreProc for preparation of querytables on opals
     ## TODO: control hacking!
