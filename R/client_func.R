@@ -319,8 +319,8 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                     command.opn <- paste0("crossAggregate(mates, '", .encode.arg('singularProd(centeredDataMate)'), "', async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=F))
-                    #print("singularProdMate")
-                    #print(ds.summary("singularProdMate", datasources = opals[opn]))
+                    print("singularProdMate created")
+                    print(ds.summary("singularProdMate", datasources = opals[opn]))
                     command.opn <- paste0("crossAggregate(mates, '",
                                           .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")),
                                           "', async=F)")
