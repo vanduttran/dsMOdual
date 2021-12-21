@@ -292,7 +292,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
             ##- received by each from other nodes ----
-            invisible(mclapply(names(opals), mc.cores=1, function(opn) {
+            invisible(lapply(names(opals), function(opn) {
                 ind.opn <- which(logindata$server == opn)
                 logindata.opn <- logindata[-ind.opn, , drop=F]
                 logindata.opn$user <- logindata.opn$userserver
@@ -329,7 +329,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                     #                       "', async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
-                }, error=function(e) e, finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
+                }, error=function(e) message(e), finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
             }))
             #-----
             
@@ -360,7 +360,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-            }, error=function(e) e, finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
+            }, error=function(e) message(e), finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
                 dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
