@@ -329,7 +329,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                     #                       "', async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
-                }, error=function(e) message(e), finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
+                }, error=function(e) print(paste0("CROSS PROCESS", e)), finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
             }))
             #-----
             
@@ -360,7 +360,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-            }, error=function(e) message(e), finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
+            }, error=function(e) print(paste0("FD PROCESS", e)), finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
                 dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
@@ -378,7 +378,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
             prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
                                                                           as.symbol("centeredData"), 
                                                                           .encode.arg(names(opals)))), async=T)
-        }, error=function(e) e, finally=datashield.logout(opals))
+        }, error=function(e) print(paste0("TRIPLE PROCESS", e)), finally=datashield.logout(opals))
         
         ## deduced from received info by federation: (X_i) * (X_j)'
         crossProductPair <- lapply(1:(nNode-1), function(opi) {
