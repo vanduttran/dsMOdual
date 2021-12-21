@@ -319,15 +319,15 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                                         as.symbol("mates"),
                                         .encode.arg(funcPreProc, serialize.it=T),
                                         .encode.arg(querytables))
-                    cat("Command: ", command, "\n")
-                    print(datashield.aggregate(opals[opn], as.symbol(command), async=F))
+                    cat("Command: ", command.opn, "\n")
+                    print(datashield.aggregate(opals[opn], as.call(command.opn), async=F))
                     
                     ## center raw data on mates of opn
                     command.opn <- paste0("crossAssign(mates, symbol='centeredDataMate', value='",
                                           .encode.arg(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")),
                                           "', value.call=T, async=F)")
-                    cat("Command: ", command, "\n")
-                    print(datashield.aggregate(opals[opn], as.symbol(command), async=F))
+                    cat("Command: ", command.opn, "\n")
+                    print(datashield.aggregate(opals[opn], as.symbol(command.opn), async=F))
                     
                     ## create singularProd from mates of opn
                     command.opn <- paste0("crossAggregate(mates, '", .encode.arg('singularProd(centeredDataMate)'), "', async=F)")
