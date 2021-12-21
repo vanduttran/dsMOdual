@@ -319,7 +319,7 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
                                         as.symbol("mates"),
                                         .encode.arg(funcPreProc, serialize.it=T),
                                         .encode.arg(querytables))
-                    cat("Command: ", command.opn, "\n")
+                    cat("Command: crossAssignFunc", "\n")
                     print(datashield.aggregate(opals[opn], as.call(command.opn), async=F))
                     
                     ## center raw data on mates of opn
