@@ -468,8 +468,8 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
 #'        }}
 #'
 #' @return \item{call}{: call of the method }
+#' @import DSI
 #' @importFrom utils setTxtProgressBar
-#' @importFrom DSI datashield.aggregate
 #' @export
 federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10) {
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
@@ -833,7 +833,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
 #' Other assigned R variables in \code{func} are ignored.
 #' @param TOL Tolerance of 0, deprecated
 #' @param ... see \code{SNFtool::SNF}
-#' @import SNFtool
+#' @import SNFtool DSI
 #' @export
 federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10) {
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
@@ -893,7 +893,7 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
-#' @export
+#' @keywords internal
 testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, TOL = 1e-10) {
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
     querytables <- dsSwissKnife:::.decode.arg(symbol)
