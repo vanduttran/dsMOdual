@@ -1,6 +1,6 @@
-Package: dsSSCPclient
-Title: Client Side Functions for Integrating Sum of Squares and Cross Products Matrices
-Version: 0.1.40
+Package: dsMOdual
+Title: Client Side Functions on XX' Sum of Squares and Cross Products Matrices
+Version: 0.1.41
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
@@ -9,9 +9,6 @@ Authors@R:
              comment = c(ORCID = "0000-0003-2074-5029")),
       person(given = "Iulian",
              family = "Dragan",
-             role = c("ctb")),
-      person(given = "Riccardo",
-             family = "Giuliani",
              role = c("ctb")))
 Depends: DSI, dsSwissKnife, DSOpal
 Imports: Matrix, bigmemory, parallel, SNFtool
