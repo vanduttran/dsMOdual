@@ -131,7 +131,7 @@ pushSingMatrix <- function(value) {
 #' @importFrom Matrix rankMatrix
 #' @keywords internal
 #' @return X
-solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
+.solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     if (length(r) != ncol(XtX)) {
         stop("r length shoud match ncol(XtX).")
     }
@@ -252,7 +252,7 @@ solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, TOL = 1e-10) {
+.federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, TOL = 1e-10) {
     require(DSOpal)
     require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
@@ -401,12 +401,12 @@ federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byC
             crossi <- lapply((opi+1):(nNode), function(opj) {
                 opni <- names(opals)[opi]
                 opnj <- names(opals)[opj]
-                a1 <- solveSSCP(XXt=prodDataCross[[opni]][[opnj]],
+                a1 <- .solveSSCP(XXt=prodDataCross[[opni]][[opnj]],
                                 XtX=prodDataCross[[opnj]][[opni]],
                                 r=crossProdSelf[[opnj]][, 1, drop=F],
                                 Xr=singularProdCross[[opni]][[opnj]],
                                 TOL=TOL)
-                a2 <- solveSSCP(XXt=prodDataCross[[opnj]][[opni]],
+                a2 <- .solveSSCP(XXt=prodDataCross[[opnj]][[opni]],
                                 XtX=prodDataCross[[opni]][[opnj]],
                                 r=crossProdSelf[[opni]][, 1, drop=F],
                                 Xr=singularProdCross[[opnj]][[opni]],
@@ -478,7 +478,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     
     ## compute SSCP matrix for each centered data table
     XX <- lapply(1:ntab, function(i) {
-        federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, TOL=TOL)
+        .federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, TOL=TOL)
     })
     names(XX) <- querytables
     
@@ -857,7 +857,7 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
     
     ## compute correlation between samples for each data table 
     XX <- lapply(1:ntab, function(i) {
-        federateSSCP(loginFD=loginFD, logins=logins, 
+        .federateSSCP(loginFD=loginFD, logins=logins, 
                      funcPreProc=funcPreProc, querytables=querytables, ind=i, 
                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
     })
@@ -894,14 +894,14 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, TOL = 1e-10) {
+.testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, TOL = 1e-10) {
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
     querytables <- dsSwissKnife:::.decode.arg(symbol)
     ntab <- length(querytables)
     
     ## compute correlation between samples for each data table 
     XX <- lapply(1:ntab, function(i) {
-        federateSSCP(loginFD=loginFD, logins=logins, 
+        .federateSSCP(loginFD=loginFD, logins=logins, 
                      funcPreProc=funcPreProc, querytables=querytables, ind=i,
                      byColumn=byColumn, TOL=TOL)
     })

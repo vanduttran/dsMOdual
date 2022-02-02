@@ -1,6 +1,6 @@
 Package: dsMOdual
 Title: Server Side Functions on XX' Sum of Squares and Cross Products Matrices
-Version: 0.1.41
+Version: 0.1.42
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
@@ -17,12 +17,8 @@ AggregateMethods:
     garbageCollect,
     pushSymmMatrixClient,
     pushSingMatrix,
-    testSSCP,
     federateComDim,
     federateSNF
-AssignMethods:
-    randomData,
-    trscale
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
