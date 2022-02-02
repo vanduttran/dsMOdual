@@ -124,8 +124,8 @@ pushSingMatrix <- function(value) {
 #' @description Find X from XX' and X'X
 #' @param XXt XX'
 #' @param XtX X'X
-#' @param r A non-null vector of length \code{ncol(t(X)*X)}
-#' @param Xr A vector of length \code{nrow(X * t(X))}, equals to the product X %*% r
+#' @param r A non-null vector of length \code{ncol(X'X)}
+#' @param Xr A vector of length \code{nrow(XX'}, equals to the product Xr
 #' @param TOL Tolerance of 0
 #' @import parallel
 #' @importFrom Matrix rankMatrix

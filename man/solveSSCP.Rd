@@ -11,9 +11,9 @@ solveSSCP(XXt, XtX, r, Xr, TOL = 1e-10)
 
 \item{XtX}{X'X}
 
-\item{r}{A non-null vector of length \code{ncol(t(X)*X)}}
+\item{r}{A non-null vector of length \code{ncol(X'X)}}
 
-\item{Xr}{A vector of length \code{nrow(X * t(X))}, equals to the product X %*% r}
+\item{Xr}{A vector of length \code{nrow(XX'}, equals to the product Xr}
 
 \item{TOL}{Tolerance of 0}
 }
