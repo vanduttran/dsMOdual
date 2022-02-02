@@ -1,5 +1,5 @@
 Package: dsMOdual
-Title: Client Side Functions on XX' Sum of Squares and Cross Products Matrices
+Title: Server Side Functions on XX' Sum of Squares and Cross Products Matrices
 Version: 0.1.41
 Authors@R: 
     c(person(given = "Van Du T.",
@@ -12,7 +12,7 @@ Authors@R:
              role = c("ctb")))
 Depends: DSI, dsSwissKnife, DSOpal
 Imports: Matrix, bigmemory, parallel, SNFtool
-Description: Client side functions for integrating sum of squares and cross products matrices.
+Description: Server side functions on XX' sum of squares and cross products matrices.
 AggregateMethods:
     garbageCollect,
     pushSymmMatrixClient,
