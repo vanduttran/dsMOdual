@@ -10,7 +10,7 @@ Authors@R:
       person(given = "Iulian",
              family = "Dragan",
              role = c("ctb")))
-Depends: DSI, dsSwissKnife, DSOpal
+Depends: R (>= 3.5.0), DSI, dsSwissKnife, DSOpal
 Imports: Matrix, bigmemory, parallel, SNFtool
 Description: Server side functions on XX' sum of squares and cross products matrices.
 AggregateMethods:
