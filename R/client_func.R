@@ -262,10 +262,23 @@ pushSingMatrix <- function(value) {
     opals <- datashield.login(logins=logindata)
     nNode <- length(opals)
     
-    ## apply funcPreProc for preparation of querytables on opals
-    ## TODO: control hacking!
-    ## TODO: control identical colnames!
-    funcPreProc(conns=opals, symbol=querytables)
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
     
     if (nNode==1) {
         tryCatch({
@@ -279,12 +292,12 @@ pushSingMatrix <- function(value) {
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-            }, error=function(e) e, finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
+            }, error=function(e) print(paste0("FD PROCESS SINGLE: ", e)), finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
             rownames(XXt) <- colnames(XXt) <- unlist(samplenames, use.names=F)
             gc(reset=F)
-        }, error=function(e) e, finally=datashield.logout(opals))
+        }, error=function(e) print(paste0("XX PROCESS SINGLE: ", e)), finally=datashield.logout(opals))
     } else {
         tryCatch({
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")), async=T)
@@ -376,7 +389,7 @@ pushSingMatrix <- function(value) {
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-            }, error=function(e) print(paste0("FD PROCESS: ", e)), finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
+            }, error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e)), finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
                 dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
@@ -488,10 +501,23 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     opals <- datashield.login(logins=logindata)
     nNode <- length(opals)
     
-    ## apply funcPreProc for preparation of querytables on opals
-    ## TODO: control hacking!
-    ## TODO: control identical colnames!
-    funcPreProc(conns=opals, symbol=querytables)
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
     
     ## take variables (colnames)
     queryvariables <- lapply(querytables, function(querytable) {
@@ -843,10 +869,23 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
     logindata <- dsSwissKnife:::.decode.arg(logins)
     opals <- datashield.login(logins=logindata)
 
-    ## apply funcPreProc for preparation of querytables on opals
-    ## TODO: control hacking!
-    ## TODO: control identical colnames!
-    funcPreProc(conns=opals, symbol=querytables)
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
     
     ## take variables (colnames)
     queryvariables <- lapply(querytables, function(querytable) {
