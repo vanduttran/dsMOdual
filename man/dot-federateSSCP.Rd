@@ -35,9 +35,6 @@ If FALSE, centering and scaling by row. Constant samples across variables are re
 
 \item{TOL}{Tolerance of 0}
 }
-\value{
-XX' matrix
-}
 \description{
 Function for computing the federated SSCP matrix
 }
