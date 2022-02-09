@@ -253,7 +253,10 @@ pushSingMatrix <- function(value) {
         .lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
         .cleanup(safe.objs)
-    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        datashield.logout(opals)
+    })
     
     if (nNode==1) {
         tryCatch({
@@ -492,7 +495,10 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
         .lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
         .cleanup(safe.objs)
-    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        datashield.logout(opals)
+    })
     
     ## take variables (colnames)
     queryvariables <- lapply(querytables, function(querytable) {
@@ -860,7 +866,10 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
         .lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
         .cleanup(safe.objs)
-    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        datashield.logout(opals)
+    })
     
     ## take variables (colnames)
     queryvariables <- lapply(querytables, function(querytable) {
