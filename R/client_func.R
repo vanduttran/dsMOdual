@@ -206,7 +206,7 @@ pushSingMatrix <- function(value) {
 #' @keywords internal
 .federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, TOL = 1e-10) {
     require(DSOpal)
-    #require(dsBaseClient)
+    require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
     
     loginFDdata    <- .decode.arg(loginFD)
