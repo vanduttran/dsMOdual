@@ -1,27 +1,3 @@
-#' #' @title Encode function  argument
-#' #' @description Serialize to JSON, then encode base64,
-#' #'  then replace '+', '/' and '=' in the result in order to play nicely with the opal entry.
-#' #'  Used to encode non-scalar function arguments prior to sending to the opal server.
-#' #'  There's a corresponding function in the server package called .decode.arg.
-#' #'  See \code{dsSwissKnifeClient:::.encode.arg}.
-#' #' @param some.object the object to be encoded
-#' #' @return encoded text with offending characters replaced by strings
-#' #' @keywords internal
-#' .encode.arg <- function(some.object, serialize.it = TRUE){
-#'     if(serialize.it){
-#'         encoded <- paste0(RCurl::base64Encode(jsonlite::serializeJSON(some.object)), 'serialized')
-#'     } else {
-#'         encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'))
-#'     }
-#'     # go fishing for '+', '/' and '=', opal rejects them :
-#'     my.dictionary <- c('\\/' = '-slash-', '\\+' = '-plus-', '\\=' = '-equals-')
-#'     sapply(names(my.dictionary), function(x){
-#'         encoded[1] <<- gsub(x, my.dictionary[x], encoded[1])
-#'     })
-#'     return(paste0(encoded[1],'base64'))
-#' }
-
-
 #' @title Garbage collection
 #' @description Call gc on the federated server
 #' @export
@@ -102,10 +78,10 @@ pushSingMatrix <- function(value) {
 #' @param r A non-null vector of length \code{ncol(X'X)}
 #' @param Xr A vector of length \code{nrow(XX'}, equals to the product Xr
 #' @param TOL Tolerance of 0
+#' @return X
 #' @import parallel
 #' @importFrom Matrix rankMatrix
 #' @keywords internal
-#' @return X
 .solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
     if (length(r) != ncol(XtX)) {
         stop("r length shoud match ncol(XtX).")
@@ -225,11 +201,12 @@ pushSingMatrix <- function(value) {
 #' Default, TRUE, centering by column. Constant variables across samples are removed. 
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param TOL Tolerance of 0
+#' @return XX' matrix
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
 .federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, TOL = 1e-10) {
     require(DSOpal)
-    require(dsBaseClient)
+    #require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
     
     loginFDdata    <- .decode.arg(loginFD)
@@ -292,19 +269,6 @@ pushSingMatrix <- function(value) {
                 opals.loc <- paste0("crossLogin('", .encode.arg(logindata.opn), "')")
                 datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async=F)
                 tryCatch({
-                    # command.opn <- list(paste0("crossAssignFunc(mates, func='",
-                    #                            .encode.arg(funcPreProc, serialize.it=T),
-                    #                            "', symbol='",
-                    #                            .encode.arg(querytables),
-                    #                            "')"),
-                    #                     paste0("crossAssign(mates, symbol='centeredDataMate', value='",
-                    #                            .encode.arg(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")),
-                    #                            "', value.call=T, async=F)")
-                    # )
-                    # for (command in command.opn) {
-                    #     cat("Command: ", command, "\n")
-                    #     print(datashield.aggregate(opals[opn], as.symbol(command), async=F))
-                    # }
                     ## prepare raw data matrices on mates of opn
                     command.opn <- list(as.symbol("crossAssignFunc"),
                                         as.symbol("mates"),
@@ -323,9 +287,9 @@ pushSingMatrix <- function(value) {
                     ## create singularProd from mates of opn
                     command.opn <- paste0("crossAggregate(mates, '", .encode.arg('singularProd(centeredDataMate)'), "', async=F)")
                     cat("Command: ", command.opn, "\n")
-                    print(datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=F))
-                    print("singularProdMate created")
-                    print(ds.summary("singularProdMate", datasources = opals[opn]))
+                    #print(datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=F))
+                    #print("singularProdMate created")
+                    #print(ds.summary("singularProdMate", datasources = opals[opn]))
                     
                     ## send X'X from opn to mates of opn
                     command.opn <- paste0("crossAggregate(mates, '",
@@ -335,7 +299,7 @@ pushSingMatrix <- function(value) {
                     #                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsMOprimal:::.encode.arg(crossProdSelf, serialize.it=F)))")), 
                     #                       "', async=F)")
                     cat("Command: ", command.opn, "\n")
-                    print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
+                    #print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
                 }, error=function(e) print(paste0("CROSS PROCESS: ", e)), finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
             }))
             #-----
@@ -840,6 +804,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
 #' Other assigned R variables in \code{func} are ignored.
 #' @param TOL Tolerance of 0, deprecated
 #' @param ... see \code{SNFtool::SNF}
+#' @return SNF matrix
 #' @import SNFtool DSI
 #' @export
 federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10) {
