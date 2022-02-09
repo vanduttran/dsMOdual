@@ -23,6 +23,9 @@ Other assigned R variables in \code{func} are ignored.}
 
 \item{...}{see \code{SNFtool::SNF}}
 }
+\value{
+SNF matrix
+}
 \description{
 Function for SNF federated analysis on the virtual cohort combining multiple cohorts
 }
