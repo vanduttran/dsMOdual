@@ -1,25 +1,25 @@
-#' @title Encode function  argument
-#' @description Serialize to JSON, then encode base64,
-#'  then replace '+', '/' and '=' in the result in order to play nicely with the opal entry.
-#'  Used to encode non-scalar function arguments prior to sending to the opal server.
-#'  There's a corresponding function in the server package called .decode.arg.
-#'  See \code{dsSwissKnifeClient:::.encode.arg}.
-#' @param some.object the object to be encoded
-#' @return encoded text with offending characters replaced by strings
-#' @keywords internal
-.encode.arg <- function(some.object, serialize.it = TRUE){
-    if(serialize.it){
-        encoded <- paste0(RCurl::base64Encode(jsonlite::serializeJSON(some.object)), 'serialized')
-    } else {
-        encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'))
-    }
-    # go fishing for '+', '/' and '=', opal rejects them :
-    my.dictionary <- c('\\/' = '-slash-', '\\+' = '-plus-', '\\=' = '-equals-')
-    sapply(names(my.dictionary), function(x){
-        encoded[1] <<- gsub(x, my.dictionary[x], encoded[1])
-    })
-    return(paste0(encoded[1],'base64'))
-}
+#' #' @title Encode function  argument
+#' #' @description Serialize to JSON, then encode base64,
+#' #'  then replace '+', '/' and '=' in the result in order to play nicely with the opal entry.
+#' #'  Used to encode non-scalar function arguments prior to sending to the opal server.
+#' #'  There's a corresponding function in the server package called .decode.arg.
+#' #'  See \code{dsSwissKnifeClient:::.encode.arg}.
+#' #' @param some.object the object to be encoded
+#' #' @return encoded text with offending characters replaced by strings
+#' #' @keywords internal
+#' .encode.arg <- function(some.object, serialize.it = TRUE){
+#'     if(serialize.it){
+#'         encoded <- paste0(RCurl::base64Encode(jsonlite::serializeJSON(some.object)), 'serialized')
+#'     } else {
+#'         encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'))
+#'     }
+#'     # go fishing for '+', '/' and '=', opal rejects them :
+#'     my.dictionary <- c('\\/' = '-slash-', '\\+' = '-plus-', '\\=' = '-equals-')
+#'     sapply(names(my.dictionary), function(x){
+#'         encoded[1] <<- gsub(x, my.dictionary[x], encoded[1])
+#'     })
+#'     return(paste0(encoded[1],'base64'))
+#' }
 
 
 #' @title Garbage collection
@@ -37,24 +37,8 @@ garbageCollect <- function() {
 #' @import bigmemory parallel
 #' @return Description of the pushed value
 #' @export
-# pushValue.bak <- function(value, name) {
-#     valued <- dsSwissKnife:::.decode.arg(value)
-#     stopifnot(is.list(valued) && length(valued)>0)
-#     if (is.list(valued[[1]])) {
-#         dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
-#             x.mat <- do.call(rbind, x)
-#             stopifnot(ncol(x.mat)==1)
-#             return (describe(as.big.matrix(x.mat)))
-#         })
-#     } else {
-#         valued.mat <- do.call(rbind, valued)
-#         stopifnot(isSymmetric(valued.mat))
-#         dscbigmatrix <- list(describe(as.big.matrix(valued.mat)))
-#     }
-#     return (dscbigmatrix)
-# }
 pushSymmMatrixClient <- function(value) {
-    valued <- dsSwissKnife:::.decode.arg(value)
+    valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
@@ -63,19 +47,10 @@ pushSymmMatrixClient <- function(value) {
             return (describe(as.big.matrix(x.mat)))
         })
     } else {
-        # dscbigmatrix <- mclapply(valued, mc.cores=length(valued), function(y) {
-        #     ## N.B. mclapply with length(y) cores allows allocating memory for all blocks. 
-        #     ##      or only last mc.cores blocks are allocated.
-        #     ##      lapply allocates memory only for the last block in the list.
-        #     return (mclapply(y, mc.cores=length(y), function(x) {
-        #         x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
-        #         return (describe(as.big.matrix(x.mat)))
-        #     }))
-        # })
         ## Possible solution: Rebuild the whole matrix here, and return its only allocation
         matblocks <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(y) {
             mclapply(y, mc.cores=length(y), function(x) {
-                return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
+                return (do.call(rbind, .decode.arg(x)))
             })
         })
         rm(list=c("valued"))
@@ -108,10 +83,10 @@ pushSymmMatrixClient <- function(value) {
 #' @return Description of the pushed value
 #' @export
 pushSingMatrix <- function(value) {
-    valued <- dsSwissKnife:::.decode.arg(value)
+    valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
-        x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
+        x.mat <- do.call(rbind, .decode.arg(x))
         stopifnot(ncol(x.mat)==1)
         return (describe(as.big.matrix(x.mat)))
     })
@@ -257,8 +232,8 @@ pushSingMatrix <- function(value) {
     require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
     
-    loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
-    logindata      <- dsSwissKnife:::.decode.arg(logins)
+    loginFDdata    <- .decode.arg(loginFD)
+    logindata      <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
     nNode <- length(opals)
     
@@ -485,8 +460,8 @@ pushSingMatrix <- function(value) {
 #' @importFrom utils setTxtProgressBar
 #' @export
 federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10) {
-    funcPreProc <- dsSwissKnife:::.decode.arg(func)
-    querytables <- dsSwissKnife:::.decode.arg(symbol)
+    funcPreProc <- .decode.arg(func)
+    querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     
     ## compute SSCP matrix for each centered data table
@@ -496,8 +471,8 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     names(XX) <- querytables
     
     ## set up the centered data table on every node
-    loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
-    logindata <- dsSwissKnife:::.decode.arg(logins)
+    loginFDdata <- .decode.arg(loginFD)
+    logindata <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
     nNode <- length(opals)
     
@@ -862,11 +837,11 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
 #' @import SNFtool DSI
 #' @export
 federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10) {
-    funcPreProc <- dsSwissKnife:::.decode.arg(func)
-    querytables <- dsSwissKnife:::.decode.arg(symbol)
+    funcPreProc <- .decode.arg(func)
+    querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     
-    logindata <- dsSwissKnife:::.decode.arg(logins)
+    logindata <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
 
     tryCatch({
@@ -934,8 +909,8 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
 .testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, TOL = 1e-10) {
-    funcPreProc <- dsSwissKnife:::.decode.arg(func)
-    querytables <- dsSwissKnife:::.decode.arg(symbol)
+    funcPreProc <- .decode.arg(func)
+    querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     
     ## compute correlation between samples for each data table 
