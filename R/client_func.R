@@ -231,7 +231,7 @@ pushSingMatrix <- function(value) {
         .cleanup(safe.objs)
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
-        datashield.logout(opals)
+        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
     
     if (nNode==1) {
@@ -246,12 +246,16 @@ pushSingMatrix <- function(value) {
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-            }, error=function(e) print(paste0("FD PROCESS SINGLE: ", e)), finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
+            },
+            error=function(e) print(paste0("FD PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
+            finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
             rownames(XXt) <- colnames(XXt) <- unlist(samplenames, use.names=F)
             gc(reset=F)
-        }, error=function(e) print(paste0("XX PROCESS SINGLE: ", e)), finally=datashield.logout(opals))
+        },
+        error=function(e) print(paste0("XX PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
+        finally=datashield.logout(opals))
     } else {
         tryCatch({
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")), async=T)
@@ -312,7 +316,9 @@ pushSingMatrix <- function(value) {
                     #                       "', async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
-                }, error=function(e) print(paste0("CROSS PROCESS: ", e)), finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
+                }, 
+                error=function(e) print(paste0("CROSS PROCESS: ", e, ' --- ', datashield.symbols(opals[opn]), ' --- ', datashield.errors())),
+                finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
             }))
             #-----
             
@@ -343,7 +349,9 @@ pushSingMatrix <- function(value) {
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-            }, error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e)), finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
+            },
+            error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
+            finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
                 dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
@@ -361,7 +369,9 @@ pushSingMatrix <- function(value) {
             prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
                                                                           as.symbol("centeredData"), 
                                                                           .encode.arg(names(opals)))), async=T)
-        }, error=function(e) print(paste0("TRIPLE PROCESS: ", e)), finally=datashield.logout(opals))
+        },
+        error=function(e) print(paste0("TRIPLE PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
+        finally=datashield.logout(opals))
         
         ## deduced from received info by federation: (X_i) * (X_j)'
         crossProductPair <- lapply(1:(nNode-1), function(opi) {
@@ -473,7 +483,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
         .cleanup(safe.objs)
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
-        datashield.logout(opals)
+        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
     
     ## take variables (colnames)
@@ -844,7 +854,7 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
         .cleanup(safe.objs)
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
-        datashield.logout(opals)
+        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
     
     ## take variables (colnames)
