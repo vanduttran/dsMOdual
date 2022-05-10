@@ -71,6 +71,25 @@ pushSingMatrix <- function(value) {
 }
 
 
+#' @title Euclidean distance
+#' @description Transform XX' matrix into Euclidean between samples (rows) in X
+#' @param XXt An SSCP matrix XX'
+#' @import parallel
+#' @return Euclidean distance
+#' @keywords internal
+.toEuclidean <- function(XXt) {
+    if (!isSymmetric(XXt)) stop('Input XXt (an SSCP matrix) should be symmetric.')
+    lowerTri <- cbind(do.call(cbind, mclapply(1:(ncol(XXt)-1), mc.cores=max(2, min(ncol(XXt)-1, detectCores())), function(i) {
+        res <- sapply((i+1):ncol(XXt), function(j) {
+            ## d(Xi, Xj)^2 = Xi'Xi - 2Xi'Xj + Xj'Xj = XXt[i,i] - 2XXt[i,j] + XXt[j,j]
+            t(c(1,-1)) %*% XXt[c(i,j),c(i,j)] %*% c(1, -1)
+        })
+        return (c(rep(0, i), res))
+    })), rep(0, ncol(XXt)))
+    return (sqrt(lowerTri + t(lowerTri)))
+}
+
+
 #' @title Find X from XX' and X'X
 #' @description Find X from XX' and X'X
 #' @param XXt XX'
@@ -884,6 +903,77 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
     W <- SNF(Ws, neighbors, iter)
     
     return (W)
+}
+
+#' @title Federated UMAP
+#' @description Function for UMAP federated analysis on the virtual cohort combining multiple cohorts
+#' @usage federateUMAP(loginFD, logins, func, symbol, TOL = 1e-10, metric = 'euclidean', ...)
+#' @param loginFD Login information of the FD server
+#' @param logins Login information of data repositories
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variables will be used as the input raw data.
+#' Other assigned R variables in \code{func} are ignored.
+#' @param metric Either \code{euclidean} or \code{correlation}
+#' @param TOL Tolerance of 0, deprecated
+#' @param ... see \code{SNFtool::SNF}
+#' @import uwot DSI
+#' @export
+federateUMAP <- function(loginFD, logins, func, symbol, TOL = 1e-10, metric = 'euclidean', ...) {
+    funcPreProc <- .decode.arg(func)
+    querytables <- .decode.arg(symbol)
+    ntab <- length(querytables)
+    metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
+    
+    logindata <- .decode.arg(logins)
+    opals <- datashield.login(logins=logindata)
+    
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    })
+    
+    ## take variables (colnames)
+    queryvariables <- lapply(querytables, function(querytable) {
+        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    })
+    names(queryvariables) <- querytables
+    DSI::datashield.logout(opals)
+    
+    if (metric == "correlation") {
+        ## compute (1 - correlation) distance between samples for each data table 
+        XX <- lapply(1:ntab, function(i) {
+            as.dist(1 - .federateSSCP(loginFD=loginFD, logins=logins, 
+                                      funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1))
+        })
+    } else if (metric == "euclidean"){
+        ## compute Euclidean distance between samples for each data table 
+        XX <- lapply(1:ntab, function(i) {
+            as.dist(.toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
+                                               funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                               byColumn=TRUE, TOL=TOL)))
+        })
+    }
+    return (lapply(1:ntab, function(i) uwot::umap(XX[[i]], ...)))
 }
 
 
