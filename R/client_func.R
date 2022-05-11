@@ -919,7 +919,7 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
 #' @param metric Either \code{euclidean} or \code{correlation}
 #' @param TOL Tolerance of 0, deprecated
 #' @param ... see \code{SNFtool::SNF}
-#' @import DSI
+#' @import uwot DSI
 #' @export
 federateUMAP <- function(loginFD, logins, func, symbol, TOL = 1e-10, metric = 'euclidean', ...) {
     funcPreProc <- .decode.arg(func)
@@ -973,8 +973,8 @@ federateUMAP <- function(loginFD, logins, func, symbol, TOL = 1e-10, metric = 'e
                                                byColumn=TRUE, TOL=TOL)))
         })
     }
-    return (XX)
-    #return (lapply(1:ntab, function(i) uwot::umap(XX[[i]], ...)))
+    
+    return (lapply(1:ntab, function(i) uwot::umap(XX[[i]], ...)))
 }
 
 
