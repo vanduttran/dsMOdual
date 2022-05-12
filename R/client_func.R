@@ -903,17 +903,17 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
     } else if (metric == "euclidean"){
         ## compute Euclidean distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
-            # .toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
-            #                            funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-            #                            byColumn=TRUE, TOL=TOL))
-            tmp <- .federateSSCP(loginFD=loginFD, logins=logins, 
-                                 funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                 byColumn=TRUE, TOL=TOL)
-            etmp <- .toEuclidean(tmp)
-            print(tmp[1:3,1:3])
-            print(etmp[1:3,1:3])
-            res <- list(tmp, etmp)
-            save(res, file=paste0('/tmp/dist',i,'.RData'))
+            .toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins,
+                                       funcPreProc=funcPreProc, querytables=querytables, ind=i,
+                                       byColumn=TRUE, TOL=TOL))
+            # tmp <- .federateSSCP(loginFD=loginFD, logins=logins, 
+            #                      funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+            #                      byColumn=TRUE, TOL=TOL)
+            # etmp <- .toEuclidean(tmp)
+            # print(tmp[1:3,1:3])
+            # print(etmp[1:3,1:3])
+            # res <- list(tmp, etmp)
+            # save(res, file=paste0('/tmp/dist',i,'.RData'))
         })
     }
     
@@ -932,6 +932,7 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
     
     return (W)
 }
+
 
 #' @title Federated UMAP
 #' @description Function for UMAP federated analysis on the virtual cohort combining multiple cohorts
