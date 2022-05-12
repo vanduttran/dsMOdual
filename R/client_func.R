@@ -443,7 +443,6 @@ pushSingMatrix <- function(value) {
 #' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param TOL Tolerance of 0, deprecated
 #' @param H Number of common dimensions
 #' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table
 #' @param option weighting of te tables \cr
@@ -467,7 +466,8 @@ pushSingMatrix <- function(value) {
 #' @import DSI
 #' @importFrom utils setTxtProgressBar
 #' @export
-federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10) {
+federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", threshold = 1e-10) {
+    TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -843,14 +843,20 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
 #' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param TOL Tolerance of 0, deprecated
-#' @param ... see \code{SNFtool::SNF}
+#' @param metric Either \code{euclidean} or \code{correlation} for distance metric between samples. 
+#' For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
+#' For correlation-based distance, the data from each cohort will be centered scaled for each sample.
+#' @param K Number of neighbors in K-nearest neighbors part of the algorithm, see \code{SNFtool::SNF}.
+#' @param sigma Variance for local model, see \code{SNFtool::affinityMatrix}.
+#' @param t Number of iterations for the diffusion process, see \code{SNFtool::SNF}.
 #' @import SNFtool DSI
 #' @export
-federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10) {
+federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K = 20, sigma = 0.5, t = 20) {
+    TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
+    metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
     
     logindata <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
@@ -883,12 +889,22 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
     names(queryvariables) <- querytables
     DSI::datashield.logout(opals)
     
-    ## compute correlation between samples for each data table 
-    XX <- lapply(1:ntab, function(i) {
-        .federateSSCP(loginFD=loginFD, logins=logins, 
-                     funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                     byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
-    })
+    if (metric == "correlation") {
+        ## compute (1 - correlation) distance between samples for each data table 
+        XX <- lapply(1:ntab, function(i) {
+            1 - .federateSSCP(loginFD=loginFD, logins=logins, 
+                              funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                              byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
+        })
+    } else if (metric == "euclidean"){
+        ## compute Euclidean distance between samples for each data table 
+        XX <- lapply(1:ntab, function(i) {
+            .toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
+                                       funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                       byColumn=TRUE, TOL=TOL))
+        })
+    }
+    
     ## take common samples
     commons <- Reduce(intersect, lapply(XX, rownames))
     XX <- lapply(XX, function(distmat) {
@@ -896,11 +912,11 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
     })
     ## similarity graphs
     Ws <- lapply(XX, function(distmat) {
-        affinityMatrix((1-distmat)/2, neighbors, alpha)
+        affinityMatrix(distmat, K, sigma)
     })
     
     ## fuse similarity graphs
-    W <- SNF(Ws, neighbors, iter)
+    W <- SNF(Ws, K, t)
     
     return (W)
 }
@@ -916,12 +932,14 @@ federateSNF <- function(loginFD, logins, func, symbol, neighbors = 20, alpha = 0
 #' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param metric Either \code{euclidean} or \code{correlation}
-#' @param TOL Tolerance of 0, deprecated
+#' @param metric Either \code{euclidean} or \code{correlation} for distance metric between samples. 
+#' For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
+#' For correlation-based distance, the data from each cohort will be centered scaled for each sample.
 #' @param ... see \code{SNFtool::SNF}
 #' @import uwot DSI
 #' @export
-federateUMAP <- function(loginFD, logins, func, symbol, TOL = 1e-10, metric = 'euclidean', ...) {
+federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ...) {
+    TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
