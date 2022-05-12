@@ -908,6 +908,7 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
             etmp <- .toEuclidean(tmp)
             print(tmp[1:3,1:3])
             print(etmp[1:3,1:3])
+            save(res=c(tmp, etmp), file='/tmp/dist.RData')
         })
     }
     
