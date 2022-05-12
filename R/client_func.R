@@ -86,7 +86,11 @@ pushSingMatrix <- function(value) {
         })
         return (c(rep(0, i), res))
     })), rep(0, ncol(XXt)))
-    return (matrix(sqrt(lowerTri + t(lowerTri)), dimnames=list(rownames(XXt), colnames(XXt))))
+    distmat <- sqrt(lowerTri + t(lowerTri))
+    rownames(distmat) <- rownames(XXt)
+    colnames(distmat) <- colnames(XXt)
+    
+    return (distmat)
 }
 
 
