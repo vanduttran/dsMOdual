@@ -834,7 +834,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
 
 #' @title Federated SNF
 #' @description Function for SNF federated analysis on the virtual cohort combining multiple cohorts
-#' @usage federateSNF(loginFD, logins, func, symbol, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10)
+#' @usage federateSNF(loginFD, logins, func, symbol, K = 20, sigma = 0.5, t = 20)
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
@@ -902,6 +902,12 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
             .toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
                                        funcPreProc=funcPreProc, querytables=querytables, ind=i, 
                                        byColumn=TRUE, TOL=TOL))
+            tmp <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                                 funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                 byColumn=TRUE, TOL=TOL)
+            etmp <- .toEuclidean(tmp)
+            print(tmp[1:3,1:3])
+            print(etmp[1:3,1:3])
         })
     }
     
