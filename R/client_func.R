@@ -78,7 +78,7 @@ pushSingMatrix <- function(value) {
 #' @return Euclidean distance
 #' @keywords internal
 .toEuclidean <- function(XXt) {
-    if (!isSymmetric(XXt)) stop('Input XXt (an SSCP matrix) should be symmetric.')
+    if (!isSymmetric(XXt) || any(rownames(XXt) != colnames(XXt))) stop('Input XXt (an SSCP matrix) should be symmetric.')
     lowerTri <- cbind(do.call(cbind, mclapply(1:(ncol(XXt)-1), mc.cores=max(2, min(ncol(XXt)-1, detectCores())), function(i) {
         res <- sapply((i+1):ncol(XXt), function(j) {
             ## d(Xi, Xj)^2 = Xi'Xi - 2Xi'Xj + Xj'Xj = XXt[i,i] - 2XXt[i,j] + XXt[j,j]
@@ -86,7 +86,7 @@ pushSingMatrix <- function(value) {
         })
         return (c(rep(0, i), res))
     })), rep(0, ncol(XXt)))
-    return (sqrt(lowerTri + t(lowerTri)))
+    return (matrix(sqrt(lowerTri + t(lowerTri)), dimnames=list(rownames(XXt), colnames(XXt))))
 }
 
 
