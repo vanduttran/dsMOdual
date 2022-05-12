@@ -906,14 +906,6 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
             .toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins,
                                        funcPreProc=funcPreProc, querytables=querytables, ind=i,
                                        byColumn=TRUE, TOL=TOL))
-            # tmp <- .federateSSCP(loginFD=loginFD, logins=logins, 
-            #                      funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-            #                      byColumn=TRUE, TOL=TOL)
-            # etmp <- .toEuclidean(tmp)
-            # print(tmp[1:3,1:3])
-            # print(etmp[1:3,1:3])
-            # res <- list(tmp, etmp)
-            # save(res, file=paste0('/tmp/dist',i,'.RData'))
         })
     }
     
