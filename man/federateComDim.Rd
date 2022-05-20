@@ -28,8 +28,6 @@ Other assigned R variables in \code{func} are ignored.}
 "uniform": weighting to set the table at the same inertia \cr}
 
 \item{threshold}{if the difference of fit<threshold then break the iterative loop (default 1E-10)}
-
-\item{TOL}{Tolerance of 0, deprecated}
 }
 \value{
 \item{group}{ input parameter group }

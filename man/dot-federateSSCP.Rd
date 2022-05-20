@@ -11,6 +11,7 @@
   querytables,
   ind = 1,
   byColumn = TRUE,
+  scale = FALSE,
   TOL = 1e-10
 )
 }

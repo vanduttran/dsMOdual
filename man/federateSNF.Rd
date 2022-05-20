@@ -4,7 +4,7 @@
 \alias{federateSNF}
 \title{Federated SNF}
 \usage{
-federateSNF(loginFD, logins, func, symbol, neighbors = 20, alpha = 0.5, iter = 20, TOL = 1e-10)
+federateSNF(loginFD, logins, func, symbol, K = 20, sigma = 0.5, t = 20)
 }
 \arguments{
 \item{loginFD}{Login information of the FD server}
@@ -19,9 +19,15 @@ symbol (name of the R symbol) (see datashield.assign).}
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{func} are ignored.}
 
-\item{TOL}{Tolerance of 0, deprecated}
+\item{metric}{Either \code{euclidean} or \code{correlation} for distance metric between samples. 
+For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
+For correlation-based distance, the data from each cohort will be centered scaled for each sample.}
 
-\item{...}{see \code{SNFtool::SNF}}
+\item{K}{Number of neighbors in K-nearest neighbors part of the algorithm, see \code{SNFtool::SNF}.}
+
+\item{sigma}{Variance for local model, see \code{SNFtool::affinityMatrix}.}
+
+\item{t}{Number of iterations for the diffusion process, see \code{SNFtool::SNF}.}
 }
 \description{
 Function for SNF federated analysis on the virtual cohort combining multiple cohorts
