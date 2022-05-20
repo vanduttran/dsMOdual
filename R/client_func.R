@@ -1018,7 +1018,7 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ..
 #' @import DSOpal parallel bigmemory
 #' @export
 ## @keywords internal
-.testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, scale=FALSE, TOL = 1e-10) {
+testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, scale=FALSE, TOL = 1e-10) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
