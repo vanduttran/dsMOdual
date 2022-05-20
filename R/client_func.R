@@ -1016,17 +1016,18 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ..
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
-#' @keywords internal
-.testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, TOL = 1e-10) {
+#' @export
+## @keywords internal
+.testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, scale=FALSE, TOL = 1e-10) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     
-    ## compute correlation between samples for each data table 
+    ## compute XX' for each data table 
     XX <- lapply(1:ntab, function(i) {
         .federateSSCP(loginFD=loginFD, logins=logins, 
                      funcPreProc=funcPreProc, querytables=querytables, ind=i,
-                     byColumn=byColumn, TOL=TOL)
+                     byColumn=byColumn, scale=scale, TOL=TOL)
     })
 
     return (XX)
