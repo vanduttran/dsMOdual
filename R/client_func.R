@@ -226,7 +226,7 @@ pushSingMatrix <- function(value) {
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-.federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, TOL = 1e-10) {
+.federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, scale = FALSE, TOL = 1e-10) {
     require(DSOpal)
     require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
@@ -259,7 +259,7 @@ pushSingMatrix <- function(value) {
     
     if (nNode==1) {
         tryCatch({
-            datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")), async=T)
+            datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ", scale=", scale, ")")), async=T)
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
@@ -281,7 +281,7 @@ pushSingMatrix <- function(value) {
         finally=datashield.logout(opals))
     } else {
         tryCatch({
-            datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")), async=T)
+            datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ", scale=", scale, ")")), async=T)
             datashield.assign(opals, "crossProdSelf", as.symbol('crossProdrm(centeredData)'), async=T)
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
@@ -318,7 +318,7 @@ pushSingMatrix <- function(value) {
                     
                     ## center raw data on mates of opn
                     command.opn <- paste0("crossAssign(mates, symbol='centeredDataMate', value='",
-                                          .encode.arg(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ")")),
+                                          .encode.arg(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ", scale=", scale, ")")),
                                           "', value.call=T, async=F)")
                     cat("Command: ", command.opn, "\n")
                     print(datashield.aggregate(opals[opn], as.symbol(command.opn), async=F))
