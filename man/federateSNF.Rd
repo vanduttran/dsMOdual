@@ -29,6 +29,9 @@ For correlation-based distance, the data from each cohort will be centered scale
 
 \item{t}{Number of iterations for the diffusion process, see \code{SNFtool::SNF}.}
 }
+\value{
+The overall status matrix derived W.
+}
 \description{
 Function for SNF federated analysis on the virtual cohort combining multiple cohorts
 }

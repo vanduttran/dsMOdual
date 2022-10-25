@@ -853,6 +853,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
 #' @param K Number of neighbors in K-nearest neighbors part of the algorithm, see \code{SNFtool::SNF}.
 #' @param sigma Variance for local model, see \code{SNFtool::affinityMatrix}.
 #' @param t Number of iterations for the diffusion process, see \code{SNFtool::SNF}.
+#' @return The overall status matrix derived W.
 #' @import SNFtool DSI
 #' @export
 federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K = 20, sigma = 0.5, t = 20) {
@@ -940,7 +941,8 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
 #' @param metric Either \code{euclidean} or \code{correlation} for distance metric between samples. 
 #' For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
 #' For correlation-based distance, the data from each cohort will be centered scaled for each sample.
-#' @param ... see \code{SNFtool::SNF}
+#' @param ... see \code{uwot::umap}
+#' @return A matrix of optimized coordinates.
 #' @import uwot DSI
 #' @export
 federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ...) {
@@ -997,7 +999,83 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ..
         })
     }
     
-    return (lapply(1:ntab, function(i) uwot::umap(XX[[i]], ...)))
+    return (setNames(lapply(1:ntab, function(i) uwot::umap(XX[[i]], ...)), querytables))
+}
+
+
+#' @title Federated hdbscan
+#' @description Function for hdbscan federated analysis on the virtual cohort combining multiple cohorts
+#' @usage federateHdbscan(loginFD, logins, func, symbol, TOL = 1e-10, metric = 'euclidean', ...)
+#' @param loginFD Login information of the FD server
+#' @param logins Login information of data repositories
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variables will be used as the input raw data.
+#' Other assigned R variables in \code{func} are ignored.
+#' @param metric Either \code{euclidean} or \code{correlation} for distance metric between samples. 
+#' For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
+#' For correlation-based distance, the data from each cohort will be centered scaled for each sample.
+#' @param ... see \code{dbscan::hdbscan}
+#' @return An object of class \code{hdbscan}.
+#' @import dbscan DSI
+#' @export
+federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean', minPts = 10, ...) {
+    TOL <- 1e-10
+    funcPreProc <- .decode.arg(func)
+    querytables <- .decode.arg(symbol)
+    ntab <- length(querytables)
+    metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
+    
+    logindata <- .decode.arg(logins)
+    opals <- datashield.login(logins=logindata)
+    
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    })
+    
+    ## take variables (colnames)
+    queryvariables <- lapply(querytables, function(querytable) {
+        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    })
+    names(queryvariables) <- querytables
+    DSI::datashield.logout(opals)
+    
+    if (metric == "correlation") {
+        ## compute (1 - correlation) distance between samples for each data table 
+        XX <- lapply(1:ntab, function(i) {
+            as.dist(1 - .federateSSCP(loginFD=loginFD, logins=logins, 
+                                      funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1))
+        })
+    } else if (metric == "euclidean"){
+        ## compute Euclidean distance between samples for each data table 
+        XX <- lapply(1:ntab, function(i) {
+            as.dist(.toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
+                                               funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                               byColumn=TRUE, TOL=TOL)))
+        })
+    }
+    
+    return (setNames(lapply(1:ntab, function(i) dbscan::hdbscan(XX[[i]], minPts = minPts, ...)), querytables))
 }
 
 
