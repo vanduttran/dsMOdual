@@ -24,8 +24,13 @@ pushSymmMatrixClient <- function(value) {
         })
     } else {
         ## Possible solution: Rebuild the whole matrix here, and return its only allocation
-        matblocks <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(y) {
-            mclapply(y, mc.cores=length(y), function(x) {
+        # matblocks <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(y) {
+        #     mclapply(y, mc.cores=length(y), function(x) {
+        #         return (do.call(rbind, .decode.arg(x)))
+        #     })
+        # })
+        matblocks <- lapply(valued, function(y) {
+            lapply(y, function(x) {
                 return (do.call(rbind, .decode.arg(x)))
             })
         })
@@ -61,7 +66,8 @@ pushSymmMatrixClient <- function(value) {
 pushSingMatrix <- function(value) {
     valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
-    dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
+    #dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
+    dscbigmatrix <- lapply(valued, function(x) {
         x.mat <- do.call(rbind, .decode.arg(x))
         stopifnot(ncol(x.mat)==1)
         return (describe(as.big.matrix(x.mat)))
@@ -79,7 +85,8 @@ pushSingMatrix <- function(value) {
 #' @keywords internal
 .toEuclidean <- function(XXt) {
     if (!isSymmetric(XXt) || any(rownames(XXt) != colnames(XXt))) stop('Input XXt (an SSCP matrix) should be symmetric.')
-    lowerTri <- cbind(do.call(cbind, mclapply(1:(ncol(XXt)-1), mc.cores=max(2, min(ncol(XXt)-1, detectCores())), function(i) {
+    #lowerTri <- cbind(do.call(cbind, mclapply(1:(ncol(XXt)-1), mc.cores=max(2, min(ncol(XXt)-1, detectCores())), function(i) {
+    lowerTri <- cbind(do.call(cbind, lapply(1:(ncol(XXt)-1), function(i) {
         res <- sapply((i+1):ncol(XXt), function(j) {
             ## d(Xi, Xj)^2 = Xi'Xi - 2Xi'Xj + Xj'Xj = XXt[i,i] - 2XXt[i,j] + XXt[j,j]
             t(c(1,-1)) %*% XXt[c(i,j),c(i,j)] %*% c(1, -1)
@@ -360,7 +367,8 @@ pushSingMatrix <- function(value) {
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-                crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=max(2, min(length(crossProdSelfDSC), detectCores())), function(dscblocks) {
+                #crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=max(2, min(length(crossProdSelfDSC), detectCores())), function(dscblocks) {
+                crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
                     return (as.matrix(attach.big.matrix(dscblocks[[1]])))
                 })
                 gc(reset=F)
@@ -376,7 +384,8 @@ pushSingMatrix <- function(value) {
             error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
-            singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
+            #singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
+            singularProdCross <- lapply(singularProdCrossDSC, function(dscbigmatrix) {
                 dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
                     dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
                     stopifnot(ncol(dscMat)==1)
