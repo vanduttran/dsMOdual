@@ -16,7 +16,7 @@ garbageCollect <- function() {
 pushSymmMatrixClient <- function(value) {
     valued <- .decode.arg(value)
     print("valued:")
-    print(valued[[1]])
+    print(lengths(valued))
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
