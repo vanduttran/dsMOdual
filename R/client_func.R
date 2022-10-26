@@ -15,7 +15,8 @@ garbageCollect <- function() {
 #' @export
 pushSymmMatrixClient <- function(value) {
     valued <- .decode.arg(value)
-    cat("valued:", valued[[1]], "\n")
+    print("valued:")
+    print(valued[[1]])
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
@@ -35,7 +36,8 @@ pushSymmMatrixClient <- function(value) {
                 return (do.call(rbind, .decode.arg(x)))
             })
         })
-        cat("matblocks:", matblocks[[1]], "\n")
+        print("matblocks:")
+        print(matblocks[[1]])
         rm(list=c("valued"))
         uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
         ## combine the blocks into one matrix
@@ -53,7 +55,8 @@ pushSymmMatrixClient <- function(value) {
         }
         stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
-        cat('dsc: ', dscbigmatrix, '\n')
+        print('dsc: ')
+        print(dscbigmatrix)
         rm(list=c("matblocks", "uptcp", "no1tcp", "tcp"))
     }
     return (dscbigmatrix)
