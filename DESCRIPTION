@@ -20,7 +20,6 @@ AggregateMethods:
     pushSymmMatrixClient,
     pushSingMatrix,
     testSSCP,
-    rebuildMatrix,
     federateComDim,
     federateSNF,
     federateUMAP,

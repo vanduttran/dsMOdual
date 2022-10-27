@@ -26,9 +26,8 @@ matrix2Dsc <- function(value) {
 #' @description Rebuild a matrix from its partition
 #' @param blocks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
 #' @return The complete matrix
-#' @export
-## #'@keywords internal
-rebuildMatrix <- function(blocks) {
+#' @keywords internal
+.rebuildMatrix <- function(blocks) {
     ## decode matrix blocks
     # matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
     #     mclapply(y, mc.cores=length(y), function(x) {
@@ -118,8 +117,6 @@ pushSymmMatrixClient <- function(value) {
     }
     return (dscbigmatrix)
 }
-
-
 
 
 #' @title Push a symmetric matrix
@@ -435,14 +432,19 @@ pushSingMatrix <- function(value) {
                 # cat("Command: ", command, "\n")
                 # datashield.assign(opals, "GC", as.symbol(command), async=T)
                 
-                command <- paste0("dscPush(FD, '", 
-                                  .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixClient'), dsMOprimal:::.encode.arg(tcrossProdSelf, serialize.it=F)", "))")), 
-                                  "', async=T)")
-                cat("Command: ", command, "\n")
-                crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-                #crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=max(2, min(length(crossProdSelfDSC), detectCores())), function(dscblocks) {
+                # command <- paste0("dscPush(FD, '", 
+                #                   .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixClient'), dsMOprimal:::.encode.arg(tcrossProdSelf, serialize.it=F)", "))")), 
+                #                   "', async=T)")
+                # cat("Command: ", command, "\n")
+                # crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+                # #crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=max(2, min(length(crossProdSelfDSC), detectCores())), function(dscblocks) {
+                # crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
+                #     return (as.matrix(attach.big.matrix(dscblocks[[1]])))
+                # })
+                cat("Command: pushToDsc(FD, tcrossProdSelf)", "\n")
+                crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, tcrossProdSelf)"), async=T)
                 crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
-                    return (as.matrix(attach.big.matrix(dscblocks[[1]])))
+                    return (.rebuildMatrix(dscblocks))
                 })
                 gc(reset=F)
                 ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]: push this single-column matrix from each node to FD
