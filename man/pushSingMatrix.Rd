@@ -2,7 +2,7 @@
 % Please edit documentation in R/client_func.R
 \name{pushSingMatrix}
 \alias{pushSingMatrix}
-\title{Push a one-column matrix}
+\title{Push a symmetric matrix}
 \usage{
 pushSingMatrix(value)
 }
@@ -11,7 +11,11 @@ pushSingMatrix(value)
 }
 \value{
 Description of the pushed value
+
+Description of the pushed value
 }
 \description{
+Push symmetric matrix data into the federated server
+
 Push one-column matrix data into the federated server
 }
