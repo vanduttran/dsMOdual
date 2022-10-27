@@ -7,6 +7,63 @@ garbageCollect <- function() {
 }
 
 
+#' @title Bigmemory description of a matrix
+#' @description Bigmemory description of a matrix
+#' @param value Encoded value of a matrix
+#' @import bigmemory
+#' @return Bigmemory description of the given matrix
+#' @export
+matrix2Dsc <- function(value) {
+    valued <- .decode.arg(value)
+    tcp <- do.call(rbind, .decode.arg(valued))
+    dscbigmatrix <- describe(as.big.matrix(tcp))
+    rm(list=c("valued", "tcp"))
+    return (dscbigmatrix)
+}
+
+
+#' @title Matrix rebuild
+#' @description Rebuild a matrix from its partition
+#' @param blocks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
+#' @return The complete matrix
+#' @export
+## #'@keywords internal
+rebuildMatrix <- function(blocks) {
+    ## decode matrix blocks
+    # matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
+    #     mclapply(y, mc.cores=length(y), function(x) {
+    #         return (do.call(rbind, .decode.arg(x)))
+    #     })
+    # })
+    matblocks <- lapply(blocks, function(y) {
+        lapply(y, function(x) {
+            return (do.call(rbind, .decode.arg(x)))
+        })
+    })
+    uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+    ## combine the blocks into one matrix
+    if (length(uptcp)>1) {
+        if (length(unique(sapply(uptcp, ncol)))==1) {
+            tcp <- do.call(rbind, uptcp)
+        } else {
+            ## without the first layer of blocks
+            no1tcp <- lapply(2:length(uptcp), function(i) {
+                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+                    t(matblocks[[j]][[i-j+1]])
+                })), uptcp[[i]])
+            })
+            ## with the first layer of blocks
+            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+            rm(list=c("no1tcp"))
+        }
+    } else {
+        tcp <- uptcp[[1]]
+    }
+    rm(list=c("matblocks", "uptcp"))
+    return (tcp)
+}
+
+
 #' @title Push a symmetric matrix
 #' @description Push symmetric matrix data into the federated server
 #' @param value An encoded value to be pushed
@@ -63,19 +120,6 @@ pushSymmMatrixClient <- function(value) {
 }
 
 
-#' @title Bigmemory description of a matrix
-#' @description Bigmemory description of a matrix
-#' @param value Encoded value of a matrix
-#' @import bigmemory
-#' @return Bigmemory description of the given matrix
-#' @export
-matrix2Dsc <- function(value) {
-    valued <- .decode.arg(value)
-    tcp <- do.call(rbind, .decode.arg(valued))
-    dscbigmatrix <- describe(as.big.matrix(tcp))
-    rm(list=c("valued", "tcp"))
-    return (dscbigmatrix)
-}
 
 
 #' @title Push a symmetric matrix
