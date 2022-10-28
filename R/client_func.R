@@ -39,7 +39,10 @@ matrix2Dsc <- function(value) {
             return (do.call(rbind, .decode.arg(x)))
         })
     })
+    print("matblocks")
+    print(class(matblocks[[1]]))
     uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+    print("uptcp")
     ## combine the blocks into one matrix
     if (length(uptcp)>1) {
         if (length(unique(sapply(uptcp, ncol)))==1) {
@@ -58,6 +61,8 @@ matrix2Dsc <- function(value) {
     } else {
         tcp <- uptcp[[1]]
     }
+    print("tcp")
+    print(dim(tcp))
     rm(list=c("matblocks", "uptcp"))
     return (tcp)
 }
@@ -443,10 +448,11 @@ pushSingMatrix <- function(value) {
                 # })
                 cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
-                print(crossProdSelfDSC)
+                #print(crossProdSelfDSC)
                 crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
                     return (.rebuildMatrix(dscblocks))
                 })
+                print(class(crossProdSelf))
                 gc(reset=F)
                 ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]: push this single-column matrix from each node to FD
                 datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
