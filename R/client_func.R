@@ -41,9 +41,11 @@ matrix2Dsc <- function(value) {
     #     })
     # })
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
-        print(y)
         lapply(y, function(x) {
-            as.matrix(attach.big.matrix(x))
+            print(x)
+            chunkx <- as.matrix(attach.big.matrix(x))
+            print(dim(chunkx))
+            return (chunkx)
         })
     })
     print("matblocks")
