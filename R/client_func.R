@@ -44,7 +44,7 @@ matrix2Dsc <- function(value) {
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
         lapply(y, function(x) {
             print(x)
-            save(x, file='/tmp/dscx.RData')
+            if (digest::digest(x) %in% list.files('/tmp')) print("Found x!!!!!!!!!!!")
             chunkx <- as.matrix(attach.big.matrix(x))
             print(dim(chunkx))
             return (chunkx)
