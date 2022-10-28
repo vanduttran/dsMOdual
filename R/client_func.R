@@ -17,50 +17,32 @@ matrix2Dsc <- function(value) {
     valued <- .decode.arg(value)
     tcp <- do.call(rbind, .decode.arg(valued))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
-    save(dscbigmatrix, file=paste0('/tmp/', digest::digest(dscbigmatrix)))
     rm(list=c("valued", "tcp"))
     return (dscbigmatrix)
 }
 
 
-#' @title Symmetric matrix reconstruction from bigmemomy chunks
+#' @title Symmetric matrix reconstruction from bigmemomy blocks
 #' @description Rebuild a symmetric matrix from its partition in bigmemory objects
-#' @param dscblocks List of list of bigmemory objects pointed to matrix chunks
+#' @param dscblocks List of list of bigmemory objects pointed to matrix blocks
 #' @param mc.cores Number of cores for parallel computing
 #' @return The complete symmetric matrix
 #' @keywords internal
 .rebuildMatrix <- function(dscblocks, mc.cores = 1) {
-    ## decode matrix blocks
-    # matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
-    #     mclapply(y, mc.cores=length(y), function(x) {
-    #         return (do.call(rbind, .decode.arg(x)))
-    #     })
-    # })
-    # matblocks <- lapply(blocks, function(y) {
-    #     lapply(y, function(x) {
-    #         return (do.call(rbind, .decode.arg(x)))
-    #     })
-    # })
+    ## obtain the blocks 
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
         lapply(y, function(x) {
-            print(x)
-            if (digest::digest(x) %in% list.files('/tmp')) print("Found x!!!!!!!!!!!")
-            chunkx <- as.matrix(attach.big.matrix(x))
-            print(dim(chunkx))
-            return (chunkx)
+            return (as.matrix(attach.big.matrix(x)))
         })
     })
-    print("matblocks")
-    print(class(matblocks[[1]]))
-    uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
-    print("uptcp")
+    uptcp <- mclapply(matblocks, mc.cores=mc.cores, function(bl) do.call(cbind, bl))
     ## combine the blocks into one matrix
     if (length(uptcp)>1) {
         if (length(unique(sapply(uptcp, ncol)))==1) {
             tcp <- do.call(rbind, uptcp)
         } else {
             ## without the first layer of blocks
-            no1tcp <- lapply(2:length(uptcp), function(i) {
+            no1tcp <- mclapply(2:length(uptcp), mc.cores=mc.cores, function(i) {
                 cbind(do.call(cbind, lapply(1:(i-1), function(j) {
                     t(matblocks[[j]][[i-j+1]])
                 })), uptcp[[i]])
@@ -72,8 +54,6 @@ matrix2Dsc <- function(value) {
     } else {
         tcp <- uptcp[[1]]
     }
-    print("tcp")
-    print(dim(tcp))
     rm(list=c("matblocks", "uptcp"))
     return (tcp)
 }
