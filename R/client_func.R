@@ -43,6 +43,7 @@ matrix2Dsc <- function(value) {
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
         lapply(y, function(x) {
             print(x)
+            save(x, file='/tmp/dscx.RData')
             chunkx <- as.matrix(attach.big.matrix(x))
             print(dim(chunkx))
             return (chunkx)
