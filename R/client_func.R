@@ -22,21 +22,27 @@ matrix2Dsc <- function(value) {
 }
 
 
-#' @title Matrix rebuild
-#' @description Rebuild a matrix from its partition
-#' @param blocks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
-#' @return The complete matrix
+#' @title Symmetric matrix reconstruction from bigmemomy chunks
+#' @description Rebuild a symmetric matrix from its partition in bigmemory objects
+#' @param dscblocks List of list of bigmemory objects pointed to matrix chunks
+#' @param mc.cores Number of cores for parallel computing
+#' @return The complete symmetric matrix
 #' @keywords internal
-.rebuildMatrix <- function(blocks) {
+.rebuildMatrix <- function(dscblocks, mc.cores = 1) {
     ## decode matrix blocks
     # matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
     #     mclapply(y, mc.cores=length(y), function(x) {
     #         return (do.call(rbind, .decode.arg(x)))
     #     })
     # })
-    matblocks <- lapply(blocks, function(y) {
+    # matblocks <- lapply(blocks, function(y) {
+    #     lapply(y, function(x) {
+    #         return (do.call(rbind, .decode.arg(x)))
+    #     })
+    # })
+    matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
         lapply(y, function(x) {
-            return (do.call(rbind, .decode.arg(x)))
+            as.matrix(attach.big.matrix(x))
         })
     })
     print("matblocks")
@@ -450,8 +456,8 @@ pushSingMatrix <- function(value) {
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
                 print(crossProdSelfDSC)
                 crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
-                    print('dscblocks:')
-                    print(dscblocks)
+                    #print('dscblocks:')
+                    #print(dscblocks)
                     return (.rebuildMatrix(dscblocks))
                 })
                 print(class(crossProdSelf))
