@@ -17,6 +17,7 @@ matrix2Dsc <- function(value) {
     valued <- .decode.arg(value)
     tcp <- do.call(rbind, .decode.arg(valued))
     dscbigmatrix <- describe(as.big.matrix(tcp))
+    save(dscbigmatrix, file=paste0('/tmp/', digest::digest(dscbigmatrix)))
     rm(list=c("valued", "tcp"))
     return (dscbigmatrix)
 }
