@@ -448,8 +448,10 @@ pushSingMatrix <- function(value) {
                 # })
                 cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
-                #print(crossProdSelfDSC)
+                print(crossProdSelfDSC)
                 crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
+                    print('dscblocks:')
+                    print(dscblocks)
                     return (.rebuildMatrix(dscblocks))
                 })
                 print(class(crossProdSelf))
