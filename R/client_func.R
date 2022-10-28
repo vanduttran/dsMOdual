@@ -41,6 +41,7 @@ matrix2Dsc <- function(value) {
     #     })
     # })
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
+        print(y)
         lapply(y, function(x) {
             as.matrix(attach.big.matrix(x))
         })
@@ -454,9 +455,9 @@ pushSingMatrix <- function(value) {
                 # })
                 cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
-                print(crossProdSelfDSC)
+                #print(crossProdSelfDSC)
                 crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
-                    #print('dscblocks:')
+                    print('dscblocks:')
                     #print(dscblocks)
                     return (.rebuildMatrix(dscblocks))
                 })
