@@ -328,8 +328,8 @@ pushSingMatrix <- function(value) {
         tryCatch({
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ", scale=", scale, ")")), async=T)
             datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
-            datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
+            datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             tryCatch({
                 # command <- paste0("dscPush(FD, '", 
                 #                   .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixClient'), dsMOprimal:::.encode.arg(tcrossProdSelf)", "))")), 
