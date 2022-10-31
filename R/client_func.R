@@ -54,6 +54,7 @@ matrix2Dsc <- function(value) {
     } else {
         tcp <- uptcp[[1]]
     }
+    stopifnot(isSymmetric(tcp))
     rm(list=c("matblocks", "uptcp"))
     return (tcp)
 }
@@ -113,14 +114,6 @@ pushSymmMatrixClient <- function(value) {
     }
     return (dscbigmatrix)
 }
-
-
-#' @title Push a symmetric matrix
-#' @description Push symmetric matrix data into the federated server
-#' @param value An encoded value to be pushed
-#' @import bigmemory parallel
-#' @return Description of the pushed value
-#' @export
 
 
 #' @title Push a one-column matrix
@@ -337,16 +330,19 @@ pushSingMatrix <- function(value) {
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
             tryCatch({
-                command <- paste0("dscPush(FD, '", 
-                                  .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixClient'), dsMOprimal:::.encode.arg(tcrossProdSelf)", "))")), 
-                                  "', async=T)")
-                cat("Command: ", command, "\n")
-                crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+                # command <- paste0("dscPush(FD, '", 
+                #                   .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixClient'), dsMOprimal:::.encode.arg(tcrossProdSelf)", "))")), 
+                #                   "', async=T)")
+                # cat("Command: ", command, "\n")
+                # crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+                cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
+                crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
             },
             error=function(e) print(paste0("FD PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
-            XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
+            #XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
+            XXt <- .rebuildMatrix(crossProdSelfDSC[[1]])
             rownames(XXt) <- colnames(XXt) <- unlist(samplenames, use.names=F)
             gc(reset=F)
         },
@@ -1083,7 +1079,7 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ..
         })
     }
     
-    return (setNames(lapply(1:ntab, function(i) uwot::umap(XX[[i]], ...)), querytables))
+    return (setNames(lapply(1:ntab, function(i) uwot::umap(XX[[i]], ret_model = FALSE, ret_nn = FALSE, ret_extra = c(), ...)), querytables))
 }
 
 
