@@ -342,6 +342,8 @@ pushSingMatrix <- function(value) {
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             #XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
+            print(class(crossProdSelfDSC[[1]]))
+            print((crossProdSelfDSC[[1]]))
             XXt <- .rebuildMatrix(crossProdSelfDSC[[1]])
             rownames(XXt) <- colnames(XXt) <- unlist(samplenames, use.names=F)
             gc(reset=F)
