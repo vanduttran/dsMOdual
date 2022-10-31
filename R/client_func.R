@@ -31,7 +31,6 @@ matrix2Dsc <- function(value) {
 .rebuildMatrix <- function(dscblocks, mc.cores = 1) {
     ## obtain the blocks 
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
-        print(y)
         lapply(y, function(x) {
             return (as.matrix(attach.big.matrix(x)))
         })
@@ -293,7 +292,7 @@ pushSingMatrix <- function(value) {
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-.federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, chunk = 500, byColumn = TRUE, scale = FALSE, TOL = 1e-10) {
+.federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, scale = FALSE, chunk = 500, mc.cores = 1, TOL = 1e-10) {
     require(DSOpal)
     require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
@@ -327,31 +326,16 @@ pushSingMatrix <- function(value) {
     if (nNode==1) {
         tryCatch({
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ", scale=", scale, ")")), async=T)
-            datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
+            datashield.assign(opals, "tcrossProdSelf", as.symbol(paste0('tcrossProd(x=centeredData, y=NULL, chunk=)', chunk)), async=T)
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             tryCatch({
-                # command <- paste0("dscPush(FD, '", 
-                #                   .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixClient'), dsMOprimal:::.encode.arg(tcrossProdSelf)", "))")), 
-                #                   "', async=T)")
-                # cat("Command: ", command, "\n")
-                # crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
                 cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
-                crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=F)
-                # crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
-                #     print('dscblocks:')
-                #     return (.rebuildMatrix(dscblocks))
-                # })
+                crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
                 crossProdSelf <- .rebuildMatrix(crossProdSelfDSC[[1]])
-                # print(class(crossProdSelf))
-                # #XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
-                # print(class(crossProdSelfDSC[[1]]))
-                # print(lengths(crossProdSelfDSC[[1]]))
-                
             },
             error=function(e) print(paste0("FD PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
-            #XXt <- .rebuildMatrix(crossProdSelfDSC[[1]])
             XXt <- crossProdSelf
             rownames(XXt) <- colnames(XXt) <- unlist(samplenames, use.names=F)
             gc(reset=F)
@@ -362,8 +346,9 @@ pushSingMatrix <- function(value) {
         tryCatch({
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ", scale=", scale, ")")), async=T)
             datashield.assign(opals, "crossProdSelf", as.symbol('crossProdrm(centeredData)'), async=T)
-            datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
+            datashield.assign(opals, "tcrossProdSelf", as.symbol(as.symbol(paste0('tcrossProd(x=centeredData, y=NULL, chunk=)', chunk))), async=T)
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
+            
             ##- received by each from other nodes ----
             invisible(lapply(names(opals), function(opn) {
                 ind.opn <- which(logindata$server == opn)
@@ -425,7 +410,6 @@ pushSingMatrix <- function(value) {
             #-----
             
             ## (X_i) * (X_i)': push this symmetric matrix from each node to FD
-            #crossProdSelf     <- datashield.aggregate(opals, as.symbol('tcrossProd(centeredData)'), async=T)
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             tryCatch({
                 # command <- paste0("crossAggregate(FD, '", 
@@ -445,9 +429,7 @@ pushSingMatrix <- function(value) {
                 # })
                 cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
-                #print(crossProdSelfDSC)
-                crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
-                    print('dscblocks:')
+                crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=mc.cores, function(dscblocks) {
                     return (.rebuildMatrix(dscblocks))
                 })
                 print(class(crossProdSelf))
@@ -465,7 +447,7 @@ pushSingMatrix <- function(value) {
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             
             #singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=max(2, min(length(singularProdCrossDSC), detectCores())), function(dscbigmatrix) {
-            singularProdCross <- lapply(singularProdCrossDSC, function(dscbigmatrix) {
+            singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
                 dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
                     dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
                     stopifnot(ncol(dscMat)==1)
@@ -486,7 +468,7 @@ pushSingMatrix <- function(value) {
         finally=datashield.logout(opals))
         
         ## deduced from received info by federation: (X_i) * (X_j)'
-        crossProductPair <- lapply(1:(nNode-1), function(opi) {
+        crossProductPair <- mclapply(1:(nNode-1), mc.cores=mc.cores, function(opi) {
             crossi <- lapply((opi+1):(nNode), function(opj) {
                 opni <- names(opals)[opi]
                 opnj <- names(opals)[opj]
@@ -509,7 +491,7 @@ pushSingMatrix <- function(value) {
         names(crossProductPair) <- names(opals)[1:(nNode-1)]
         
         ## SSCP whole matrix
-        XXt <- do.call(rbind, lapply(1:nNode, function(opi) {
+        XXt <- do.call(rbind, mclapply(1:nNode, mc.cores=mc.cores, function(opi) {
             upper.opi <- do.call(cbind, as.list(crossProductPair[[names(opals)[opi]]]))
             lower.opi <- do.call(cbind, lapply(setdiff(1:opi, opi), function(opj) {
                 t(crossProductPair[[names(opals)[opj]]][[names(opals)[opi]]])
@@ -560,7 +542,7 @@ pushSingMatrix <- function(value) {
 #' @import DSI
 #' @importFrom utils setTxtProgressBar
 #' @export
-federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", threshold = 1e-10) {
+federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", chunk = 500, mc.cores = 1, threshold = 1e-10) {
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
@@ -568,7 +550,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     
     ## compute SSCP matrix for each centered data table
     XX <- lapply(1:ntab, function(i) {
-        .federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, TOL=TOL)
+        .federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
     })
     names(XX) <- querytables
     
@@ -946,7 +928,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
 #' @return The overall status matrix derived W.
 #' @import SNFtool DSI
 #' @export
-federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K = 20, sigma = 0.5, t = 20) {
+federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K = 20, sigma = 0.5, t = 20, chunk = 500, mc.cores = 1) {
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
@@ -989,14 +971,14 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
         XX <- lapply(1:ntab, function(i) {
             1 - .federateSSCP(loginFD=loginFD, logins=logins, 
                               funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                              byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1)
+                              byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)/(length(queryvariables[[i]])-1)
         })
     } else if (metric == "euclidean"){
         ## compute Euclidean distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
             .toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins,
                                        funcPreProc=funcPreProc, querytables=querytables, ind=i,
-                                       byColumn=TRUE, TOL=TOL))
+                                       byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL))
         })
     }
     
@@ -1035,7 +1017,7 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
 #' @return A matrix of optimized coordinates.
 #' @import uwot DSI
 #' @export
-federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ...) {
+federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk = 500, mc.cores = 1, ...) {
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
@@ -1078,18 +1060,18 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ..
         XX <- lapply(1:ntab, function(i) {
             as.dist(1 - .federateSSCP(loginFD=loginFD, logins=logins, 
                                       funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1))
+                                      byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)/(length(queryvariables[[i]])-1))
         })
     } else if (metric == "euclidean"){
         ## compute Euclidean distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
             as.dist(.toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
                                                funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                               byColumn=TRUE, TOL=TOL)))
+                                               byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)))
         })
     }
     
-    return (setNames(lapply(1:ntab, function(i) uwot::umap(XX[[i]], ret_model = FALSE, ret_nn = FALSE, ret_extra = c(), ...)), querytables))
+    return (setNames(lapply(1:ntab, function(i) uwot::umap(XX[[i]], ...)), querytables)) #ret_model = FALSE, ret_nn = FALSE, ret_extra = c(),
 }
 
 
@@ -1111,7 +1093,7 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ..
 #' @return An object of class \code{hdbscan}.
 #' @import dbscan DSI
 #' @export
-federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean', minPts = 10, ...) {
+federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean', minPts = 10, chunk = 500, mc.cores = 1, ...) {
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
@@ -1154,14 +1136,14 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
         XX <- lapply(1:ntab, function(i) {
             as.dist(1 - .federateSSCP(loginFD=loginFD, logins=logins, 
                                       funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                      byColumn=FALSE, TOL=TOL)/(length(queryvariables[[i]])-1))
+                                      byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)/(length(queryvariables[[i]])-1))
         })
     } else if (metric == "euclidean"){
         ## compute Euclidean distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
             as.dist(.toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
                                                funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                               byColumn=TRUE, TOL=TOL)))
+                                               byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)))
         })
     }
     
@@ -1186,7 +1168,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' @import DSOpal parallel bigmemory
 #' @export
 ## @keywords internal
-testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, scale=FALSE, TOL = 1e-10) {
+testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, scale=FALSE, chunk = 500, mc.cores = 1, TOL = 1e-10) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1195,7 +1177,7 @@ testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, scale=FALSE, 
     XX <- lapply(1:ntab, function(i) {
         .federateSSCP(loginFD=loginFD, logins=logins, 
                      funcPreProc=funcPreProc, querytables=querytables, ind=i,
-                     byColumn=byColumn, scale=scale, TOL=TOL)
+                     byColumn=byColumn, scale=scale, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
     })
 
     return (XX)
