@@ -31,6 +31,7 @@ matrix2Dsc <- function(value) {
 .rebuildMatrix <- function(dscblocks, mc.cores = 1) {
     ## obtain the blocks 
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
+        print(y)
         lapply(y, function(x) {
             return (as.matrix(attach.big.matrix(x)))
         })
@@ -292,7 +293,7 @@ pushSingMatrix <- function(value) {
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
-.federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, scale = FALSE, TOL = 1e-10) {
+.federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, chunk = 500, byColumn = TRUE, scale = FALSE, TOL = 1e-10) {
     require(DSOpal)
     require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
@@ -343,7 +344,7 @@ pushSingMatrix <- function(value) {
             
             #XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
             print(class(crossProdSelfDSC[[1]]))
-            print((crossProdSelfDSC[[1]]))
+            print(lengths(crossProdSelfDSC[[1]]))
             XXt <- .rebuildMatrix(crossProdSelfDSC[[1]])
             rownames(XXt) <- colnames(XXt) <- unlist(samplenames, use.names=F)
             gc(reset=F)
