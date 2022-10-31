@@ -338,20 +338,21 @@ pushSingMatrix <- function(value) {
                 # crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
                 cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
                 crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=F)
+                # crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
+                #     print('dscblocks:')
+                #     return (.rebuildMatrix(dscblocks))
+                # })
+                crossProdSelf <- .rebuildMatrix(crossProdSelfDSC[[1]])
+                # print(class(crossProdSelf))
+                # #XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
+                # print(class(crossProdSelfDSC[[1]]))
+                # print(lengths(crossProdSelfDSC[[1]]))
+                
             },
             error=function(e) print(paste0("FD PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
-            crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
-                print('dscblocks:')
-                #print(dscblocks)
-                return (.rebuildMatrix(dscblocks))
-            })
-            print(class(crossProdSelf))
-            #XXt <- as.matrix(attach.big.matrix(crossProdSelfDSC[[1]][[1]]))
-            print(class(crossProdSelfDSC[[1]]))
-            print(lengths(crossProdSelfDSC[[1]]))
             #XXt <- .rebuildMatrix(crossProdSelfDSC[[1]])
-            XXt <- crossProdSelf[[1]]
+            XXt <- crossProdSelf
             rownames(XXt) <- colnames(XXt) <- unlist(samplenames, use.names=F)
             gc(reset=F)
         },
@@ -447,7 +448,6 @@ pushSingMatrix <- function(value) {
                 #print(crossProdSelfDSC)
                 crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
                     print('dscblocks:')
-                    #print(dscblocks)
                     return (.rebuildMatrix(dscblocks))
                 })
                 print(class(crossProdSelf))
@@ -517,6 +517,7 @@ pushSingMatrix <- function(value) {
             return (cbind(lower.opi, crossProdSelf[[opi]], upper.opi))
         }))
         rownames(XXt) <- colnames(XXt) <- unlist(samplenames[names(opals)], use.names=F)
+        gc(reset=F)
     }
     
     return (XXt)
