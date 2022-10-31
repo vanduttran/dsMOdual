@@ -337,7 +337,7 @@ pushSingMatrix <- function(value) {
                 # cat("Command: ", command, "\n")
                 # crossProdSelfDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
                 cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
-                crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
+                crossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=F)
             },
             error=function(e) print(paste0("FD PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
