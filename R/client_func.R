@@ -469,11 +469,13 @@ pushSingMatrix <- function(value) {
                 ##  (X_i) * (X_j)' * (X_j) * (X_i)'
                 ## N.B. save-load increase numeric imprecision!!!
                 cat("Command: tripleProdChunk")
-                datashield.assign(opals, "prodDataCross", as.call(list(as.symbol("tripleProdChunk"), 
-                                                                       as.symbol("centeredData"), 
-                                                                       .encode.arg(names(opals)),
-                                                                       chunk,
-                                                                       mc.cores)), async=T)
+                invisible(lapply(names(opals), function(opn) {
+                    datashield.assign(opals[opn], "prodDataCross", as.call(list(as.symbol("tripleProdChunk"), 
+                                                                           as.symbol("centeredData"), 
+                                                                           .encode.arg(setdiff(names(opals), opn)),
+                                                                           chunk,
+                                                                           mc.cores)), async=T)
+                }))
                 cat("Command: pushToDsc(FD, 'prodDataCross')", "\n")
                 prodDataCrossDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'prodDataCross')"), async=T)
                 prodDataCross <- mclapply(prodDataCrossDSC, mc.cores=mc.cores, function(dscblocksopals) {
