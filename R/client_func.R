@@ -465,6 +465,15 @@ pushSingMatrix <- function(value) {
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+                singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
+                    dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
+                        dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
+                        stopifnot(ncol(dscMat)==1)
+                        return (dscMat)
+                    })
+                    return (dscMatList)
+                })
+                gc(reset=F)
                 
                 ##  (X_i) * (X_j)' * (X_j) * (X_i)'
                 ## N.B. save-load increase numeric imprecision!!!
@@ -489,15 +498,15 @@ pushSingMatrix <- function(value) {
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             .printTime(".federateSSCP Ar communicated to FD")
             
-            singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
-                dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
-                    dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
-                    stopifnot(ncol(dscMat)==1)
-                    return (dscMat)
-                })
-                return (dscMatList)
-            })
-            gc(reset=F)
+            # singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
+            #     dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
+            #         dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
+            #         stopifnot(ncol(dscMat)==1)
+            #         return (dscMat)
+            #     })
+            #     return (dscMatList)
+            # })
+            # gc(reset=F)
 
             ##  (X_i) * (X_j)' * (X_j) * (X_i)'
             ## N.B. save-load increase numeric imprecision!!!
