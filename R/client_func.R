@@ -300,7 +300,7 @@ pushSingMatrix <- function(value) {
     require(DSOpal)
     require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
-    .printTime(".federateSSCP started")
+    
     loginFDdata    <- .decode.arg(loginFD)
     logindata      <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
@@ -403,19 +403,28 @@ pushSingMatrix <- function(value) {
                     #print(ds.summary("singularProdMate", datasources = opals[opn]))
                     
                     ## send X'X from opn to mates of opn
-                    command.opn <- paste0("crossAggregate(mates, '",
-                                          .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsMOprimal:::.encode.arg(crossProdSelf), dsMOprimal:::.encode.arg('", opn, "')))")),
-                                          "', async=F)")
-                    cat("Command: ", command.opn, "\n")
-                    print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
-                    
-                    # cat("Command: pushToDsc(mates, 'crossProdSelf')", "\n")
-                    # command.opn <- paste0("crossAssign(mates, symbol='", paste0("crossProdSelf", opn), "', value='",
-                    #                       .encode.arg("pushToDscAssign(mates, 'crossProdSelf')"),
-                    #                       "', value.call=T, async=T)")
+                    # command.opn <- paste0("crossAggregate(mates, '",
+                    #                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsMOprimal:::.encode.arg(crossProdSelf), dsMOprimal:::.encode.arg('", opn, "')))")),
+                    #                       "', async=F)")
                     # cat("Command: ", command.opn, "\n")
-                    # datashield.assign(opals[opn], "crossProdSelfToMate", as.symbol("pushToDscAssign(mates, 'crossProdSelf')"))
-                    # print(datashield.aggregate(opals[opn], as.symbol(command.opn), async=F))
+                    # print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
+                    # 
+                    cat("Command: pushToDsc(mates, 'crossProdSelf')", "\n")
+                    command.opn <- paste0("crossAssign(mates, symbol='", paste0("crossProdSelf", opn), "', value='",
+                                          .encode.arg("pushToDscAssign(mates, 'crossProdSelf')"),
+                                          "', value.call=T, async=T)")
+                    cat("Command: ", command.opn, "\n")
+                    #datashield.assign(opals[opn], "crossProdSelfToMate", as.symbol("pushToDscAssign(mates, 'crossProdSelf')"))
+                    print(datashield.aggregate(opals[opn], as.symbol(command.opn), async=F))
+
+                    ##  (X_i) * (X_j)' * (X_j) * (X_i)'
+                    # datashield.assign(opals, "prodDataCross", as.symbol(paste0('tripleProd(x=centeredData, y=NULL, chunk=', chunk, ')')), async=T)
+                    # 
+                    # prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
+                    #                                                               as.symbol("centeredData"), 
+                    #                                                               .encode.arg(names(opals)))), async=T)
+                    #.printTime(".federateSSCP XY'YX tripleProd communicated to FD")
+                    
                 }, 
                 error=function(e) print(paste0("CROSS PROCESS: ", e, ' --- ', datashield.symbols(opals[opn]), ' --- ', datashield.errors())),
                 finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
@@ -464,7 +473,6 @@ pushSingMatrix <- function(value) {
             gc(reset=F)
 
             ##  (X_i) * (X_j)' * (X_j) * (X_i)'
-            #prodDataCross     <- datashield.aggregate(opals, as.symbol('tripleProd(centeredData, crossProdMate)'), async=F)
             ## N.B. save-load increase numeric imprecision!!!
             prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
                                                                           as.symbol("centeredData"), 
@@ -1031,7 +1039,7 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ch
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
-    
+    .printTime("federateUMAP started")
     logindata <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
     
