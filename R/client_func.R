@@ -403,20 +403,27 @@ pushSingMatrix <- function(value) {
                     #print(ds.summary("singularProdMate", datasources = opals[opn]))
                     
                     ## send X'X from opn to mates of opn
-                    # command.opn <- paste0("crossAggregate(mates, '",
-                    #                       .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsMOprimal:::.encode.arg(crossProdSelf), dsMOprimal:::.encode.arg('", opn, "')))")),
-                    #                       "', async=F)")
-                    # cat("Command: ", command.opn, "\n")
-                    # print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
-                    # 
-                    cat("Command: pushToDsc(mates, 'crossProdSelf')", "\n")
-                    command.opn <- paste0("crossAssign(mates, symbol='", paste0("crossProdSelf", opn), "', value='",
-                                          .encode.arg("pushToDscAssign(mates, 'crossProdSelf')"),
-                                          "', value.call=T, async=T)")
+                    command.opn <- paste0("crossAggregate(mates, '",
+                                          .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsMOprimal:::.encode.arg(crossProdSelf), dsMOprimal:::.encode.arg('", opn, "')))")),
+                                          "', async=F)")
                     cat("Command: ", command.opn, "\n")
-                    #datashield.assign(opals[opn], "crossProdSelfToMate", as.symbol("pushToDscAssign(mates, 'crossProdSelf')"))
-                    print(datashield.aggregate(opals[opn], as.symbol(command.opn), async=F))
+                    print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
 
+                    # cat("Command: pushToDsc(mates, 'crossProdSelf')", "\n")
+                    # command.opn <- paste0("crossAssign(mates, symbol='", paste0("crossProdSelf", opn), "', value='",
+                    #                       .encode.arg("pushToDscAssign(mates, 'crossProdSelf')"),
+                    #                       "', value.call=T, async=T)")
+                    # cat("Command: ", command.opn, "\n")
+                    # #datashield.assign(opals[opn], "crossProdSelfToMate", as.symbol("pushToDscAssign(mates, 'crossProdSelf')"))
+                    # print(datashield.aggregate(opals[opn], as.symbol(command.opn), async=F))
+                    # 
+                    # ## (X_i) * (X_i)': push this symmetric matrix from each node to FD
+                    # cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
+                    # tcrossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
+                    # tcrossProdSelf <- mclapply(tcrossProdSelfDSC, mc.cores=mc.cores, function(dscblocks) {
+                    #     return (.rebuildMatrix(dscblocks))
+                    # })
+                    
                     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
                     # datashield.assign(opals, "prodDataCross", as.symbol(paste0('tripleProd(x=centeredData, y=NULL, chunk=', chunk, ')')), async=T)
                     # 
@@ -458,10 +465,28 @@ pushSingMatrix <- function(value) {
                                   "', async=T)")
                 cat("Command: ", command, "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+                
+                ##  (X_i) * (X_j)' * (X_j) * (X_i)'
+                ## N.B. save-load increase numeric imprecision!!!
+                cat("Command: tripleProdChunk")
+                datashield.assign(opals, "prodDataCross", as.call(list(as.symbol("tripleProdChunk"), 
+                                                                       as.symbol("centeredData"), 
+                                                                       .encode.arg(names(opals)),
+                                                                       chunk,
+                                                                       mc.cores)), async=T)
+                cat("Command: pushToDsc(FD, 'prodDataCross')", "\n")
+                prodDataCrossDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'prodDataCross')"), async=T)
+                prodDataCross <- mclapply(prodDataCrossDSC, mc.cores=mc.cores, function(dscblocksopals) {
+                    lapply(dscblocksopals, function(dscblocks) {
+                        return (.rebuildMatrix(dscblocks))
+                    })
+                })
+                .printTime(".federateSSCP XY'YX tripleProd communicated to FD")
             },
             error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
             .printTime(".federateSSCP Ar communicated to FD")
+            
             singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
                 dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
                     dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
@@ -474,10 +499,10 @@ pushSingMatrix <- function(value) {
 
             ##  (X_i) * (X_j)' * (X_j) * (X_i)'
             ## N.B. save-load increase numeric imprecision!!!
-            prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
-                                                                          as.symbol("centeredData"), 
-                                                                          .encode.arg(names(opals)))), async=T)
-            .printTime(".federateSSCP XY'YX tripleProd communicated to FD")
+            # prodDataCross     <- datashield.aggregate(opals, as.call(list(as.symbol("tripleProd"), 
+            #                                                               as.symbol("centeredData"), 
+            #                                                               .encode.arg(names(opals)))), async=T)
+            # .printTime(".federateSSCP XY'YX tripleProd communicated to FD")
         },
         error=function(e) print(paste0("TRIPLE PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
         finally=datashield.logout(opals))
