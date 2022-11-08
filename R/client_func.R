@@ -195,7 +195,11 @@ pushSingMatrix <- function(value) {
     valB2 <- eB2$values                     # valB2 == union(valB1, 0)
     vecs <- list("XXt"=vecB1, "XtX"=vecB2)
     vals <- list("XXt"=valB1, "XtX"=valB2)
-    poseignum <- min(Matrix::rankMatrix(B1), Matrix::rankMatrix(B2))
+    ## NB: numerically imprecise: poseignum = min(Matrix::rankMatrix(B1), Matrix::rankMatrix(B2))
+    poseignum <- max(which(vals$XXt[1:min(N1, N2)] < 1 & 
+                               vals$XXt[1:min(N1, N2)]/(vals$XtX[1:min(N1, N2)]+.Machine$double.eps) > 0.95 &
+                               vals$XtX[1:min(N1, N2)]/(vals$XXt[1:min(N1, N2)]+.Machine$double.eps) > 0.95
+                           ))
     print(vals)
     print(poseignum)
     vals <- mclapply(vals, mc.cores=length(vals), function(x) {
