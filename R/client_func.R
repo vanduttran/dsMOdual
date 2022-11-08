@@ -353,7 +353,7 @@ pushSingMatrix <- function(value) {
             rownames(XXt) <- colnames(XXt) <- unlist(samplenames, use.names=F)
             gc(reset=F)
         },
-        error=function(e) print(paste0("XX PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
+        error=function(e) print(paste0("XX' PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
         finally=datashield.logout(opals))
     } else {
         tryCatch({
@@ -460,7 +460,6 @@ pushSingMatrix <- function(value) {
                 tcrossProdSelf <- mclapply(tcrossProdSelfDSC, mc.cores=mc.cores, function(dscblocks) {
                     return (.rebuildMatrix(dscblocks))
                 })
-                #print(class(tcrossProdSelf))
                 gc(reset=F)
                 .printTime(".federateSSCP XX' communicated to FD")
                 
@@ -480,11 +479,9 @@ pushSingMatrix <- function(value) {
                     })
                     return (dscMatList)
                 })
+                .printTime(".federateSSCP Ar communicated to FD")
                 gc(reset=F)
-                # print(names(singularProdCross))
-                # print(lapply(singularProdCross, names))
-                # print(singularProdCross[[1]][1])
-                # print(singularProdCross[[2]][1])
+
                 ##  (X_i) * (X_j)' * (X_j) * (X_i)': push this symmetric cross SSCP matrix from each node to FD
                 ## N.B. save-load increase numeric imprecision!!!
                 cat("Command: tripleProdChunk")
@@ -516,12 +513,12 @@ pushSingMatrix <- function(value) {
                 # print(dim(tp))
                 # print(quantile(tp))
                 # print(eigen(tp, symmetric=T)$values)
+                .printTime(".federateSSCP XY'YX' tripleProd communicated to FD")
                 gc(reset=F)
-                .printTime(".federateSSCP XY'YX tripleProd communicated to FD")
             },
             error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
-            .printTime(".federateSSCP Ar communicated to FD")
+            
             
             # singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
             #     dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
@@ -540,7 +537,7 @@ pushSingMatrix <- function(value) {
             #                                                               .encode.arg(names(opals)))), async=T)
             # .printTime(".federateSSCP XY'YX tripleProd communicated to FD")
         },
-        error=function(e) print(paste0("TRIPLE PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
+        error=function(e) print(paste0("XX' PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
         finally=datashield.logout(opals))
         
         ## deduced from received info by federation: (X_i) * (X_j)'
