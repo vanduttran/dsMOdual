@@ -125,7 +125,6 @@ pushSymmMatrixClient <- function(value) {
 pushSingMatrix <- function(value) {
     valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
-    #dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
     dscbigmatrix <- lapply(valued, function(x) {
         x.mat <- do.call(rbind, .decode.arg(x))
         stopifnot(ncol(x.mat)==1)
@@ -195,17 +194,17 @@ pushSingMatrix <- function(value) {
     valB2 <- eB2$values                     # valB2 == [valB1, 0] or reversely
     vecs <- list("XXt"=vecB1, "XtX"=vecB2)
     vals <- list("XXt"=valB1, "XtX"=valB2)
+    
     ## NB: numerically imprecise: poseignum = min(Matrix::rankMatrix(B1), Matrix::rankMatrix(B2))
+    ## this number of positive eigenvalues can upper-limitted by the number of variables, yet required as argument of the function .solveSSCP
     poseignum <- max(which(vals$XXt[1:min(N1, N2)]/(vals$XtX[1:min(N1, N2)]+.Machine$double.eps) > 0.95 &
                            vals$XtX[1:min(N1, N2)]/(vals$XXt[1:min(N1, N2)]+.Machine$double.eps) > 0.95))
-    print(vals)
-    print(poseignum)
+
     vals <- mclapply(vals, mc.cores=length(vals), function(x) {
         x[(poseignum+1):length(x)] <- 0
         return (x)
     })
-    print('after:')
-    print(vals)
+
     # if (N2 > N1) {
     #     tol <- max(abs(valB2[(N1+1):N2]))*10
     # } else if (N1 > N2) {
@@ -280,10 +279,12 @@ pushSingMatrix <- function(value) {
     # return (a2)
 }
 
+
 #' @keywords internal
 .printTime <- function(message = "") {
     cat(message, "---", as.character(Sys.time()), "\n")
 }
+
 
 #' @title Federated SSCP
 #' @description Function for computing the federated SSCP matrix
@@ -480,10 +481,10 @@ pushSingMatrix <- function(value) {
                     return (dscMatList)
                 })
                 gc(reset=F)
-                print(names(singularProdCross))
-                print(lapply(singularProdCross, names))
-                print(singularProdCross[[1]][1])
-                print(singularProdCross[[2]][1])
+                # print(names(singularProdCross))
+                # print(lapply(singularProdCross, names))
+                # print(singularProdCross[[1]][1])
+                # print(singularProdCross[[2]][1])
                 ##  (X_i) * (X_j)' * (X_j) * (X_i)': push this symmetric cross SSCP matrix from each node to FD
                 ## N.B. save-load increase numeric imprecision!!!
                 cat("Command: tripleProdChunk")
@@ -503,18 +504,18 @@ pushSingMatrix <- function(value) {
                 })
                 save(prodDataCross, file="/tmp/prodDataCross.RData")
                 save(prodDataCrossDSC, file="/tmp/prodDataCrossDSC.RData")
-                print(names(prodDataCross))
-                print(lapply(prodDataCross, names))
-                print(prodDataCross[[1]][1])
-                tp <- prodDataCross[[1]][1]
-                print(dim(tp))
-                print(quantile(tp))
-                print(eigen(tp, symmetric=T)$values)
-                print(prodDataCross[[2]][1])
-                tp <- prodDataCross[[2]][1]
-                print(dim(tp))
-                print(quantile(tp))
-                print(eigen(tp, symmetric=T)$values)
+                # print(names(prodDataCross))
+                # print(lapply(prodDataCross, names))
+                # print(prodDataCross[[1]][1])
+                # tp <- prodDataCross[[1]][1]
+                # print(dim(tp))
+                # print(quantile(tp))
+                # print(eigen(tp, symmetric=T)$values)
+                # print(prodDataCross[[2]][1])
+                # tp <- prodDataCross[[2]][1]
+                # print(dim(tp))
+                # print(quantile(tp))
+                # print(eigen(tp, symmetric=T)$values)
                 gc(reset=F)
                 .printTime(".federateSSCP XY'YX tripleProd communicated to FD")
             },
@@ -620,6 +621,7 @@ pushSingMatrix <- function(value) {
 #' @importFrom utils setTxtProgressBar
 #' @export
 federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", chunk = 500, mc.cores = 1, threshold = 1e-10) {
+    .printTime("federateComDim started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
@@ -1006,12 +1008,12 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
 #' @import SNFtool DSI
 #' @export
 federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K = 20, sigma = 0.5, t = 20, chunk = 500, mc.cores = 1) {
+    .printTime("federateSNF started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
-    
     logindata <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
 
@@ -1095,12 +1097,12 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
 #' @import uwot DSI
 #' @export
 federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk = 500, mc.cores = 1, ...) {
+    .printTime("federateUMAP started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
-    .printTime("federateUMAP started")
     logindata <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
     
@@ -1172,12 +1174,12 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ch
 #' @import dbscan DSI
 #' @export
 federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean', minPts = 10, chunk = 500, mc.cores = 1, ...) {
+    .printTime("federateHdbscan started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
-    
     logindata <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
     
