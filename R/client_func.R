@@ -251,8 +251,8 @@ pushSingMatrix <- function(value) {
     a1 <- tcrossprod(tcrossprod(vecs[[1]], t(D)), vecs[[2]]) # a = vecs[["A*A'"]] %*% D %*% t(vecs[["A'*A"]])
     
     cat("----------------------\n")
-    cat("Precision on XXt = a1*a1':", max(abs(B1 - tcrossprod(a1))), "\n")
-    cat("Precision on XtX = a1'*a1:", max(abs(B2 - crossprod(a1))), "\n")
+    cat("Precision on XXt = a1*a1':", max(abs(B1 - tcrossprod(a1))), " / (", quantile(abs(B1)), ")\n")
+    cat("Precision on XtX = a1'*a1:", max(abs(B2 - crossprod(a1))),  " / (", quantile(abs(B2)), ")\n")
     
     return (a1)
     
@@ -558,7 +558,7 @@ pushSingMatrix <- function(value) {
                                 r=tcrossProdSelf[[opni]][, 1, drop=F],
                                 Xr=singularProdCross[[opnj]][[opni]],
                                 TOL=TOL)
-                cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))), "\n")
+                cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))),  " / (", quantile(abs(a1)), ")\n")
                 return (a1)
             })
             names(crossi) <- names(opals)[(opi+1):(nNode)]
