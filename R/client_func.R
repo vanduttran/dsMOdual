@@ -499,6 +499,8 @@ pushSingMatrix <- function(value) {
                         return (.rebuildMatrix(dscblocks))
                     })
                 })
+                save(prodDataCross, file="/tmp/prodDataCross.RData")
+                save(prodDataCrossDSC, file="/tmp/prodDataCrossDSC.RData")
                 print(names(prodDataCross))
                 print(lapply(prodDataCross, names))
                 print(prodDataCross[[1]][1])
