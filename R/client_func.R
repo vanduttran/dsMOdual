@@ -474,8 +474,11 @@ pushSingMatrix <- function(value) {
                     return (dscMatList)
                 })
                 gc(reset=F)
-                
-                ##  (X_i) * (X_j)' * (X_j) * (X_i)'
+                print(names(singularProdCross))
+                print(lapply(singularProdCross, names))
+                print(singularProdCross[[1]][1])
+                print(singularProdCross[[2]][1])
+                ##  (X_i) * (X_j)' * (X_j) * (X_i)': push this symmetric cross SSCP matrix from each node to FD
                 ## N.B. save-load increase numeric imprecision!!!
                 cat("Command: tripleProdChunk")
                 invisible(lapply(names(opals), function(opn) {
@@ -492,6 +495,10 @@ pushSingMatrix <- function(value) {
                         return (.rebuildMatrix(dscblocks))
                     })
                 })
+                print(names(prodDataCross))
+                print(lapply(prodDataCross, names))
+                print(prodDataCross[[1]][1])
+                print(prodDataCross[[2]][1])
                 .printTime(".federateSSCP XY'YX tripleProd communicated to FD")
             },
             error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
@@ -541,6 +548,7 @@ pushSingMatrix <- function(value) {
         })
         names(crossProductPair) <- names(opals)[1:(nNode-1)]
         .printTime(".federateSSCP XY' computed")
+        
         ## SSCP whole matrix
         XXt <- do.call(rbind, mclapply(1:nNode, mc.cores=mc.cores, function(opi) {
             upper.opi <- do.call(cbind, as.list(crossProductPair[[names(opals)[opi]]]))
