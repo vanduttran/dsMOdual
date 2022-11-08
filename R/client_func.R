@@ -237,6 +237,7 @@ pushSingMatrix <- function(value) {
     if (poseignum < N1) cat("Precision on tmprhs1's zero:", max(abs(tmprhs1[(poseignum+1):N1, 1])), "\n")
     ## S * vecB2' * rmX2 = S * lhs1 = 1/E * tmprhs1 = rhs1
     E <- diag(sqrt(vals[[1]][1:poseignum]), ncol=poseignum, nrow=poseignum)
+    print(E)
     invE <- diag(1/diag(E), ncol=poseignum, nrow=poseignum)
     rhs1 <- crossprod(t(invE), tmprhs1[1:poseignum, , drop=F])
     lhs1 <- crossprod(vecs[[2]], r)
