@@ -196,10 +196,14 @@ pushSingMatrix <- function(value) {
     vecs <- list("XXt"=vecB1, "XtX"=vecB2)
     vals <- list("XXt"=valB1, "XtX"=valB2)
     poseignum <- min(Matrix::rankMatrix(B1), Matrix::rankMatrix(B2))
+    print(vals)
+    print(poseignum)
     vals <- mclapply(vals, mc.cores=length(vals), function(x) {
         x[(poseignum+1):length(x)] <- 0
         return (x)
     })
+    print('after:')
+    print(vals)
     # if (N2 > N1) {
     #     tol <- max(abs(valB2[(N1+1):N2]))*10
     # } else if (N1 > N2) {
@@ -237,7 +241,6 @@ pushSingMatrix <- function(value) {
     if (poseignum < N1) cat("Precision on tmprhs1's zero:", max(abs(tmprhs1[(poseignum+1):N1, 1])), "\n")
     ## S * vecB2' * rmX2 = S * lhs1 = 1/E * tmprhs1 = rhs1
     E <- diag(sqrt(vals[[1]][1:poseignum]), ncol=poseignum, nrow=poseignum)
-    print(E)
     invE <- diag(1/diag(E), ncol=poseignum, nrow=poseignum)
     rhs1 <- crossprod(t(invE), tmprhs1[1:poseignum, , drop=F])
     lhs1 <- crossprod(vecs[[2]], r)
