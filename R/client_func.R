@@ -192,14 +192,12 @@ pushSingMatrix <- function(value) {
     vecB1 <- eB1$vectors                    # not unique
     vecB2 <- eB2$vectors                    # not unique
     valB1 <- eB1$values
-    valB2 <- eB2$values                     # valB2 == union(valB1, 0)
+    valB2 <- eB2$values                     # valB2 == [valB1, 0] or reversely
     vecs <- list("XXt"=vecB1, "XtX"=vecB2)
     vals <- list("XXt"=valB1, "XtX"=valB2)
     ## NB: numerically imprecise: poseignum = min(Matrix::rankMatrix(B1), Matrix::rankMatrix(B2))
-    poseignum <- max(which(vals$XXt[1:min(N1, N2)] < 1 & 
-                               vals$XXt[1:min(N1, N2)]/(vals$XtX[1:min(N1, N2)]+.Machine$double.eps) > 0.95 &
-                               vals$XtX[1:min(N1, N2)]/(vals$XXt[1:min(N1, N2)]+.Machine$double.eps) > 0.95
-                           ))
+    poseignum <- max(which(vals$XXt[1:min(N1, N2)]/(vals$XtX[1:min(N1, N2)]+.Machine$double.eps) > 0.95 &
+                           vals$XtX[1:min(N1, N2)]/(vals$XXt[1:min(N1, N2)]+.Machine$double.eps) > 0.95))
     print(vals)
     print(poseignum)
     vals <- mclapply(vals, mc.cores=length(vals), function(x) {
@@ -503,7 +501,6 @@ pushSingMatrix <- function(value) {
                         return (.rebuildMatrix(dscblocks))
                     })
                 })
-
                 save(prodDataCross, file="/tmp/prodDataCross.RData")
                 save(prodDataCrossDSC, file="/tmp/prodDataCrossDSC.RData")
                 print(names(prodDataCross))
@@ -518,6 +515,7 @@ pushSingMatrix <- function(value) {
                 print(dim(tp))
                 print(quantile(tp))
                 print(eigen(tp, symmetric=T)$values)
+                gc(reset=F)
                 .printTime(".federateSSCP XY'YX tripleProd communicated to FD")
             },
             error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
