@@ -499,12 +499,21 @@ pushSingMatrix <- function(value) {
                         return (.rebuildMatrix(dscblocks))
                     })
                 })
+
                 save(prodDataCross, file="/tmp/prodDataCross.RData")
                 save(prodDataCrossDSC, file="/tmp/prodDataCrossDSC.RData")
                 print(names(prodDataCross))
                 print(lapply(prodDataCross, names))
                 print(prodDataCross[[1]][1])
+                tp <- prodDataCross[[1]][1]
+                print(dim(tp))
+                print(quantile(tp))
+                print(eigen(tp, symmetric=T)$values)
                 print(prodDataCross[[2]][1])
+                tp <- prodDataCross[[2]][1]
+                print(dim(tp))
+                print(quantile(tp))
+                print(eigen(tp, symmetric=T)$values)
                 .printTime(".federateSSCP XY'YX tripleProd communicated to FD")
             },
             error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
