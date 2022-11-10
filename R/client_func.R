@@ -22,20 +22,14 @@ matrix2Dsc <- function(value) {
 }
 
 
-#' @title Symmetric matrix reconstruction from bigmemomy blocks
-#' @description Rebuild a symmetric matrix from its partition in bigmemory objects
-#' @param dscblocks List of list of bigmemory objects pointed to matrix blocks
-#' @param mc.cores Number of cores for parallel computing
+#' @title Symmetric matrix reconstruction
+#' @description Rebuild a matrix from its partition
+#' @param matblocks List of lists of matrix blocks, obtained from .partitionMatrix
+#' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @return The complete symmetric matrix
 #' @keywords internal
-.rebuildMatrix <- function(dscblocks, mc.cores = 1) {
-    ## obtain the blocks 
-    matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
-        lapply(y, function(x) {
-            return (as.matrix(attach.big.matrix(x)))
-        })
-    })
-    uptcp <- mclapply(matblocks, mc.cores=mc.cores, function(bl) do.call(cbind, bl))
+.rebuildMatrix <- function(matblocks, mc.cores = 1) {
+    uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
     ## combine the blocks into one matrix
     if (length(uptcp)>1) {
         if (length(unique(sapply(uptcp, ncol)))==1) {
@@ -55,7 +49,25 @@ matrix2Dsc <- function(value) {
         tcp <- uptcp[[1]]
     }
     stopifnot(isSymmetric(tcp))
-    rm(list=c("matblocks", "uptcp"))
+    rm(list=c("uptcp"))
+    return (tcp)
+}
+
+
+#' @title Symmetric matrix reconstruction
+#' @description Rebuild a symmetric matrix from its partition bigmemory objects
+#' @param dscblocks List of lists of bigmemory objects pointed to matrix blocks
+#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @return The complete symmetric matrix
+#' @keywords internal
+.rebuildMatrixDsc <- function(dscblocks, mc.cores = 1) {
+    ## access to matrix blocks 
+    matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
+        lapply(y, function(x) {
+            return (as.matrix(attach.big.matrix(x)))
+        })
+    })
+    tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
     return (tcp)
 }
 
@@ -344,7 +356,7 @@ pushSingMatrix <- function(value) {
             tryCatch({
                 cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
                 tcrossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
-                tcrossProdSelf <- .rebuildMatrix(tcrossProdSelfDSC[[1]])
+                tcrossProdSelf <- .rebuildMatrixDsc(tcrossProdSelfDSC[[1]])
             },
             error=function(e) print(paste0("FD PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
@@ -428,7 +440,7 @@ pushSingMatrix <- function(value) {
                     # cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
                     # tcrossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
                     # tcrossProdSelf <- mclapply(tcrossProdSelfDSC, mc.cores=mc.cores, function(dscblocks) {
-                    #     return (.rebuildMatrix(dscblocks))
+                    #     return (.rebuildMatrixDsc(dscblocks))
                     # })
                     
                     ##  (X_i) * (X_j)' * (X_j) * (X_i)'
@@ -458,7 +470,7 @@ pushSingMatrix <- function(value) {
                 cat("Command: pushToDsc(FD, 'tcrossProdSelf')", "\n")
                 tcrossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'tcrossProdSelf')"), async=T)
                 tcrossProdSelf <- mclapply(tcrossProdSelfDSC, mc.cores=mc.cores, function(dscblocks) {
-                    return (.rebuildMatrix(dscblocks))
+                    return (.rebuildMatrixDsc(dscblocks))
                 })
                 gc(reset=F)
                 .printTime(".federateSSCP XX' communicated to FD")
@@ -496,7 +508,7 @@ pushSingMatrix <- function(value) {
                 prodDataCrossDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'prodDataCross')"), async=T)
                 prodDataCross <- mclapply(prodDataCrossDSC, mc.cores=mc.cores, function(dscblocksopals) {
                     lapply(dscblocksopals, function(dscblocks) {
-                        return (.rebuildMatrix(dscblocks))
+                        return (.rebuildMatrixDsc(dscblocks))
                     })
                 })
                 save(prodDataCross, file="/tmp/prodDataCross.RData")
