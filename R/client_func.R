@@ -415,7 +415,7 @@ pushSingMatrix <- function(value) {
                     
                     ## send (X_i) * (X_j)' * (X_j) * (X_i)' to FD
                     command.opn <- paste0("crossAssign(mates, symbol='prodDataCross_", opn, "', value='",
-                                          .encode.arg(paste0("tripleProdChunk(centeredDataMate, pids='", .encode.arg(opn), "', chunk=", chunk, ", mc.cores=", mc.cores, ")")),
+                                          .encode.arg(paste0("tripleProdChunk(centeredDataMate, mate='", .encode.arg(opn), "', chunk=", chunk, ", mc.cores=", mc.cores, ")")),
                                           "', value.call=T, async=F)")
                     cat("Command: crossAssign(mates, prodDataCross, tripleProdChunk(...", "\n")
                     invisible(datashield.aggregate(opals[opn], as.symbol(command.opn), async=F))
