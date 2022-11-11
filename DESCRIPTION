@@ -1,6 +1,6 @@
 Package: dsMOdual
 Title: Server Side Functions on XX' Sum of Squares and Cross Products Matrices
-Version: 0.1.65
+Version: 0.1.66
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
@@ -15,7 +15,6 @@ Imports: Matrix, bigmemory, parallel, SNFtool, dbscan
 Suggests: dsSwissKnifeClient
 Description: Server side functions on XX' sum of squares and cross products matrices.
 AggregateMethods:
-    garbageCollect,
     matrix2Dsc,
     pushSymmMatrixClient,
     pushSingMatrix,
