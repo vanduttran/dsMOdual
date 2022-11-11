@@ -375,7 +375,7 @@ pushSingMatrix <- function(value) {
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
             
             ##- received by each from other nodes ----
-            prodDataCross <- invisible(lapply(names(opals), function(opn) {
+            prodDataCross <- lapply(names(opals), function(opn) {
                 ind.opn <- which(logindata$server == opn)
                 logindata.opn <- logindata[-ind.opn, , drop=F]
                 logindata.opn$user <- logindata.opn$userserver
@@ -463,9 +463,9 @@ pushSingMatrix <- function(value) {
                 }, 
                 error=function(e) print(paste0("CROSS PROCESS: ", e, ' --- ', datashield.symbols(opals[opn]), ' --- ', datashield.errors())),
                 finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
-            }))
+            })
             #-----
-            
+            names(prodDataCross) <- names(opals)
             print(names(prodDataCross))
             print(lapply(prodDataCross, names))
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
