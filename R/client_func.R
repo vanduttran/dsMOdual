@@ -468,6 +468,17 @@ pushSingMatrix <- function(value) {
             names(prodDataCross) <- names(opals)
             print(names(prodDataCross))
             print(lapply(prodDataCross, names))
+            #print(prodDataCross[[1]][1])
+            tp <- prodDataCross[[1]][1]
+            print(dim(tp))
+            print(quantile(tp))
+            print(eigen(tp, symmetric=T)$values)
+            #print(prodDataCross[[2]][1])
+            tp <- prodDataCross[[2]][1]
+            print(dim(tp))
+            print(quantile(tp))
+            print(eigen(tp, symmetric=T)$values)
+            
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             tryCatch({
                 # command <- paste0("crossAggregate(FD, '", 
