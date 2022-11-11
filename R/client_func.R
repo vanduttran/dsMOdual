@@ -453,11 +453,10 @@ pushSingMatrix <- function(value) {
                     cat("Command: ", command.opn, "\n")
                     prodDataCrossDSC <- datashield.aggregate(opals[opn], as.symbol(command.opn), async=T)
                     prodDataCross.opn <- mclapply(prodDataCrossDSC[[opn]], mc.cores=mc.cores, function(dscblocks) {
-                            names(dscblocks)
-                            #return (.rebuildMatrixDsc(dscblocks))
+                            return (.rebuildMatrixDsc(dscblocks[[opn]]))
                     })
-                    save(prodDataCrossDSC, file="/tmp/prodDataCrossDSCopn.RData")
-                    print(names(prodDataCross.opn))
+                    #save(prodDataCrossDSC, file="/tmp/prodDataCrossDSCopn.RData")
+                    #print(names(prodDataCross.opn))
                     return (prodDataCross.opn)
                 }, 
                 error=function(e) print(paste0("CROSS PROCESS: ", e, ' --- ', datashield.symbols(opals[opn]), ' --- ', datashield.errors())),
@@ -465,7 +464,8 @@ pushSingMatrix <- function(value) {
             }))
             #-----
             .printTime(".federateSSCP pairwise X'X communicated")
-            
+            print(names(prodDataCross))
+            print(lapply(prodDataCross, names))
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             tryCatch({
                 # command <- paste0("crossAggregate(FD, '", 
