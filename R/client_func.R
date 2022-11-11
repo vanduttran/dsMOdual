@@ -368,7 +368,6 @@ pushSingMatrix <- function(value) {
     } else {
         tryCatch({
             datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ", scale=", scale, ")")), async=T)
-            #datashield.assign(opals, "crossProdSelf", as.symbol('crossProdrm(centeredData)'), async=T)
             datashield.assign(opals,  "crossProdSelf",  as.symbol(paste0('crossProd(x=centeredData, y=NULL, chunk=', chunk, ')')), async=T)
             datashield.assign(opals, "tcrossProdSelf", as.symbol(paste0('tcrossProd(x=centeredData, y=NULL, chunk=', chunk, ')')), async=T)
             .printTime(".federateSSCP intermediate data computed")
@@ -412,7 +411,7 @@ pushSingMatrix <- function(value) {
                                         async=T)
                     cat("Command: pushToDscServer(mates, crossProdSelf...", "\n")
                     invisible(datashield.aggregate(opals[opn], as.call(command.opn), async=F))
-                    .printTime(".federateSSCP pairwise X'X communicated")
+                    .printTime(paste0(".federateSSCP pairwise X'X communicated: ", opn))
                     
                     ## send (X_i) * (X_j)' * (X_j) * (X_i)' to FD
                     command.opn <- paste0("crossAssign(mates, symbol='prodDataCross_", opn, "', value='",
