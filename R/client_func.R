@@ -578,16 +578,26 @@ pushSingMatrix <- function(value) {
             crossi <- lapply((opi+1):(nNode), function(opj) {
                 opni <- names(opals)[opi]
                 opnj <- names(opals)[opj]
-                a1 <- .solveSSCP(XXt=prodDataCross[[opni]][[opnj]],
-                                XtX=prodDataCross[[opnj]][[opni]],
-                                r=tcrossProdSelf[[opnj]][, 1, drop=F],
-                                Xr=singularProdCross[[opni]][[opnj]],
-                                TOL=TOL)
-                a2 <- .solveSSCP(XXt=prodDataCross[[opnj]][[opni]],
-                                XtX=prodDataCross[[opni]][[opnj]],
-                                r=tcrossProdSelf[[opni]][, 1, drop=F],
-                                Xr=singularProdCross[[opnj]][[opni]],
-                                TOL=TOL)
+                # a1 <- .solveSSCP(XXt=prodDataCross[[opni]][[opnj]],
+                #                 XtX=prodDataCross[[opnj]][[opni]],
+                #                 r=tcrossProdSelf[[opnj]][, 1, drop=F],
+                #                 Xr=singularProdCross[[opni]][[opnj]],
+                #                 TOL=TOL)
+                # a2 <- .solveSSCP(XXt=prodDataCross[[opnj]][[opni]],
+                #                 XtX=prodDataCross[[opni]][[opnj]],
+                #                 r=tcrossProdSelf[[opni]][, 1, drop=F],
+                #                 Xr=singularProdCross[[opnj]][[opni]],
+                #                 TOL=TOL)
+                a1 <- .solveSSCP(XXt=prodDataCross[[opnj]][[opni]],
+                                 XtX=prodDataCross[[opni]][[opnj]],
+                                 r=tcrossProdSelf[[opnj]][, 1, drop=F],
+                                 Xr=singularProdCross[[opni]][[opnj]],
+                                 TOL=TOL)
+                a2 <- .solveSSCP(XXt=prodDataCross[[opni]][[opnj]],
+                                 XtX=prodDataCross[[opnj]][[opni]],
+                                 r=tcrossProdSelf[[opni]][, 1, drop=F],
+                                 Xr=singularProdCross[[opnj]][[opni]],
+                                 TOL=TOL)
                 cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))),  " / (", quantile(abs(a1)), ")\n")
                 return (a1)
             })
