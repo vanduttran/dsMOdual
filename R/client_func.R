@@ -464,17 +464,18 @@ pushSingMatrix <- function(value) {
                 error=function(e) print(paste0("CROSS PROCESS: ", e, ' --- ', datashield.symbols(opals[opn]), ' --- ', datashield.errors())),
                 finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
             })
-            #-----
             names(prodDataCross) <- names(opals)
+            #-----
+            
             print(names(prodDataCross))
             print(lapply(prodDataCross, names))
             #print(prodDataCross[[1]][1])
-            tp <- prodDataCross[[1]][1]
+            tp <- prodDataCross[[1]][[1]]
             print(dim(tp))
             print(quantile(tp))
             print(eigen(tp, symmetric=T)$values)
             #print(prodDataCross[[2]][1])
-            tp <- prodDataCross[[2]][1]
+            tp <- prodDataCross[[2]][[1]]
             print(dim(tp))
             print(quantile(tp))
             print(eigen(tp, symmetric=T)$values)
