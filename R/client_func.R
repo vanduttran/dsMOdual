@@ -413,9 +413,9 @@ pushSingMatrix <- function(value) {
                     invisible(datashield.aggregate(opals[opn], as.symbol(command.opn), async=F))
                     
                     ## create singularProd from mates of opn
-                    command.opn <- paste0("crossAggregate(mates, '", .encode.arg('singularProd(centeredDataMate)'), "', async=F)")
+                    command.opn <- paste0("crossAggregate(mates, '", .encode.arg('singularProd(centeredDataMate)'), "', async=T)")
                     cat("Command: ", command.opn, "\n")
-                    datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=F)
+                    datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=T)
                        
                     ## send X'X from opn to mates of opn
                     # command.opn <- paste0("crossAggregate(mates, '",
@@ -431,7 +431,8 @@ pushSingMatrix <- function(value) {
                                         async=T)
                     cat("Command: pushToDscServer(mates, 'crossProdSelf')", "\n")
                     invisible(datashield.aggregate(opals[opn], as.call(command.opn), async=F))
-
+                    .printTime(".federateSSCP pairwise X'X communicated")
+                    
                     ##  (X_i) * (X_j)' * (X_j) * (X_i)': push this symmetric cross SSCP matrix from each node to FD
                     command.opn <- paste0("crossAssign(mates, symbol='prodDataCross_", opn, "', value='",
                                           .encode.arg(paste0("tripleProdChunk(centeredDataMate, pids='", .encode.arg(opn), "', chunk=", chunk, ", mc.cores=", mc.cores, ")")),
@@ -455,6 +456,7 @@ pushSingMatrix <- function(value) {
                     prodDataCross.opn <- mclapply(prodDataCrossDSC[[opn]], mc.cores=mc.cores, function(dscblocks) {
                             return (.rebuildMatrixDsc(dscblocks[[opn]]))
                     })
+                    .printTime(".federateSSCP XY'YX' tripleProd communicated to FD")
                     #save(prodDataCrossDSC, file="/tmp/prodDataCrossDSCopn.RData")
                     #print(names(prodDataCross.opn))
                     return (prodDataCross.opn)
@@ -463,7 +465,7 @@ pushSingMatrix <- function(value) {
                 finally=datashield.assign(opals[opn], 'crossEnd', as.symbol("crossLogout(mates)"), async=T))
             }))
             #-----
-            .printTime(".federateSSCP pairwise X'X communicated")
+            
             print(names(prodDataCross))
             print(lapply(prodDataCross, names))
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
@@ -502,25 +504,25 @@ pushSingMatrix <- function(value) {
                 .printTime(".federateSSCP Ar communicated to FD")
                 gc(reset=F)
 
-                ##  (X_i) * (X_j)' * (X_j) * (X_i)': push this symmetric cross SSCP matrix from each node to FD
-                ## N.B. save-load increase numeric imprecision!!!
-                cat("Command: tripleProdChunk")
-                invisible(lapply(names(opals), function(opn) {
-                    datashield.assign(opals[opn], "prodDataCross", as.call(list(as.symbol("tripleProdChunk"), 
-                                                                           as.symbol("centeredData"), 
-                                                                           .encode.arg(setdiff(names(opals), opn)),
-                                                                           chunk,
-                                                                           mc.cores)), async=T)
-                }))
-                cat("Command: pushToDsc(FD, 'prodDataCross')", "\n")
-                prodDataCrossDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'prodDataCross')"), async=T)
-                prodDataCross <- mclapply(prodDataCrossDSC, mc.cores=mc.cores, function(dscblocksopals) {
-                    lapply(dscblocksopals, function(dscblocks) {
-                        return (.rebuildMatrixDsc(dscblocks))
-                    })
-                })
-                save(prodDataCross, file="/tmp/prodDataCross.RData")
-                save(prodDataCrossDSC, file="/tmp/prodDataCrossDSC.RData")
+                # ##  (X_i) * (X_j)' * (X_j) * (X_i)': push this symmetric cross SSCP matrix from each node to FD
+                # ## N.B. save-load increase numeric imprecision!!!
+                # cat("Command: tripleProdChunk")
+                # invisible(lapply(names(opals), function(opn) {
+                #     datashield.assign(opals[opn], "prodDataCross", as.call(list(as.symbol("tripleProdChunk"), 
+                #                                                            as.symbol("centeredData"), 
+                #                                                            .encode.arg(setdiff(names(opals), opn)),
+                #                                                            chunk,
+                #                                                            mc.cores)), async=T)
+                # }))
+                # cat("Command: pushToDsc(FD, 'prodDataCross')", "\n")
+                # prodDataCrossDSC <- datashield.aggregate(opals, as.symbol("pushToDsc(FD, 'prodDataCross')"), async=T)
+                # prodDataCross <- mclapply(prodDataCrossDSC, mc.cores=mc.cores, function(dscblocksopals) {
+                #     lapply(dscblocksopals, function(dscblocks) {
+                #         return (.rebuildMatrixDsc(dscblocks))
+                #     })
+                # })
+                # save(prodDataCross, file="/tmp/prodDataCross.RData")
+                # save(prodDataCrossDSC, file="/tmp/prodDataCrossDSC.RData")
                 # print(names(prodDataCross))
                 # print(lapply(prodDataCross, names))
                 # print(prodDataCross[[1]][1])
@@ -533,8 +535,7 @@ pushSingMatrix <- function(value) {
                 # print(dim(tp))
                 # print(quantile(tp))
                 # print(eigen(tp, symmetric=T)$values)
-                .printTime(".federateSSCP XY'YX' tripleProd communicated to FD")
-                gc(reset=F)
+
             },
             error=function(e) print(paste0("FD PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
