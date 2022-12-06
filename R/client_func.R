@@ -475,7 +475,7 @@ pushSingMatrix.rm <- function(value) {
                 print(lapply(singularProdCrossDSC, names))
                 print(lapply(singularProdCrossDSC, function(spc) lapply(scp, names)))
                 singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
-                    dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
+                    dscMatList <- lapply(dscbigmatrix, function(dsc) {
                         dscMat <- do.call(rbind, lapply(dsc, function(dsci) {
                             print(dsci[[1]])
                             return (matrix(as.matrix(attach.big.matrix(dsci[[1]])), ncol=1))
