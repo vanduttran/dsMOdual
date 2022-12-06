@@ -473,7 +473,7 @@ pushSingMatrix.rm <- function(value) {
                 print(singularProdCrossDSC)
                 print(names(singularProdCrossDSC))
                 print(lapply(singularProdCrossDSC, names))
-                print(lapply(singularProdCrossDSC, function(spc) lapply(scp, names)))
+                print(lapply(singularProdCrossDSC, function(spc) lapply(spc, names)))
                 singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
                     dscMatList <- lapply(dscbigmatrix, function(dsc) {
                         dscMat <- do.call(rbind, lapply(dsc, function(dsci) {
@@ -486,7 +486,7 @@ pushSingMatrix.rm <- function(value) {
                     return (dscMatList)
                 })
                 print(lapply(singularProdCross, names))
-                print(lapply(singularProdCross, function(spc) lapply(scp, names)))
+                print(lapply(singularProdCross, function(spc) lapply(spc, names)))
                 # command <- paste0("dscPush(FD, '", 
                 #                   .encode.arg(paste0("as.call(list(as.symbol('pushSingMatrix'), dsMOprimal:::.encode.arg(singularProdCross)", "))")), 
                 #                   "', async=T)")
