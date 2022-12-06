@@ -72,79 +72,6 @@ matrix2Dsc <- function(value) {
 }
 
 
-#' @title Push a symmetric matrix
-#' @description Push symmetric matrix data into the federated server
-#' @param value An encoded value to be pushed
-#' @import bigmemory parallel
-#' @return Description of the pushed value
-#' @keywords internal
-pushSymmMatrixClient.rm <- function(value) {
-    valued <- .decode.arg(value)
-    stopifnot(is.list(valued) && length(valued)>0)
-    if (FALSE) {#is.list(valued[[1]])) {
-        dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
-            x.mat <- do.call(rbind, x)
-            stopifnot(ncol(x.mat)==1)
-            return (describe(as.big.matrix(x.mat)))
-        })
-    } else {
-        ## Possible solution: Rebuild the whole matrix here, and return its only allocation
-        # matblocks <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(y) {
-        #     mclapply(y, mc.cores=length(y), function(x) {
-        #         return (do.call(rbind, .decode.arg(x)))
-        #     })
-        # })
-        matblocks <- lapply(valued, function(y) {
-            lapply(y, function(x) {
-                return (do.call(rbind, .decode.arg(x)))
-            })
-        })
-        # print("matblocks:")
-        # print(matblocks[[1]])
-        rm(list=c("valued"))
-        uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
-        ## combine the blocks into one matrix
-        if (length(uptcp)>1) {
-            ## without the first layer of blocks
-            no1tcp <- lapply(2:length(uptcp), function(i) {
-                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-                    t(matblocks[[j]][[i-j+1]])
-                })), uptcp[[i]])
-            })
-            ## with the first layer of blocks
-            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
-        } else {
-            tcp <- uptcp[[1]]
-        }
-        stopifnot(isSymmetric(tcp))
-        dscbigmatrix <- describe(as.big.matrix(tcp))
-        # print('dsc: ')
-        # print(dscbigmatrix)
-        rm(list=c("matblocks", "uptcp", "no1tcp", "tcp"))
-    }
-    return (dscbigmatrix)
-}
-
-
-#' @title Push a one-column matrix
-#' @description Push one-column matrix data into the federated server
-#' @param value An encoded value to be pushed
-#' @import bigmemory parallel
-#' @return Description of the pushed value
-#' @keywords internal
-pushSingMatrix.rm <- function(value) {
-    valued <- .decode.arg(value)
-    stopifnot(is.list(valued) && length(valued)>0)
-    dscbigmatrix <- lapply(valued, function(x) {
-        x.mat <- do.call(rbind, .decode.arg(x))
-        stopifnot(ncol(x.mat)==1)
-        return (describe(as.big.matrix(x.mat)))
-    })
-    
-    return (dscbigmatrix)
-}
-
-
 #' @title Euclidean distance
 #' @description Transform XX' matrix into Euclidean between samples (rows) in X
 #' @param XXt An SSCP matrix XX'
@@ -228,7 +155,6 @@ pushSingMatrix.rm <- function(value) {
     # })
     # eignum <- length(vals[[1]])
     # poseignum <- unique(sapply(vals, function(x) {
-    #     print(head(x, 10))
     #     max(which(x > 0))
     # }))
     # cat("Number of strictly positive eigenvalues:", poseignum, "with tolerance of", tol, "\n")
@@ -470,14 +396,9 @@ pushSingMatrix.rm <- function(value) {
                                 async=T)
                 cat("Command: pushToDscDual(FD, 'singularProdCross')", "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.call(command), async=T)
-                print(singularProdCrossDSC)
-                print(names(singularProdCrossDSC))
-                print(lapply(singularProdCrossDSC, names))
-                print(lapply(singularProdCrossDSC, function(spc) lapply(spc, names)))
                 singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
                     dscMatList <- lapply(dscbigmatrix, function(dsc) {
                         dscMat <- do.call(rbind, lapply(dsc, function(dsci) {
-                            print(dsci[[1]])
                             return (matrix(as.matrix(attach.big.matrix(dsci[[1]])), ncol=1))
                         }))
                         stopifnot(ncol(dscMat)==1)
@@ -485,22 +406,6 @@ pushSingMatrix.rm <- function(value) {
                     })
                     return (dscMatList)
                 })
-                print(lapply(singularProdCross, names))
-                print(lapply(singularProdCross, function(spc) lapply(spc, names)))
-                # command <- paste0("dscPush(FD, '", 
-                #                   .encode.arg(paste0("as.call(list(as.symbol('pushSingMatrix'), dsMOprimal:::.encode.arg(singularProdCross)", "))")), 
-                #                   "', async=T)")
-                # 
-                # cat("Command: ", command, "\n")
-                # singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
-                # singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
-                #     dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
-                #         dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
-                #         stopifnot(ncol(dscMat)==1)
-                #         return (dscMat)
-                #     })
-                #     return (dscMatList)
-                # })
                 .printTime(".federateSSCP Ar communicated to FD")
                 gc(reset=F)
             },
@@ -588,6 +493,7 @@ pushSingMatrix.rm <- function(value) {
 #' @importFrom utils setTxtProgressBar
 #' @export
 federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", chunk = 500, mc.cores = 1, threshold = 1e-10) {
+    require(DSOpal)
     .printTime("federateComDim started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
@@ -975,6 +881,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
 #' @import SNFtool DSI
 #' @export
 federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K = 20, sigma = 0.5, t = 20, chunk = 500, mc.cores = 1) {
+    require(DSOpal)
     .printTime("federateSNF started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
@@ -1064,6 +971,7 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
 #' @import uwot DSI
 #' @export
 federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk = 500, mc.cores = 1, ...) {
+    require(DSOpal)
     .printTime("federateUMAP started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
@@ -1141,6 +1049,7 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ch
 #' @import dbscan DSI
 #' @export
 federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean', minPts = 10, chunk = 500, mc.cores = 1, ...) {
+    require(DSOpal)
     .printTime("federateHdbscan started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
