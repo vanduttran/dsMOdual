@@ -470,9 +470,14 @@ pushSingMatrix.rm <- function(value) {
                                 async=T)
                 cat("Command: pushToDscDual(FD, 'singularProdCross')", "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.call(command), async=T)
+                print(singularProdCrossDSC)
+                print(names(singularProdCrossDSC))
+                print(lapply(singularProdCrossDSC, names))
+                print(lapply(singularProdCrossDSC, function(spc) lapply(scp, names)))
                 singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
                     dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
                         dscMat <- do.call(rbind, lapply(dsc, function(dsci) {
+                            print(dsci[[1]])
                             return (matrix(as.matrix(attach.big.matrix(dsci[[1]])), ncol=1))
                         }))
                         stopifnot(ncol(dscMat)==1)
