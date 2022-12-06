@@ -308,8 +308,8 @@ pushSingMatrix.rm <- function(value) {
 #' @import DSOpal parallel bigmemory
 #' @keywords internal
 .federateSSCP <- function(loginFD, logins, funcPreProc, querytables, ind = 1, byColumn = TRUE, scale = FALSE, chunk = 500, mc.cores = 1, TOL = 1e-10) {
-    require(DSOpal)
-    require(dsBaseClient)
+    #require(DSOpal)
+    #require(dsBaseClient)
     stopifnot((length(querytables) > 0) & (ind %in% 1:length(querytables)))
     
     loginFDdata    <- .decode.arg(loginFD)
@@ -470,21 +470,32 @@ pushSingMatrix.rm <- function(value) {
                                 async=T)
                 cat("Command: pushToDscDual(FD, 'singularProdCross')", "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.call(command), async=T)
-                
-                # command <- paste0("dscPush(FD, '", 
-                #                   .encode.arg(paste0("as.call(list(as.symbol('pushSingMatrix'), dsMOprimal:::.encode.arg(singularProdCross)", "))")), 
-                #                   "', async=T)")
-                # 
-                # cat("Command: ", command, "\n")
-                singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
                 singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
                     dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
-                        dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
+                        dscMat <- do.call(rbind, lapply(dsc, function(dsci) {
+                            return (matrix(as.matrix(attach.big.matrix(dsci[[1]])), ncol=1))
+                        }))
                         stopifnot(ncol(dscMat)==1)
                         return (dscMat)
                     })
                     return (dscMatList)
                 })
+                print(lapply(singularProdCross, names))
+                print(lapply(singularProdCross, function(spc) lapply(scp, names)))
+                # command <- paste0("dscPush(FD, '", 
+                #                   .encode.arg(paste0("as.call(list(as.symbol('pushSingMatrix'), dsMOprimal:::.encode.arg(singularProdCross)", "))")), 
+                #                   "', async=T)")
+                # 
+                # cat("Command: ", command, "\n")
+                # singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
+                # singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
+                #     dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {
+                #         dscMat <- matrix(as.matrix(attach.big.matrix(dsc)), ncol=1) #TOCHECK: with more than 2 servers
+                #         stopifnot(ncol(dscMat)==1)
+                #         return (dscMat)
+                #     })
+                #     return (dscMatList)
+                # })
                 .printTime(".federateSSCP Ar communicated to FD")
                 gc(reset=F)
             },
