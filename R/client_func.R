@@ -77,8 +77,8 @@ matrix2Dsc <- function(value) {
 #' @param value An encoded value to be pushed
 #' @import bigmemory parallel
 #' @return Description of the pushed value
-#' @export
-pushSymmMatrixClient <- function(value) {
+#' @keywords internal
+pushSymmMatrixClient.rm <- function(value) {
     valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
@@ -131,8 +131,8 @@ pushSymmMatrixClient <- function(value) {
 #' @param value An encoded value to be pushed
 #' @import bigmemory parallel
 #' @return Description of the pushed value
-#' @export
-pushSingMatrix <- function(value) {
+#' @keywords internal
+pushSingMatrix.rm <- function(value) {
     valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     dscbigmatrix <- lapply(valued, function(x) {

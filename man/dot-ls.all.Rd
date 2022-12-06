@@ -7,7 +7,7 @@
 .ls.all(start = ".GlobalEnv")
 }
 \arguments{
-\item{start}{a character the environment name where to start (default .GlobalEnv)}
+\item{start}{A character string of the environment (default .GlobalEnv)}
 }
 \value{
 a list of environment names and the respective objects defined in each environment
