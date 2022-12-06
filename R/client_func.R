@@ -290,12 +290,6 @@ pushSingMatrix <- function(value) {
 }
 
 
-#' @keywords internal
-.printTime <- function(message = "") {
-    cat(message, "---", as.character(Sys.time()), "\n")
-}
-
-
 #' @title Federated SSCP
 #' @description Function for computing the federated SSCP matrix
 #' @param loginFD Login information of the FD server
@@ -470,11 +464,18 @@ pushSingMatrix <- function(value) {
                 
                 ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]: push this single-column matrix from each node to FD
                 datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
+                command <- list(as.symbol("pushToDscDual"),
+                                as.symbol("FD"),
+                                'singularProdCross',
+                                async=T)
+                cat("Command: pushToDscDual(FD, 'singularProdCross')", "\n")
+                singularProdCrossDSC <- datashield.aggregate(opals, as.call(command), async=T)
                 
-                command <- paste0("dscPush(FD, '", 
-                                  .encode.arg(paste0("as.call(list(as.symbol('pushSingMatrix'), dsMOprimal:::.encode.arg(singularProdCross)", "))")), 
-                                  "', async=T)")
-                cat("Command: ", command, "\n")
+                # command <- paste0("dscPush(FD, '", 
+                #                   .encode.arg(paste0("as.call(list(as.symbol('pushSingMatrix'), dsMOprimal:::.encode.arg(singularProdCross)", "))")), 
+                #                   "', async=T)")
+                # 
+                # cat("Command: ", command, "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.symbol(command), async=T)
                 singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
                     dscMatList <- lapply(dscbigmatrix[[1]], function(dsc) {

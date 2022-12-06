@@ -57,7 +57,7 @@
 #' @title List all objects in all environments
 #' @description \code{ls.all} returns all objects in all environments
 #' See \code{dsSwissKnife:::.ls.all}.
-#' @param start a character the environment name where to start (default .GlobalEnv)
+#' @param start A character string of the environment (default .GlobalEnv)
 #' @return  a list of environment names and the respective objects defined in each environment
 #' @keywords internal
 .ls.all <- function(start = '.GlobalEnv'){
@@ -105,3 +105,13 @@
         rm(list = new.objs, pos = get(x))
     }, names(objs)))
 }
+
+
+#' @title Print time
+#' @description Print current time
+#' @param message A character string
+#' @keywords internal
+.printTime <- function(message = "") {
+    cat(message, "---", as.character(Sys.time()), "\n")
+}
+
