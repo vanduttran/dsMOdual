@@ -63,7 +63,7 @@
 .login <- function(logins) {
     opals <- list()
     prev.url <- ''
-    for (i in login$server) {
+    for (i in logins$server) {
         this.url <- logins[logins$server == i,'url']
         if(this.url == prev.url){
             cat(paste0('Waiting a bit to avoid spooking the server at ', unname(this.url), "\n"))
