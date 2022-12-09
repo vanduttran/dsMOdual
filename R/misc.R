@@ -54,6 +54,35 @@
 }
 
 
+#' @title Wrapper of datashield.login
+#' @description This function ensures datashield.login to all the servers without error of simultaneously connecting to the same server
+#' @param logins A data frame of login information. See \code{datashield.login}
+#' @return Object(s) of class DSConnection
+#' @import DSI
+#' @keywords internal
+.login <- function(logins) {
+    opals <- list()
+    prev.url <- ''
+    for (i in login$server) {
+        this.url <- logins[logins$server == i,'url']
+        if(this.url == prev.url){
+            cat(paste0('Waiting a bit to avoid spooking the server at ', unname(this.url), "\n"))
+            Sys.sleep(1)
+        }
+        prev.url <- this.url
+        cat(paste0('Connection to ', unname(logins[logins$server == i,'server']),"\n"))
+        
+        tryCatch({
+            opals[i] <- datashield.login(logins[logins$server == i, , drop = FALSE])
+        }, error = function(e){
+            datashield.logout(opals)
+            stop(e)
+        })
+    }
+    return (opals)
+}
+
+
 #' @title List all objects in all environments
 #' @description \code{ls.all} returns all objects in all environments
 #' See \code{dsSwissKnife:::.ls.all}.

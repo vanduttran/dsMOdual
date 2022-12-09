@@ -240,7 +240,7 @@ matrix2Dsc <- function(value) {
     
     loginFDdata    <- .decode.arg(loginFD)
     logindata      <- .decode.arg(logins)
-    opals <- datashield.login(logins=logindata)
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     nNode <- length(opals)
     .printTime(".federateSSCP login-ed")
     tryCatch({
@@ -509,7 +509,7 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     ## set up the centered data table on every node
     loginFDdata <- .decode.arg(loginFD)
     logindata <- .decode.arg(logins)
-    opals <- datashield.login(logins=logindata)
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     nNode <- length(opals)
     
     tryCatch({
@@ -889,7 +889,7 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
     ntab <- length(querytables)
     metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
     logindata <- .decode.arg(logins)
-    opals <- datashield.login(logins=logindata)
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
 
     tryCatch({
         ## take a snapshot of the current session
@@ -979,7 +979,7 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ch
     ntab <- length(querytables)
     metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
     logindata <- .decode.arg(logins)
-    opals <- datashield.login(logins=logindata)
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     
     tryCatch({
         ## take a snapshot of the current session
@@ -1057,7 +1057,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
     ntab <- length(querytables)
     metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
     logindata <- .decode.arg(logins)
-    opals <- datashield.login(logins=logindata)
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     
     tryCatch({
         ## take a snapshot of the current session
@@ -1122,8 +1122,8 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
-#' @export
-## @keywords internal
+## @export
+#' @keywords internal
 testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, scale=FALSE, chunk = 500, mc.cores = 1, TOL = 1e-10) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
