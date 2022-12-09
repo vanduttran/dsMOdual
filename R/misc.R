@@ -62,22 +62,23 @@
 #' @keywords internal
 .login <- function(logins) {
     opals <- list()
-    prev.url <- ''
+    nTry <- 5
     for (i in logins$server) {
-        this.url <- logins[logins$server == i,'url']
-        if(this.url == prev.url){
-            cat(paste0('Waiting a bit to avoid spooking the server at ', unname(this.url), "\n"))
-            Sys.sleep(5)
+        j <- 1
+        SUCCESS <- FALSE
+        while (j < nTry && !SUCCESS) {
+            tryCatch({
+                opals[i] <- datashield.login(logins[logins$server == i, , drop = FALSE])
+                SUCCESS <- TRUE
+            }, error = function(e){
+                j <- j+1
+                Sys.sleep(3)
+            })
         }
-        prev.url <- this.url
-        cat(paste0('Connection to ', unname(logins[logins$server == i,'server']),"\n"))
-        
-        tryCatch({
-            opals[i] <- datashield.login(logins[logins$server == i, , drop = FALSE])
-        }, error = function(e){
+        if (!SUCCESS) {
             datashield.logout(opals)
-            stop(e)
-        })
+            stop(paste0("Failed login attempts to ", i))
+        }
     }
     return (opals)
 }
