@@ -67,7 +67,7 @@
         this.url <- logins[logins$server == i,'url']
         if(this.url == prev.url){
             cat(paste0('Waiting a bit to avoid spooking the server at ', unname(this.url), "\n"))
-            Sys.sleep(1)
+            Sys.sleep(5)
         }
         prev.url <- this.url
         cat(paste0('Connection to ', unname(logins[logins$server == i,'server']),"\n"))
