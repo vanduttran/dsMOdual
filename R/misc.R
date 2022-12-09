@@ -71,8 +71,9 @@
                 opals[i] <- datashield.login(logins[logins$server == i, , drop = FALSE])
                 SUCCESS <- TRUE
             }, error = function(e){
-                j <- j+1
-                Sys.sleep(3)
+                Sys.sleep(1)
+            }, finally = {
+                j <- j + 1
             })
         }
         if (!SUCCESS) {
