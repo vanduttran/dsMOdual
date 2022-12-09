@@ -1122,7 +1122,6 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
-## @export
 #' @keywords internal
 testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, scale=FALSE, chunk = 500, mc.cores = 1, TOL = 1e-10) {
     funcPreProc <- .decode.arg(func)
