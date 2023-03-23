@@ -80,6 +80,11 @@ matrix2Dsc <- function(value) {
 #' @keywords internal
 .toEuclidean <- function(XXt) {
     if (!isSymmetric(XXt) || any(rownames(XXt) != colnames(XXt))) stop('Input XXt (an SSCP matrix) should be symmetric.')
+    .printTime("before toEuclidean XXt")
+    print(class(XXt))
+    print(dim(XXt))
+    print(sum(XXt))
+    print(XXt[1:3,1:3])
     #lowerTri <- cbind(do.call(cbind, mclapply(1:(ncol(XXt)-1), mc.cores=max(2, min(ncol(XXt)-1, detectCores())), function(i) {
     lowerTri <- cbind(do.call(cbind, lapply(1:(ncol(XXt)-1), function(i) {
         res <- sapply((i+1):ncol(XXt), function(j) {
