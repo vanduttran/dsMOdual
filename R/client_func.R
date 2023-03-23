@@ -1122,18 +1122,28 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
-#' @keywords internal
-testSSCP <- function(loginFD, logins, func, symbol, byColumn=TRUE, scale=FALSE, chunk = 500, mc.cores = 1, TOL = 1e-10) {
+#' @export
+# @keywords internal
+testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk = 500, mc.cores = 1, TOL = 1e-10) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     
-    ## compute XX' for each data table 
-    XX <- lapply(1:ntab, function(i) {
-        .federateSSCP(loginFD=loginFD, logins=logins, 
-                     funcPreProc=funcPreProc, querytables=querytables, ind=i,
-                     byColumn=byColumn, scale=scale, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-    })
-
+    if (metric == "correlation") {
+        ## compute (1 - correlation) distance between samples for each data table 
+        XX <- lapply(1:ntab, function(i) {
+            as.dist(1 - .federateSSCP(loginFD=loginFD, logins=logins, 
+                                      funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                      byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)/(length(queryvariables[[i]])-1))
+        })
+    } else if (metric == "euclidean"){
+        ## compute Euclidean distance between samples for each data table 
+        XX <- lapply(1:ntab, function(i) {
+            as.dist(.toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
+                                               funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                               byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)))
+        })
+    }
+    
     return (XX)
 }
