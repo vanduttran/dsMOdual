@@ -1129,6 +1129,38 @@ testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk 
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
     
+    metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
+    logindata <- .decode.arg(logins)
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
+    
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    })
+    
+    ## take variables (colnames)
+    queryvariables <- lapply(querytables, function(querytable) {
+        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    })
+    names(queryvariables) <- querytables
+    DSI::datashield.logout(opals)
+    
     if (metric == "correlation") {
         ## compute (1 - correlation) distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
