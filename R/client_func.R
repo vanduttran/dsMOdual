@@ -31,7 +31,8 @@ matrix2Dsc <- function(value) {
 .rebuildMatrix <- function(matblocks, mc.cores = 1) {
     uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
     .printTime("perform .rebuildMatrix")
-    print(lapply(uptcp, sum))
+    print(lapply(uptcp, range))
+    .printTime("wrote uptcp")
     ## combine the blocks into one matrix
     if (length(uptcp)>1) {
         if (length(unique(sapply(uptcp, ncol)))==1) {
@@ -52,6 +53,9 @@ matrix2Dsc <- function(value) {
     }
     print(sum(tcp))
     print(tcp[1:3,1:3])
+    print(range(tcp))
+    print(max(abs(tcp-t(tcp))))
+    .printTime("diff tcp - t(tcp)")
     stopifnot(isSymmetric(tcp))
     rm(list=c("uptcp"))
     return (tcp)
