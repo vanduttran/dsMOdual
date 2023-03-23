@@ -9,8 +9,7 @@ testSSCP(
   logins,
   func,
   symbol,
-  byColumn = TRUE,
-  scale = FALSE,
+  metric = "euclidean",
   chunk = 500,
   mc.cores = 1,
   TOL = 1e-10
@@ -29,13 +28,12 @@ symbol (name of the R symbol) (see datashield.assign).}
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{func} are ignored.}
 
+\item{TOL}{Tolerance of 0}
+
 \item{byColumn}{A logical value indicating whether the input data is centered by column or row.
 Default, TRUE, centering by column. Constant variables across samples are removed. 
 If FALSE, centering and scaling by row. Constant samples across variables are removed.}
-
-\item{TOL}{Tolerance of 0}
 }
 \description{
 Deprecated
 }
-\keyword{internal}
