@@ -1,6 +1,6 @@
 Package: dsMOdual
 Title: Server Side Functions on XX' Sum of Squares and Cross Products Matrices
-Version: 0.1.75
+Version: 0.1.76
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
