@@ -130,11 +130,16 @@ matrix2Dsc <- function(value) {
     if (max(abs(r)) < TOL) {
         stop("Cannot solve with r = 0.")
     }
-    
-    B1 <- XXt
-    B2 <- XtX
+    ## scale by some exponential of 10 to deal with high values in input
+    absval <- setdiff(c(abs(XXt), abs(XtX)), 0)
+    scaling <- 10^ceiling(log10(min(absval))/4+1)
+    Xrb <- Xr/(scaling^4)
+    rb <- r/(scaling^2)
+    B1 <- XXt/(scaling^4)
+    B2 <- XtX/(scaling^4)
     N1 <- nrow(B1)
     N2 <- nrow(B2)
+    Nmin <- min(N1, N2)
     
     eB1 <- eigen(B1, symmetric=T)
     eB2 <- eigen(B2, symmetric=T)
@@ -147,8 +152,9 @@ matrix2Dsc <- function(value) {
     
     ## NB: numerically imprecise: poseignum = min(Matrix::rankMatrix(B1), Matrix::rankMatrix(B2))
     ## this number of positive eigenvalues can upper-limitted by the number of variables, yet required as argument of the function .solveSSCP
-    poseignum <- max(which(vals$XXt[1:min(N1, N2)]/(vals$XtX[1:min(N1, N2)]+.Machine$double.eps) > 0.95 &
-                           vals$XtX[1:min(N1, N2)]/(vals$XXt[1:min(N1, N2)]+.Machine$double.eps) > 0.95))
+    ## the following formula is empiric, based on the fact that errors of zero-value are random
+    poseignum <- min(Nmin+1, which(vals$XXt[1:Nmin]/(vals$XtX[1:Nmin]+.Machine$double.eps) < 0.99 |
+                                       vals$XtX[1:Nmin]/(vals$XXt[1:Nmin]+.Machine$double.eps) < 0.99)) - 1
 
     vals <- mclapply(vals, mc.cores=length(vals), function(x) {
         x[(poseignum+1):length(x)] <- 0
@@ -187,13 +193,13 @@ matrix2Dsc <- function(value) {
     
     ## solution S: X * r = vecB1 * E * S * vecB2' * r = Xr
     ## E * S * vecB2' * r = vecB1' * Xr = tmprhs1
-    tmprhs1 <- crossprod(vecs[[1]], Xr)
+    tmprhs1 <- crossprod(vecs[[1]], Xrb)
     if (poseignum < N1) cat("Precision on tmprhs1's zero:", max(abs(tmprhs1[(poseignum+1):N1, 1])), "\n")
     ## S * vecB2' * rmX2 = S * lhs1 = 1/E * tmprhs1 = rhs1
     E <- diag(sqrt(vals[[1]][1:poseignum]), ncol=poseignum, nrow=poseignum)
     invE <- diag(1/diag(E), ncol=poseignum, nrow=poseignum)
     rhs1 <- crossprod(t(invE), tmprhs1[1:poseignum, , drop=F])
-    lhs1 <- crossprod(vecs[[2]], r)
+    lhs1 <- crossprod(vecs[[2]], rb)
     signs1 <- rhs1[1:poseignum,]/lhs1[1:poseignum,]
     S <- cbind(diag(signs1, ncol=poseignum, nrow=poseignum), matrix(0, nrow=poseignum, ncol=N2-poseignum)) # S = [signs1 0]
     D <- rbind(crossprod(t(E), S), matrix(0, nrow=N1-poseignum, ncol=N2))  # D = E %*% S
@@ -203,15 +209,15 @@ matrix2Dsc <- function(value) {
     cat("Precision on XXt = a1*a1':", max(abs(B1 - tcrossprod(a1))), " / (", quantile(abs(B1)), ")\n")
     cat("Precision on XtX = a1'*a1:", max(abs(B2 - crossprod(a1))),  " / (", quantile(abs(B2)), ")\n")
     
-    return (a1)
+    return (a1*(scaling^2))
     
     # ## solution S: A' * r = vecB2 * S' * E' * vecB1' * r = Xr
     # ## S' * E' * vecB1' * r = S' * lhs2 = vecB2' * Xr = rhs2
-    # rhs2 <- crossprod(vecs[[2]], Xr)
+    # rhs2 <- crossprod(vecs[[2]], Xrb)
     # if (poseignum < N2) cat("Precision on rhs2's zero:", max(abs(rhs2[(poseignum+1):N2, 1])), "\n")
     # E <- diag(sqrt(vals[[1]][1:poseignum]))
     # 
-    # lhs2 <- crossprod(E, crossprod(vecs[[1]][,1:poseignum], r))
+    # lhs2 <- crossprod(E, crossprod(vecs[[1]][,1:poseignum], rb))
     # signs2 <- rhs2[1:poseignum,]/lhs2[1:poseignum,]
     # 
     # ## check signs: signs2 should be identical to signs1
@@ -225,7 +231,7 @@ matrix2Dsc <- function(value) {
     # cat("Precision on XXt = a2*a2':", max(abs(B1 - tcrossprod(a2))), "\n")
     # cat("Precision on XtX = a2'*a2:", max(abs(B2 - crossprod(a2))), "\n")
     
-    # return (a2)
+    # return (a2*(scaling^2))
 }
 
 

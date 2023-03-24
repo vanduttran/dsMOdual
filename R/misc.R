@@ -9,7 +9,7 @@
 #' @keywords internal
 .encode.arg <- function(some.object, serialize.it = FALSE){
     if(serialize.it){
-        encoded <- paste0(RCurl::base64Encode(jsonlite::serializeJSON(some.object)), 'serialized')
+        encoded <- paste0(RCurl::base64Encode(jsonlite::serializeJSON(some.object, digits=20)), 'serialized')
     } else {
         encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'))
     }
