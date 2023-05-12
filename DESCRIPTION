@@ -1,6 +1,6 @@
 Package: dsMOdual
 Title: Server Side Functions on XX' Sum of Squares and Cross Products Matrices
-Version: 0.1.79
+Version: 0.1.80
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
@@ -19,7 +19,6 @@ AggregateMethods:
     federateComDim,
     federateSNF,
     federateUMAP,
-    testSSCP,
     federateHdbscan
 License: GPL-3
 Encoding: UTF-8

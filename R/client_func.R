@@ -1142,7 +1142,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 #' @export
-# @keywords internal
+#' @keywords internal
 testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk = 500, mc.cores = 1, TOL = 1e-10) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
