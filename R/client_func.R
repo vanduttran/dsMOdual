@@ -13,7 +13,7 @@ garbageCollect <- function() {
 #' @import bigmemory
 #' @return Bigmemory description of the given matrix
 #' @export
-matrix2Dsc <- function(value) {
+matrix2DscFD <- function(value) {
     valued <- .decode.arg(value)
     tcp <- do.call(rbind, .decode.arg(valued))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
@@ -291,8 +291,8 @@ matrix2Dsc <- function(value) {
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             tryCatch({
-                cat("Command: pushToDscDual(FD, 'tcrossProdSelf')", "\n")
-                tcrossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDscDual(FD, 'tcrossProdSelf')"), async=T)
+                cat("Command: pushToDscFD(FD, 'tcrossProdSelf')", "\n")
+                tcrossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDscFD(FD, 'tcrossProdSelf')"), async=T)
                 tcrossProdSelf <- .rebuildMatrixDsc(tcrossProdSelfDSC[[1]])
             },
             error=function(e) print(paste0("FD PROCESS SINGLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
@@ -343,12 +343,12 @@ matrix2Dsc <- function(value) {
                     datashield.assign(opals[opn], "singularProdMate", as.symbol(command.opn), async=T)
                        
                     ## send X'X from opn to mates of opn
-                    command.opn <- list(as.symbol("pushToDscPrimal"),
+                    command.opn <- list(as.symbol("pushToDscMate"),
                                         as.symbol("mates"),
                                         'crossProdSelf',
                                         opn,
                                         async=T)
-                    cat("Command: pushToDscPrimal(mates, crossProdSelf...", "\n")
+                    cat("Command: pushToDscMate(mates, crossProdSelf...", "\n")
                     invisible(datashield.aggregate(opals[opn], as.call(command.opn), async=F))
                     .printTime(paste0(".federateSSCP pairwise X'X communicated: ", opn))
                     
@@ -368,9 +368,9 @@ matrix2Dsc <- function(value) {
                     tryCatch({
                         # push to FD from mates
                         command.opn <- paste0("crossAggregateDual(mates, '", 
-                                              .encode.arg(paste0("pushToDscDual(FDmate, 'prodDataCross_", opn, "')")), 
+                                              .encode.arg(paste0("pushToDscFD(FDmate, 'prodDataCross_", opn, "')")), 
                                               "', async=T)")
-                        cat("Command: crossAggregateDual(mates, pushToDscDual(FDmate, prodDataCross_...", "\n")
+                        cat("Command: crossAggregateDual(mates, pushToDscFD(FDmate, prodDataCross_...", "\n")
                         prodDataCrossDSC <- datashield.aggregate(opals[opn], as.symbol(command.opn), async=T)
                         prodDataCross.opn <- mclapply(prodDataCrossDSC[[opn]], mc.cores=mc.cores, function(dscblocks) {
                             return (.rebuildMatrixDsc(dscblocks[[opn]]))
@@ -400,8 +400,8 @@ matrix2Dsc <- function(value) {
                 # datashield.assign(opals, "GC", as.symbol(command), async=T)
                 
                 ## (X_i) * (X_i)': push this symmetric matrix from each node to FD
-                cat("Command: pushToDscDual(FD, tcrossProdSelf)", "\n")
-                tcrossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDscDual(FD, 'tcrossProdSelf')"), async=T)
+                cat("Command: pushToDscFD(FD, tcrossProdSelf)", "\n")
+                tcrossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDscFD(FD, 'tcrossProdSelf')"), async=T)
                 tcrossProdSelf <- mclapply(tcrossProdSelfDSC, mc.cores=mc.cores, function(dscblocks) {
                     return (.rebuildMatrixDsc(dscblocks))
                 })
@@ -409,11 +409,11 @@ matrix2Dsc <- function(value) {
                 
                 ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]: push this single-column matrix from each node to FD
                 datashield.assign(opals, "singularProdCross", as.symbol('tcrossProd(centeredData, singularProdMate)'), async=T)
-                command <- list(as.symbol("pushToDscDual"),
+                command <- list(as.symbol("pushToDscFD"),
                                 as.symbol("FD"),
                                 'singularProdCross',
                                 async=T)
-                cat("Command: pushToDscDual(FD, 'singularProdCross')", "\n")
+                cat("Command: pushToDscFD(FD, 'singularProdCross')", "\n")
                 singularProdCrossDSC <- datashield.aggregate(opals, as.call(command), async=T)
                 singularProdCross <- mclapply(singularProdCrossDSC, mc.cores=mc.cores, function(dscbigmatrix) {
                     dscMatList <- lapply(dscbigmatrix, function(dsc) {
