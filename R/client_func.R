@@ -629,10 +629,10 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     
     T <- matrix(0, nrow=nind, ncol=ncomp)          # Global components
     C <- matrix(0, nrow=nind, ncol=ncomp)          # Unnormed global components
-    dimnames(Q) <- dimnames(C) <- list(rownames(XX[[1]]), compnames)
+    dimnames(T) <- dimnames(C) <- list(rownames(XX[[1]]), compnames)
     
     T.b <- array(0, dim=c(nind, ncomp, ntab))      # Block components
-    dimnames(Q.b) <- list(rownames(XX[[1]]), compnames, querytables)
+    dimnames(T.b) <- list(rownames(XX[[1]]), compnames, querytables)
     
     cor.g.b <- array(0, dim=c(ncomp, ncomp, ntab)) # Correlations between global components and their respective block components
     dimnames(cor.g.b) <- list(compnames, compnames, querytables)
@@ -702,7 +702,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     Itot  <- 0
     ##-----
     
-    ##- 3. computation of Q and LAMBDA for the various dimensions ----
+    ##- 3. computation of T and LAMBDA for the various dimensions ----
     for (comp in 1:ncomp)  { # Iterative computation of the various components
         critt     <- 0
         deltacrit <- 1
@@ -712,7 +712,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
             P <- Reduce("+", lapply(1:ntab, function(k) LAMBDA[k, comp]*XX[[k]])) # Weighted sum of XX'
             reseig    <- eigen(P)
             q         <- reseig$vectors[, 1]
-            Q[, comp] <- q
+            T[, comp] <- q
             optimalcrit[comp] <- reseig$values[1]
             LAMBDA[, comp]  <- sapply(1:ntab, function(k) {t(q) %*% XX[[k]] %*% q})
             LAMBDA[, comp]  <- normv(LAMBDA[, comp])
@@ -723,7 +723,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         
         ## 3.2 Storage of the results associated with dimension comp
         for (k in 1:ntab) {
-            #W.b[[k]][, comp] <- t(X[[k]]) %*% Q[, comp]
+            #W.b[[k]][, comp] <- t(X[[k]]) %*% T[, comp]
             T.b[, comp, k] <- XX[[k]] %*% q
         }
         
@@ -752,7 +752,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     size <- c(0, size)
     func <- function(x, y) {x %*% y}
     Qlist <- setNames(lapply(2:length(size), function(i) {
-        Qi <- Q[(cumsum(size)[i-1]+1):cumsum(size)[i], , drop=F]
+        Qi <- T[(cumsum(size)[i-1]+1):cumsum(size)[i], , drop=F]
         ## As Q is orthonormal, Qi == Qi.iter
         # Qi.iter <- sapply(1:H, function(dimension) {
         #   projs <- lapply(setdiff(1:dimension, dimension), function(dimprev) {
@@ -795,18 +795,18 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     # Unnormed global components
     if (ncomp==1) {
         LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
-        C <- Q * LambdaMoyen
+        C <- T * LambdaMoyen
     }
     else {
         LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
-        C <- Q %*% sqrt(diag(LambdaMoyen))
+        C <- T %*% sqrt(diag(LambdaMoyen))
     }
     
     #globalcor <- cor(X00, C)
     
     for (k in 1:ntab) {
-        cor.g.b[, , k] <- cor(Q, Q.b[, , k])
-        #blockcor[[k]] <- cor(X0[[k]], Q.b[, 1:ncomp, k])
+        cor.g.b[, , k] <- cor(T, T.b[, , k])
+        #blockcor[[k]] <- cor(X0[[k]], T.b[, 1:ncomp, k])
         #if (is.null(rownames(blockcor[[k]]))) rownames(blockcor[[k]]) <- names(group[k])
     }
     
@@ -814,7 +814,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     res$components          <- c(ncomp=ncomp)
     res$optimalcrit         <- optimalcrit[1:ncomp]
     res$saliences           <- round(LAMBDA[, 1:ncomp, drop=FALSE]^2, 2)
-    res$Q                   <- Q[, 1:ncomp, drop=FALSE]     # Storage of the normed global components associated with X
+    res$T                   <- T[, 1:ncomp, drop=FALSE]     # Storage of the normed global components associated with X
     res$C                   <- C[, 1:ncomp, drop=FALSE]     # Storage of the unnormed global components associated with X
     res$explained.X         <- round(100*explained.X[1:ntab, 1:ncomp], 2)
     res$cumexplained        <- round(100*cumexplained[1:ncomp,], 2)
@@ -823,7 +823,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     res$cor.g.b             <- cor.g.b#[1:ncomp, 1:ncomp, ]
 
     ## 4.2 Preparation of the results Block
-    Block$Q.b         <-  Q.b[,1:ncomp,]
+    Block$T.b         <-  T.b[,1:ncomp,]
     Block$blockcor    <-  blockcor
     res$Block         <-  Block                         # Results for each block
 
