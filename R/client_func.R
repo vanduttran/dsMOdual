@@ -478,6 +478,369 @@ matrix2DscFD <- function(value) {
 #' @title Federated ComDim
 #' @description Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
 #' Finding common dimensions in multitable data (Xk, k=1...K)
+#' @usage federateComDim(loginFD, logins, func, symbol, ncomp = 2, scale = "none", option = "uniform", chunk = 500, threshold = 1e-10)
+#'
+#' @param loginFD Login information of the FD server
+#' @param logins Login information of data repositories
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variables will be used as the input raw data.
+#' Other assigned R variables in \code{func} are ignored.
+#' @param H Number of common dimensions
+#' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table
+#' @param option weighting of te tables \cr
+#'        "none" :  no weighting of the tables - (default) \cr
+#'      "uniform": weighting to set the table at the same inertia \cr
+#' @param threshold if the difference of fit<threshold then break the iterative loop (default 1E-10)
+#' @return \item{group}{ input parameter group }
+#' @return \item{scale}{ scaling factor applied to the dataset X}
+#' @return \item{Q}{common scores (nrow x ndim)}
+#' @return \item{saliences}{weights associated to each table for each dimension}
+#' @return \item{explained}{retun total variance explained}
+#' @return \item{RV}{RV coefficients between each table (Xk) and compromise table}
+#' @return \item{Block}{results associated with each table. You will find block component ...
+#'         \itemize{
+#'                \item {Qk}{: Block component}
+#'                \item {Wk}{: Block component}
+#'                \item {Pk}{: Block component}
+#'        }}
+#'
+#' @return \item{call}{: call of the method }
+#' @import DSI
+#' @export
+federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "none", option = "uniform", chunk = 500, mc.cores = 1, threshold = 1e-10) {
+    require(DSOpal)
+    .printTime("federateComDim started")
+    TOL <- 1e-10
+    funcPreProc <- .decode.arg(func)
+    querytables <- .decode.arg(symbol)
+    ntab <- length(querytables)
+    
+    ## compute SSCP matrix for each centered data table
+    XX_query <- lapply(1:ntab, function(i) {
+        #.federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+        testSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+    })
+    names(XX_query) <- querytables
+    XX <- XX_query
+    
+    ## set up the centered data table on every node
+    loginFDdata <- .decode.arg(loginFD)
+    logindata <- .decode.arg(logins)
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
+    nNode <- length(opals)
+    
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    })
+    
+    ## take variables (colnames)
+    queryvariables <- lapply(querytables, function(querytable) {
+        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    })
+    names(queryvariables) <- querytables
+    
+    ## centered cbind-ed centered data matrix
+    DSI::datashield.assign(opals, "centeredAllData",
+                           as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn=TRUE, na.rm=FALSE)')),
+                           async=T)
+    
+    ## compute the total variance from a XX' matrix
+    inertie <- function(tab) {
+        return (sum(diag(tab)))    #Froebenius norm
+    }
+    ## compute the RV between WX and WY: similarity between two matrices
+    coefficientRV <- function(WX, WY) {
+        rv <- inertie(WX %*% WY)/(sqrt(inertie(WX %*% WX) * inertie(WY %*% WY)))
+        return(rv)
+    }
+    ## normalize a vector to a unit vector
+    normv <- function(x) {
+        normx <- norm(x, '2')
+        if (normx==0) normx <- 1
+        return (x/normx)
+    }
+    
+    ##- 0. Preliminary tests ----
+    if (any(sapply(XX, is.na)))
+        stop("No NA values are allowed")
+    nind <- unique(unlist(apply(sapply(XX, dim), 1, unique))) ## number of samples
+    if (length(nind) > 1)
+        stop("XX elements should be symmetric of the same dimension")
+    samples <- sapply(XX, function(x) union(rownames(x), colnames(x)))
+    if (is.list(samples) && max(lengths(samples))==0) {
+        XX <- lapply(XX, function(x) {
+            rownames(x) <- colnames(x) <- paste("Ind", 1:nind, sep='.')
+            return (x)
+        })
+        samples <- sapply(XX, function(x) union(rownames(x), colnames(x)))
+    }
+    if (is.list(samples) || is.list(apply(samples, 1, unique)))
+        stop("XX elements should have the same rownames and colnames")
+    
+    ## TOREVIEW
+    # if (is.character(scale)) {
+    #     if (!scale %in% c("none","sd"))
+    #         stop("scale must be either none or sd")
+    # }
+    # else {
+    #     if (!is.numeric(scale) | length(scale)!=ncol(X))
+    #         stop("Non convenient scaling parameter")
+    # }
+    # if (!option %in% c("none","uniform"))
+    #     stop("option must be either none or uniform")
+    ##-----
+    
+    ##- 1. Output preparation ----
+    nvar <- lengths(queryvariables)
+    if (ncomp > 2 && min(sapply(XX, rankMatrix)) <= ncomp) {
+        print(paste0("Security issue: maximum ", min(sapply(XX, rankMatrix)) - 1, " components could be inquired. ncomp will be set to 2."))
+        ncomp <- 2
+    }
+    if (ncomp < 1) {
+        print("ncomp should be at least 1. ncomp will be set to 2.")
+        ncomp <- 2
+    }
+    compnames <- paste("Dim.", 1:ncomp, sep="")
+    
+    contrib           <- matrix(0, ntab, ncomp)
+    dimnames(contrib) <- list(querytables, compnames)
+    
+    saliences <- LAMBDA <- NNLAMBDA <- matrix(1, ntab, ncomp) # Specific weights for each dataset and each dimension
+    dimnames(saliences) <- dimnames(LAMBDA) <- dimnames(NNLAMBDA) <- list(querytables, compnames)
+    
+    T <- matrix(0, nrow=nind, ncol=ncomp)          # Global components
+    C <- matrix(0, nrow=nind, ncol=ncomp)          # Unnormed global components
+    dimnames(Q) <- dimnames(C) <- list(rownames(XX[[1]]), compnames)
+    
+    T.b <- array(0, dim=c(nind, ncomp, ntab))      # Block components
+    dimnames(Q.b) <- list(rownames(XX[[1]]), compnames, querytables)
+    
+    cor.g.b <- array(0, dim=c(ncomp, ncomp, ntab)) # Correlations between global components and their respective block components
+    dimnames(cor.g.b) <- list(compnames, compnames, querytables)
+    
+    W.b      <- vector("list", length=ntab) # Weights for the block components
+    blockcor <- vector("list", length=ntab) # Correlation between the original variables of each block and its block components (loadings)
+    for (k in 1:ntab) {
+        W.b[[k]] <- blockcor[[k]] <- matrix(0, nrow=nvar[k], ncol=ncomp)
+        dimnames(W.b[[k]]) <- dimnames(blockcor[[k]]) <- list(queryvariables[[k]], compnames)
+    }
+    
+    Px           <- matrix(0, nrow=sum(nvar), ncol=ncomp)  # Loadings for the global components
+    W            <- Px                                     # Weights for the global components
+    Wm           <- Px                                     # Modified Weights to take account of deflation
+    dimnames(Px) <- dimnames(W) <- dimnames(Wm) <- list(do.call(c, queryvariables), compnames)
+    
+    IT.X         <- vector("numeric", length=ntab+1)
+    explained.X  <- matrix(0, nrow=ntab+1, ncol=ncomp)     # Percentage of explained inertia of each Xb block and global
+    dimnames(explained.X) <- list(c(querytables, 'Global'), compnames)
+    cumexplained <- matrix(0, nrow=ncomp, ncol=2)
+    dimnames(cumexplained) <- list(compnames, c("%explX", "cum%explX"))
+
+    tb           <- matrix(0, nrow=nind, ncol=ntab)        # Concatenated Xb block components at current dimension comp
+    components   <- vector("numeric", length=2)
+    
+    Xscale       <- NULL
+    Block        <- NULL
+    res          <- NULL
+    ##-----
+    
+    ##- 2. Required parameters and data preparation ----
+    # Xscale$mean   <- apply(X, 2, mean)
+    # X             <- scale(X,center=Xscale$mean, scale=FALSE)   # Default centering
+    # 
+    # if (scale=="none") {
+    #     Xscale$scale <-rep(1,times=ncol(X))
+    # }   else {
+    #     if (scale=="sd") {
+    #         sd.tab    <- apply(X, 2, function (x) {return(sqrt(sum(x^2)/length(x)))})   # sd based on biased variance
+    #         temp      <- sd.tab < 1e-14
+    #         if (any(temp)) {
+    #             warning("Variables with null variance not standardized.")
+    #             sd.tab[temp] <- 1
+    #         }
+    #         X         <- sweep(X, 2, sd.tab, "/")
+    #         Xscale$scale <-sd.tab
+    #     }   else {     # Specific scaling depending on blocks defined as a vector with a scaling parameter for each variable
+    #         X         <- sweep(X, 2, scale, "/")
+    #         Xscale$scale <-scale
+    #     }
+    # }
+    
+    #  Pre-processing: block weighting to set each block inertia equal to 1
+    if (option=="uniform") {
+        inertia <- sapply(XX, inertie)
+        XX <- lapply(1:ntab, function(k) {
+            XX[[k]]/inertia[k]
+        })
+        inertia0.sqrt <- sqrt(inertia)
+    }
+    XX0 <- XX
+    IT.X[1:ntab] <- sapply(XX, inertie) # Inertia of each block of variable
+    IT.X[ntab+1] <- sum(IT.X[1:ntab])
+    
+    # Computation of the cross-product matrices among individuals (or association matrices)
+    Trace <- IT.X[1:ntab]
+    Itot  <- 0
+    ##-----
+    
+    ##- 3. computation of Q and LAMBDA for the various dimensions ----
+    for (comp in 1:ncomp)  { # Iterative computation of the various components
+        critt     <- 0
+        deltacrit <- 1
+        
+        ## 3.1 Interatively compute the comp-th common component
+        while (deltacrit > threshold) {
+            P <- Reduce("+", lapply(1:ntab, function(k) LAMBDA[k, comp]*XX[[k]])) # Weighted sum of XX'
+            reseig    <- eigen(P)
+            q         <- reseig$vectors[, 1]
+            Q[, comp] <- q
+            optimalcrit[comp] <- reseig$values[1]
+            LAMBDA[, comp]  <- sapply(1:ntab, function(k) {t(q) %*% XX[[k]] %*% q})
+            LAMBDA[, comp]  <- normv(LAMBDA[, comp])
+            criterion   <- reseig$values[1]
+            deltacrit   <- criterion - critt
+            critt       <- criterion
+        }
+        
+        ## 3.2 Storage of the results associated with dimension comp
+        for (k in 1:ntab) {
+            #W.b[[k]][, comp] <- t(X[[k]]) %*% Q[, comp]
+            T.b[, comp, k] <- XX[[k]] %*% q
+        }
+        
+        LAMBDA[, comp]   <- sapply(1:ntab, function(k) {t(T[,comp]) %*% T.b[, comp, k]})
+        NNLAMBDA[, comp] <- LAMBDA[, comp]          # Non normalized specific weights
+        LAMBDA[, comp]   <- normv(LAMBDA[, comp])
+        
+        ## 3.3 Deflation
+        X.exp <- lapply(XX, function(xx) T[, comp] %*% xx %*% t(T[, comp]))
+        X0.exp <- lapply(XX0, function(xx) T[, comp] %*% xx %*% t(T[, comp]))
+        explained.X[1:ntab, comp] <- sapply(X0.exp, function(x) {sum(x^2)})
+        explained.X[ntab+1, comp] <- sum(explained.X[1:ntab, comp])
+        proj <- diag(1, nind) - tcrossprod(T[, comp])
+        XX <- lapply(XX, function(xx) proj %*% xx %*% t(proj)) # Deflation of XX
+    }
+    ##-----
+    
+    ##- 4. loadings ----
+    # number of samples on each node
+    tryCatch({
+        size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredAllData)')), function(x) x[1])
+    }, error=function(e) {
+        print(paste0("INDIVIDUAL DIMENSION COMPUTATION PROCESS: ", e)); 
+        return (paste0("INDIVIDUAL DIMENSION COMPUTATION PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    })
+    size <- c(0, size)
+    func <- function(x, y) {x %*% y}
+    Qlist <- setNames(lapply(2:length(size), function(i) {
+        Qi <- Q[(cumsum(size)[i-1]+1):cumsum(size)[i], , drop=F]
+        ## As Q is orthonormal, Qi == Qi.iter
+        # Qi.iter <- sapply(1:H, function(dimension) {
+        #   projs <- lapply(setdiff(1:dimension, dimension), function(dimprev) {
+        #     return (diag(1, size[i]) - tcrossprod(Qi[,dimprev]))
+        #   })
+        #   projs <- c(Id=list(diag(1, size[i])), projs)
+        #   return (crossprod(Reduce(func, projs), Qi[,dimension,drop=F]))
+        # })
+        # return (Qi.iter)
+    }), names(opals))
+    tryCatch({
+        Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
+            expr <- list(as.symbol("loadings"),
+                         as.symbol("centeredAllData"),
+                         .encode.arg(Qlist[[opn]]),
+                         "prod")
+            loadings <- datashield.aggregate(opals[opn], as.call(expr))
+            return (loadings)
+        }), recursive = F))
+    }, error=function(e) {
+        print(paste0("LOADING COMPUTATION PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
+    }, 
+    finally=datashield.logout(opals))
+    colnames(Wbk) <- compnames
+    csnvar <- cumsum(nvar)
+    W.b <- mclapply(1:ntab, mc.cores=ntab, function(k) {
+        if (option=="uniform") return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F]/inertia0.sqrt[k])
+        return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F])
+    })
+    
+    Px <- do.call(rbind, W.b)
+    W <- do.call(rbind, lapply(1:ntab, function(k) tcrossprod(W.b[[k]], diag(LAMBDA[k,]))))
+    W <- do.call(cbind, lapply(1:ncomp, function(comp) normv(W[, comp])))
+    colnames(W) <- compnames
+    
+    contrib <- t(t(NNLAMBDA)/colSums(NNLAMBDA))
+    
+    Wm <- W %*% solve(crossprod(Px, W), tol=1e-150)      # Weights that take into account the deflation procedure
+    
+    # Unnormed global components
+    if (ncomp==1) {
+        LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
+        C <- Q * LambdaMoyen
+    }
+    else {
+        LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
+        C <- Q %*% sqrt(diag(LambdaMoyen))
+    }
+    
+    #globalcor <- cor(X00, C)
+    
+    for (k in 1:ntab) {
+        cor.g.b[, , k] <- cor(Q, Q.b[, , k])
+        #blockcor[[k]] <- cor(X0[[k]], Q.b[, 1:ncomp, k])
+        #if (is.null(rownames(blockcor[[k]]))) rownames(blockcor[[k]]) <- names(group[k])
+    }
+    
+    ## 4.1 Preparation of the results Global
+    res$components          <- c(ncomp=ncomp)
+    res$optimalcrit         <- optimalcrit[1:ncomp]
+    res$saliences           <- round(LAMBDA[, 1:ncomp, drop=FALSE]^2, 2)
+    res$Q                   <- Q[, 1:ncomp, drop=FALSE]     # Storage of the normed global components associated with X
+    res$C                   <- C[, 1:ncomp, drop=FALSE]     # Storage of the unnormed global components associated with X
+    res$explained.X         <- round(100*explained.X[1:ntab, 1:ncomp], 2)
+    res$cumexplained        <- round(100*cumexplained[1:ncomp,], 2)
+    res$contrib             <- round(100*contrib[1:ntab, 1:ncomp], 2)
+    #res$globalcor           <- globalcor[,1:ncomp]
+    res$cor.g.b             <- cor.g.b#[1:ncomp, 1:ncomp, ]
+
+    ## 4.2 Preparation of the results Block
+    Block$Q.b         <-  Q.b[,1:ncomp,]
+    Block$blockcor    <-  blockcor
+    res$Block         <-  Block                         # Results for each block
+
+    ##- 5. Return res ----
+    res$Xscale <- Xscale
+    res$call   <- match.call()
+    class(res) <- c("ComDim", "list")
+    ##-----
+    
+    return(Res)
+}
+
+
+#' @title Federated ComDim deprecated
+#' @description Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
+#' Finding common dimensions in multitable data (Xk, k=1...K)
 #' @usage federateComDim(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10)
 #'
 #' @param loginFD Login information of the FD server
@@ -511,7 +874,7 @@ matrix2DscFD <- function(value) {
 #' @import DSI
 #' @importFrom utils setTxtProgressBar
 #' @export
-federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", chunk = 500, mc.cores = 1, threshold = 1e-10) {
+federateComDimRm <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", chunk = 500, mc.cores = 1, threshold = 1e-10) {
     require(DSOpal)
     .printTime("federateComDim started")
     TOL <- 1e-10
@@ -559,9 +922,6 @@ federateComDim <- function(loginFD, logins, func, symbol, H = 2, scale = "none",
     names(queryvariables) <- querytables
     
     ## centered cbind-ed centered data matrix
-    # DSI::datashield.assign(opals, "centeredAllData", 
-    #                        as.symbol(paste0('center(rawAllData, byColumn=TRUE, na.rm=FALSE)')), 
-    #                        async=T)
     DSI::datashield.assign(opals, "centeredAllData",
                            as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn=TRUE, na.rm=FALSE)')),
                            async=T)
@@ -988,6 +1348,7 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
 #' @param ... see \code{uwot::umap}
 #' @return A matrix of optimized coordinates.
 #' @import uwot DSI
+#' @importFrom "stats" "as.dist" "cor" "quantile" "setNames"
 #' @export
 federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk = 500, mc.cores = 1, ...) {
     require(DSOpal)
@@ -1141,7 +1502,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
-#' @export
+# ' @export
 #' @keywords internal
 testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk = 500, mc.cores = 1, TOL = 1e-10) {
     funcPreProc <- .decode.arg(func)
