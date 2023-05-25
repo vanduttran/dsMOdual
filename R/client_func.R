@@ -520,8 +520,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     
     ## compute SSCP matrix for each centered data table
     XX_query <- lapply(1:ntab, function(i) {
-        #.federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-        testSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+        .federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
     })
     names(XX_query) <- querytables
     XX <- XX_query
