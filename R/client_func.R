@@ -720,7 +720,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         
         ## 3.1 Interatively compute the comp-th common component
         while (deltacrit > threshold) {
-            P <- Reduce("+", lapply(1:ntab, function(k) LAMBDA[k, comp]*XX[[k]])) # Weighted sum of XX'
+            P <- Reduce("+", lapply(1:ntab, function(k) LAMBDA[k, comp] * XX[[k]])) # Weighted sum of XX'
             reseig    <- eigen(P)
             q         <- reseig$vectors[, 1]
             Q[, comp] <- q
@@ -735,17 +735,15 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         ## 3.2 Storage of the results associated with dimension comp
         for (k in 1:ntab) {
             #W.b[[k]][, comp] <- t(X[[k]]) %*% Q[, comp]
+            explained.X[k, comp] <- inertie(tcrossprod(Q[, comp]) %*% XX[[k]] %*% tcrossprod(Q[, comp]))
             Q.b[, comp, k] <- XX[[k]] %*% q
         }
         
-        LAMBDA[, comp]   <- sapply(1:ntab, function(k) {t(Q[,comp]) %*% Q.b[, comp, k]})
+        LAMBDA[, comp]   <- sapply(1:ntab, function(k) {t(Q[, comp]) %*% Q.b[, comp, k]})
         NNLAMBDA[, comp] <- LAMBDA[, comp]          # Non normalized specific weights
         LAMBDA[, comp]   <- normv(LAMBDA[, comp])
         
         ## 3.3 Deflation
-        X.exp <- lapply(XX, function(xx) Q[, comp] %*% xx %*% t(Q[, comp]))
-        X0.exp <- lapply(XX0, function(xx) Q[, comp] %*% xx %*% t(Q[, comp]))
-        explained.X[1:ntab, comp] <- sapply(X0.exp, function(x) {sum(x^2)})
         explained.X[ntab+1, comp] <- sum(explained.X[1:ntab, comp])
         proj <- diag(1, nind) - tcrossprod(Q[, comp])
         XX <- lapply(XX, function(xx) proj %*% xx %*% t(proj)) # Deflation of XX
@@ -795,8 +793,8 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     })
     
     Px <- do.call(rbind, W.b)
-    W <- do.call(rbind, lapply(1:ntab, function(k) tcrossprod(W.b[[k]], diag(LAMBDA[k,]))))
-    W <- do.call(cbind, lapply(1:ncomp, function(comp) normv(W[, comp])))
+    W  <- do.call(rbind, lapply(1:ntab, function(k) tcrossprod(W.b[[k]], diag(LAMBDA[k,]))))
+    W  <- do.call(cbind, lapply(1:ncomp, function(comp) normv(W[, comp])))
     colnames(W) <- compnames
     
     contrib <- t(t(NNLAMBDA)/colSums(NNLAMBDA))
