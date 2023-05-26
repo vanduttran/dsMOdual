@@ -759,7 +759,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         return (paste0("INDIVIDUAL DIMENSION COMPUTATION PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
     size <- c(0, size)
-    func <- function(x, y) {x %*% y}
+    #func <- function(x, y) {x %*% y}
     Qlist <- setNames(lapply(2:length(size), function(i) {
         Qi <- Q[(cumsum(size)[i-1]+1):cumsum(size)[i], , drop=F]
         ## As Q is orthonormal, Qi == Qi.iter
@@ -776,8 +776,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
             expr <- list(as.symbol("loadings"),
                          as.symbol("centeredAllData"),
-                         .encode.arg(Qlist[[opn]]),
-                         "prod")
+                         .encode.arg(Qlist[[opn]]))
             loadings <- datashield.aggregate(opals[opn], as.call(expr))
             return (loadings)
         }), recursive = F))
