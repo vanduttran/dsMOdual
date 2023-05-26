@@ -748,6 +748,9 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         proj <- diag(1, nind) - tcrossprod(Q[, comp])
         XX <- lapply(XX, function(xx) proj %*% xx %*% t(proj)) # Deflation of XX
     }
+    explained.X       <- sweep(explained.X, 1, IT.X, "/")  # Explained inertia for X
+    cumexplained[, 1] <- explained.X[ntab+1, 1:ncomp]
+    cumexplained[, 2] <- cumsum(cumexplained[, 1])
     ##-----
     
     ##- 4. loadings ----
