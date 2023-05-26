@@ -4,7 +4,12 @@
 \alias{federateUMAP}
 \title{Federated UMAP}
 \usage{
-federateUMAP(loginFD, logins, func, symbol, TOL = 1e-10, metric = 'euclidean', ...)
+federateUMAP(loginFD, logins, func, symbol,
+metric = 'euclidean',
+chunk = 500,
+mc.cores = 1,
+...
+)
 }
 \arguments{
 \item{loginFD}{Login information of the FD server}
@@ -22,6 +27,10 @@ Other assigned R variables in \code{func} are ignored.}
 \item{metric}{Either \code{euclidean} or \code{correlation} for distance metric between samples. 
 For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
 For correlation-based distance, the data from each cohort will be centered scaled for each sample.}
+
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
+
+\item{mc.cores}{Number of cores for parallel computing. Default: 1.}
 
 \item{...}{see \code{uwot::umap}}
 }

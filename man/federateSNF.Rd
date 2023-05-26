@@ -4,7 +4,13 @@
 \alias{federateSNF}
 \title{Federated SNF}
 \usage{
-federateSNF(loginFD, logins, func, symbol, K = 20, sigma = 0.5, t = 20)
+federateSNF(loginFD, logins, func, symbol,
+metric = 'euclidean',
+K = 20,
+sigma = 0.5,
+t = 20,
+chunk = 500,
+mc.cores = 1)
 }
 \arguments{
 \item{loginFD}{Login information of the FD server}
@@ -28,6 +34,10 @@ For correlation-based distance, the data from each cohort will be centered scale
 \item{sigma}{Variance for local model, see \code{SNFtool::affinityMatrix}.}
 
 \item{t}{Number of iterations for the diffusion process, see \code{SNFtool::SNF}.}
+
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
+
+\item{mc.cores}{Number of cores for parallel computing. Default: 1.}
 }
 \value{
 The overall status matrix derived W.

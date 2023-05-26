@@ -4,7 +4,14 @@
 \alias{federateComDim}
 \title{Federated ComDim}
 \usage{
-federateComDim(loginFD, logins, func, symbol, ncomp = 2, scale = "none", option = "uniform", chunk = 500, threshold = 1e-10)
+federateComDim(loginFD, logins, func, symbol,
+ncomp = 2,
+scale = "none",
+option = "uniform",
+chunk = 500,
+mc.cores = 1,
+threshold = 1e-10
+)
 }
 \arguments{
 \item{loginFD}{Login information of the FD server}
@@ -19,15 +26,19 @@ symbol (name of the R symbol) (see datashield.assign).}
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{func} are ignored.}
 
+\item{ncomp}{Number of common dimensions}
+
 \item{scale}{either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table}
 
 \item{option}{weighting of te tables \cr
   "none" :  no weighting of the tables - (default) \cr
 "uniform": weighting to set the table at the same inertia \cr}
 
-\item{threshold}{if the difference of fit<threshold then break the iterative loop (default 1E-10)}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
 
-\item{H}{Number of common dimensions}
+\item{mc.cores}{Number of cores for parallel computing. Default: 1.}
+
+\item{threshold}{if the difference of fit<threshold then break the iterative loop (default 1E-10)}
 }
 \value{
 \item{group}{ input parameter group }

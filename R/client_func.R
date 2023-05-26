@@ -478,8 +478,14 @@ matrix2DscFD <- function(value) {
 #' @title Federated ComDim
 #' @description Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
 #' Finding common dimensions in multitable data (Xk, k=1...K)
-#' @usage federateComDim(loginFD, logins, func, symbol, ncomp = 2, scale = "none", option = "uniform", chunk = 500, threshold = 1e-10)
-#'
+#' @usage federateComDim(loginFD, logins, func, symbol,
+#' ncomp = 2,
+#' scale = "none",
+#' option = "uniform",
+#' chunk = 500,
+#' mc.cores = 1,
+#' threshold = 1e-10
+#' )
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
@@ -488,11 +494,13 @@ matrix2DscFD <- function(value) {
 #' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param H Number of common dimensions
+#' @param ncomp Number of common dimensions
 #' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table
 #' @param option weighting of te tables \cr
 #'        "none" :  no weighting of the tables - (default) \cr
 #'      "uniform": weighting to set the table at the same inertia \cr
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
+#' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @param threshold if the difference of fit<threshold then break the iterative loop (default 1E-10)
 #' @return \item{group}{ input parameter group }
 #' @return \item{scale}{ scaling factor applied to the dataset X}
@@ -620,6 +628,9 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         ncomp <- 2
     }
     compnames <- paste("Dim.", 1:ncomp, sep="")
+
+    optimalcrit  <- vector("numeric", ncomp)    # Gives the optimal value of the criterion
+    names(optimalcrit) <- compnames
     
     contrib           <- matrix(0, ntab, ncomp)
     dimnames(contrib) <- list(querytables, compnames)
@@ -627,12 +638,12 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     saliences <- LAMBDA <- NNLAMBDA <- matrix(1, ntab, ncomp) # Specific weights for each dataset and each dimension
     dimnames(saliences) <- dimnames(LAMBDA) <- dimnames(NNLAMBDA) <- list(querytables, compnames)
     
-    T <- matrix(0, nrow=nind, ncol=ncomp)          # Global components
+    Q <- matrix(0, nrow=nind, ncol=ncomp)          # Global components
     C <- matrix(0, nrow=nind, ncol=ncomp)          # Unnormed global components
     dimnames(T) <- dimnames(C) <- list(rownames(XX[[1]]), compnames)
     
-    T.b <- array(0, dim=c(nind, ncomp, ntab))      # Block components
-    dimnames(T.b) <- list(rownames(XX[[1]]), compnames, querytables)
+    Q.b <- array(0, dim=c(nind, ncomp, ntab))      # Block components
+    dimnames(Q.b) <- list(rownames(XX[[1]]), compnames, querytables)
     
     cor.g.b <- array(0, dim=c(ncomp, ncomp, ntab)) # Correlations between global components and their respective block components
     dimnames(cor.g.b) <- list(compnames, compnames, querytables)
@@ -712,31 +723,31 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
             P <- Reduce("+", lapply(1:ntab, function(k) LAMBDA[k, comp]*XX[[k]])) # Weighted sum of XX'
             reseig    <- eigen(P)
             q         <- reseig$vectors[, 1]
-            T[, comp] <- q
+            Q[, comp] <- q
             optimalcrit[comp] <- reseig$values[1]
-            LAMBDA[, comp]  <- sapply(1:ntab, function(k) {t(q) %*% XX[[k]] %*% q})
-            LAMBDA[, comp]  <- normv(LAMBDA[, comp])
-            criterion   <- reseig$values[1]
-            deltacrit   <- criterion - critt
-            critt       <- criterion
+            LAMBDA[, comp]    <- sapply(1:ntab, function(k) {t(q) %*% XX[[k]] %*% q})
+            LAMBDA[, comp]    <- normv(LAMBDA[, comp])
+            criterion <- reseig$values[1]
+            deltacrit <- criterion - critt
+            critt     <- criterion
         }
         
         ## 3.2 Storage of the results associated with dimension comp
         for (k in 1:ntab) {
-            #W.b[[k]][, comp] <- t(X[[k]]) %*% T[, comp]
-            T.b[, comp, k] <- XX[[k]] %*% q
+            #W.b[[k]][, comp] <- t(X[[k]]) %*% Q[, comp]
+            Q.b[, comp, k] <- XX[[k]] %*% q
         }
         
-        LAMBDA[, comp]   <- sapply(1:ntab, function(k) {t(T[,comp]) %*% T.b[, comp, k]})
+        LAMBDA[, comp]   <- sapply(1:ntab, function(k) {t(Q[,comp]) %*% Q.b[, comp, k]})
         NNLAMBDA[, comp] <- LAMBDA[, comp]          # Non normalized specific weights
         LAMBDA[, comp]   <- normv(LAMBDA[, comp])
         
         ## 3.3 Deflation
-        X.exp <- lapply(XX, function(xx) T[, comp] %*% xx %*% t(T[, comp]))
-        X0.exp <- lapply(XX0, function(xx) T[, comp] %*% xx %*% t(T[, comp]))
+        X.exp <- lapply(XX, function(xx) Q[, comp] %*% xx %*% t(Q[, comp]))
+        X0.exp <- lapply(XX0, function(xx) Q[, comp] %*% xx %*% t(Q[, comp]))
         explained.X[1:ntab, comp] <- sapply(X0.exp, function(x) {sum(x^2)})
         explained.X[ntab+1, comp] <- sum(explained.X[1:ntab, comp])
-        proj <- diag(1, nind) - tcrossprod(T[, comp])
+        proj <- diag(1, nind) - tcrossprod(Q[, comp])
         XX <- lapply(XX, function(xx) proj %*% xx %*% t(proj)) # Deflation of XX
     }
     ##-----
@@ -752,7 +763,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     size <- c(0, size)
     func <- function(x, y) {x %*% y}
     Qlist <- setNames(lapply(2:length(size), function(i) {
-        Qi <- T[(cumsum(size)[i-1]+1):cumsum(size)[i], , drop=F]
+        Qi <- Q[(cumsum(size)[i-1]+1):cumsum(size)[i], , drop=F]
         ## As Q is orthonormal, Qi == Qi.iter
         # Qi.iter <- sapply(1:H, function(dimension) {
         #   projs <- lapply(setdiff(1:dimension, dimension), function(dimprev) {
@@ -805,8 +816,8 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     #globalcor <- cor(X00, C)
     
     for (k in 1:ntab) {
-        cor.g.b[, , k] <- cor(T, T.b[, , k])
-        #blockcor[[k]] <- cor(X0[[k]], T.b[, 1:ncomp, k])
+        cor.g.b[, , k] <- cor(Q, Q.b[, , k])
+        #blockcor[[k]] <- cor(X0[[k]], Q.b[, 1:ncomp, k])
         #if (is.null(rownames(blockcor[[k]]))) rownames(blockcor[[k]]) <- names(group[k])
     }
     
@@ -814,7 +825,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     res$components          <- c(ncomp=ncomp)
     res$optimalcrit         <- optimalcrit[1:ncomp]
     res$saliences           <- round(LAMBDA[, 1:ncomp, drop=FALSE]^2, 2)
-    res$T                   <- T[, 1:ncomp, drop=FALSE]     # Storage of the normed global components associated with X
+    res$T                   <- Q[, 1:ncomp, drop=FALSE]     # Storage of the normed global components associated with X
     res$C                   <- C[, 1:ncomp, drop=FALSE]     # Storage of the unnormed global components associated with X
     res$explained.X         <- round(100*explained.X[1:ntab, 1:ncomp], 2)
     res$cumexplained        <- round(100*cumexplained[1:ncomp,], 2)
@@ -823,25 +834,30 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     res$cor.g.b             <- cor.g.b#[1:ncomp, 1:ncomp, ]
 
     ## 4.2 Preparation of the results Block
-    Block$T.b         <-  T.b[,1:ncomp,]
+    Block$T.b         <-  Q.b[,1:ncomp,]
     Block$blockcor    <-  blockcor
     res$Block         <-  Block                         # Results for each block
 
     ##- 5. Return res ----
-    res$Xscale <- Xscale
     res$call   <- match.call()
     class(res) <- c("ComDim", "list")
     ##-----
     
-    return(Res)
+    return (res)
 }
 
 
 #' @title Federated ComDim deprecated
 #' @description Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
 #' Finding common dimensions in multitable data (Xk, k=1...K)
-#' @usage federateComDim(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", threshold = 1e-10, TOL = 1e-10)
-#'
+#' @usage federateComDimRm(loginFD, logins, func, symbol,
+#' H = 2,
+#' scale = "none",
+#' option = "uniform",
+#' chunk = 500,
+#' mc.cores = 1,
+#' threshold = 1e-10
+#' )
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
@@ -855,6 +871,8 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
 #' @param option weighting of te tables \cr
 #'        "none" :  no weighting of the tables - (default) \cr
 #'      "uniform": weighting to set the table at the same inertia \cr
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
+#' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @param threshold if the difference of fit<threshold then break the iterative loop (default 1E-10)
 #' @return \item{group}{ input parameter group }
 #' @return \item{scale}{ scaling factor applied to the dataset X}
@@ -871,7 +889,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
 #'
 #' @return \item{call}{: call of the method }
 #' @import DSI
-#' @importFrom utils setTxtProgressBar
+#' @importFrom utils setTxtProgressBar txtProgressBar
 #' @export
 federateComDimRm <- function(loginFD, logins, func, symbol, H = 2, scale = "none", option = "uniform", chunk = 500, mc.cores = 1, threshold = 1e-10) {
     require(DSOpal)
@@ -1240,7 +1258,13 @@ federateComDimRm <- function(loginFD, logins, func, symbol, H = 2, scale = "none
 
 #' @title Federated SNF
 #' @description Function for SNF federated analysis on the virtual cohort combining multiple cohorts
-#' @usage federateSNF(loginFD, logins, func, symbol, K = 20, sigma = 0.5, t = 20)
+#' @usage federateSNF(loginFD, logins, func, symbol,
+#' metric = 'euclidean',
+#' K = 20,
+#' sigma = 0.5,
+#' t = 20,
+#' chunk = 500,
+#' mc.cores = 1)
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
@@ -1255,6 +1279,8 @@ federateComDimRm <- function(loginFD, logins, func, symbol, H = 2, scale = "none
 #' @param K Number of neighbors in K-nearest neighbors part of the algorithm, see \code{SNFtool::SNF}.
 #' @param sigma Variance for local model, see \code{SNFtool::affinityMatrix}.
 #' @param t Number of iterations for the diffusion process, see \code{SNFtool::SNF}.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
+#' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @return The overall status matrix derived W.
 #' @import SNFtool DSI
 #' @export
@@ -1332,7 +1358,12 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
 
 #' @title Federated UMAP
 #' @description Function for UMAP federated analysis on the virtual cohort combining multiple cohorts
-#' @usage federateUMAP(loginFD, logins, func, symbol, TOL = 1e-10, metric = 'euclidean', ...)
+#' @usage federateUMAP(loginFD, logins, func, symbol,
+#' metric = 'euclidean',
+#' chunk = 500,
+#' mc.cores = 1,
+#' ...
+#' )
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
@@ -1344,6 +1375,8 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
 #' @param metric Either \code{euclidean} or \code{correlation} for distance metric between samples. 
 #' For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
 #' For correlation-based distance, the data from each cohort will be centered scaled for each sample.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
+#' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @param ... see \code{uwot::umap}
 #' @return A matrix of optimized coordinates.
 #' @import uwot DSI
@@ -1411,7 +1444,13 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ch
 
 #' @title Federated hdbscan
 #' @description Function for hdbscan federated analysis on the virtual cohort combining multiple cohorts
-#' @usage federateHdbscan(loginFD, logins, func, symbol, TOL = 1e-10, metric = 'euclidean', ...)
+#' @usage federateHdbscan(loginFD, logins, func, symbol,
+#' metric = 'euclidean',
+#' minPts = 10,
+#' chunk = 500,
+#' mc.cores = 1,
+#' ...
+#' )
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
@@ -1423,6 +1462,9 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ch
 #' @param metric Either \code{euclidean} or \code{correlation} for distance metric between samples. 
 #' For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
 #' For correlation-based distance, the data from each cohort will be centered scaled for each sample.
+#' @param minPts Minimum size of clusters, see \code{dbscan::hdbscan}. Default: 10.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
+#' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @param ... see \code{dbscan::hdbscan}
 #' @return An object of class \code{hdbscan}.
 #' @import dbscan DSI
@@ -1499,6 +1541,8 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' @param byColumn A logical value indicating whether the input data is centered by column or row.
 #' Default, TRUE, centering by column. Constant variables across samples are removed. 
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500
+#' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
 # ' @export

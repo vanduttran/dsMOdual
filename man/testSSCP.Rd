@@ -28,6 +28,10 @@ symbol (name of the R symbol) (see datashield.assign).}
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{func} are ignored.}
 
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500}
+
+\item{mc.cores}{Number of cores for parallel computing. Default: 1.}
+
 \item{TOL}{Tolerance of 0}
 
 \item{byColumn}{A logical value indicating whether the input data is centered by column or row.
