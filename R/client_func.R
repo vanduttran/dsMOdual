@@ -640,7 +640,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     
     Q <- matrix(0, nrow=nind, ncol=ncomp)          # Global components
     C <- matrix(0, nrow=nind, ncol=ncomp)          # Unnormed global components
-    dimnames(T) <- dimnames(C) <- list(rownames(XX[[1]]), compnames)
+    dimnames(Q) <- dimnames(C) <- list(rownames(XX[[1]]), compnames)
     
     Q.b <- array(0, dim=c(nind, ncomp, ntab))      # Block components
     dimnames(Q.b) <- list(rownames(XX[[1]]), compnames, querytables)
@@ -713,7 +713,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     Itot  <- 0
     ##-----
     
-    ##- 3. computation of T and LAMBDA for the various dimensions ----
+    ##- 3. computation of Q and LAMBDA for the various dimensions ----
     for (comp in 1:ncomp)  { # Iterative computation of the various components
         critt     <- 0
         deltacrit <- 1
@@ -806,11 +806,11 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     # Unnormed global components
     if (ncomp==1) {
         LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
-        C <- T * LambdaMoyen
+        C <- Q * LambdaMoyen
     }
     else {
         LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
-        C <- T %*% sqrt(diag(LambdaMoyen))
+        C <- Q %*% sqrt(diag(LambdaMoyen))
     }
     
     #globalcor <- cor(X00, C)
