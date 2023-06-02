@@ -28,7 +28,8 @@ Other assigned R variables in \code{func} are ignored.}
 
 \item{ncomp}{Number of common dimensions}
 
-\item{scale}{either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table}
+\item{scale}{either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table. 
+Only "none" is considered in this version.}
 
 \item{option}{weighting of te tables \cr
   "none" :  no weighting of the tables - (default) \cr
@@ -41,26 +42,7 @@ Other assigned R variables in \code{func} are ignored.}
 \item{threshold}{if the difference of fit<threshold then break the iterative loop (default 1E-10)}
 }
 \value{
-\item{group}{ input parameter group }
-
-\item{scale}{ scaling factor applied to the dataset X}
-
-\item{Q}{common scores (nrow x ndim)}
-
-\item{saliences}{weights associated to each table for each dimension}
-
-\item{explained}{retun total variance explained}
-
-\item{RV}{RV coefficients between each table (Xk) and compromise table}
-
-\item{Block}{results associated with each table. You will find block component ...
-        \itemize{
-               \item {Qk}{: Block component}
-               \item {Wk}{: Block component}
-               \item {Pk}{: Block component}
-       }}
-
-\item{call}{: call of the method }
+A \code{ComDim} object. See \code{MBAnalysis::ComDim}.
 }
 \description{
 Function for ComDim federated analysis on the virtual cohort combining multiple cohorts

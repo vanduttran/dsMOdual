@@ -495,27 +495,15 @@ matrix2DscFD <- function(value) {
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
 #' @param ncomp Number of common dimensions
-#' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table
+#' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table. 
+#' Only "none" is considered in this version.
 #' @param option weighting of te tables \cr
 #'        "none" :  no weighting of the tables - (default) \cr
 #'      "uniform": weighting to set the table at the same inertia \cr
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @param threshold if the difference of fit<threshold then break the iterative loop (default 1E-10)
-#' @return \item{group}{ input parameter group }
-#' @return \item{scale}{ scaling factor applied to the dataset X}
-#' @return \item{Q}{common scores (nrow x ndim)}
-#' @return \item{saliences}{weights associated to each table for each dimension}
-#' @return \item{explained}{retun total variance explained}
-#' @return \item{RV}{RV coefficients between each table (Xk) and compromise table}
-#' @return \item{Block}{results associated with each table. You will find block component ...
-#'         \itemize{
-#'                \item {Qk}{: Block component}
-#'                \item {Wk}{: Block component}
-#'                \item {Pk}{: Block component}
-#'        }}
-#'
-#' @return \item{call}{: call of the method }
+#' @return A \code{ComDim} object. See \code{MBAnalysis::ComDim}.
 #' @import DSI
 #' @export
 federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "none", option = "uniform", chunk = 500, mc.cores = 1, threshold = 1e-10) {
@@ -571,21 +559,25 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
                            as.symbol(paste0('center(list(', paste(querytables, collapse=','), '), byColumn=TRUE, na.rm=FALSE)')),
                            async=T)
     
-    ## compute the total variance from a XX' matrix
+    ## function: compute the total variance from a XX' matrix
     inertie <- function(tab) {
         return (sum(diag(tab)))    #Froebenius norm
     }
-    ## compute the RV between WX and WY: similarity between two matrices
+    
+    ## function: compute the RV between WX and WY: similarity between two matrices
     coefficientRV <- function(WX, WY) {
         rv <- inertie(WX %*% WY)/(sqrt(inertie(WX %*% WX) * inertie(WY %*% WY)))
         return(rv)
     }
-    ## normalize a vector to a unit vector
+    
+    ## function: normalize a vector to a unit vector
     normv <- function(x) {
         normx <- norm(x, '2')
         if (normx==0) normx <- 1
         return (x/normx)
     }
+    
+    ##### ComDim algorithm inherited from MBAnalysis #####
     
     ##- 0. Preliminary tests ----
     if (any(sapply(XX, is.na)))
@@ -722,10 +714,9 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         while (deltacrit > threshold) {
             P <- Reduce("+", lapply(1:ntab, function(k) LAMBDA[k, comp] * XX[[k]])) # Weighted sum of XX'
             reseig    <- eigen(P)
-            q         <- reseig$vectors[, 1]
-            Q[, comp] <- q
+            Q[, comp] <- reseig$vectors[, 1]
             optimalcrit[comp] <- reseig$values[1]
-            LAMBDA[, comp]    <- sapply(1:ntab, function(k) {t(q) %*% XX[[k]] %*% q})
+            LAMBDA[, comp]    <- sapply(1:ntab, function(k) {t(Q[, comp]) %*% XX[[k]] %*% Q[, comp]})
             LAMBDA[, comp]    <- normv(LAMBDA[, comp])
             criterion <- reseig$values[1]
             deltacrit <- criterion - critt
@@ -736,7 +727,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         for (k in 1:ntab) {
             #W.b[[k]][, comp] <- t(X[[k]]) %*% Q[, comp]
             explained.X[k, comp] <- inertie(tcrossprod(Q[, comp]) %*% XX[[k]] %*% tcrossprod(Q[, comp]))
-            Q.b[, comp, k] <- XX[[k]] %*% q
+            Q.b[, comp, k] <- XX[[k]] %*% Q[, comp]
         }
         
         LAMBDA[, comp]   <- sapply(1:ntab, function(k) {t(Q[, comp]) %*% Q.b[, comp, k]})
@@ -762,18 +753,8 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         return (paste0("INDIVIDUAL DIMENSION COMPUTATION PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
     size <- c(0, size)
-    #func <- function(x, y) {x %*% y}
     Qlist <- setNames(lapply(2:length(size), function(i) {
         Qi <- Q[(cumsum(size)[i-1]+1):cumsum(size)[i], , drop=F]
-        ## As Q is orthonormal, Qi == Qi.iter
-        # Qi.iter <- sapply(1:H, function(dimension) {
-        #   projs <- lapply(setdiff(1:dimension, dimension), function(dimprev) {
-        #     return (diag(1, size[i]) - tcrossprod(Qi[,dimprev]))
-        #   })
-        #   projs <- c(Id=list(diag(1, size[i])), projs)
-        #   return (crossprod(Reduce(func, projs), Qi[,dimension,drop=F]))
-        # })
-        # return (Qi.iter)
     }), names(opals))
     tryCatch({
         Wbk <- Reduce('+', unlist(mclapply(names(opals), mc.cores=1, function(opn) {
@@ -817,7 +798,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     
     for (k in 1:ntab) {
         cor.g.b[, , k] <- cor(Q, Q.b[, , k])
-        #blockcor[[k]] <- cor(X0[[k]], Q.b[, 1:ncomp, k])
+        blockcor[[k]] <- NA #cor(X0[[k]], Q.b[, 1:ncomp, k])
         #if (is.null(rownames(blockcor[[k]]))) rownames(blockcor[[k]]) <- names(group[k])
     }
     
@@ -831,15 +812,16 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     res$cumexplained        <- round(100*cumexplained[1:ncomp,], 2)
     res$contrib             <- round(100*contrib[1:ntab, 1:ncomp], 2)
     #res$globalcor           <- globalcor[,1:ncomp]
-    res$cor.g.b             <- cor.g.b#[1:ncomp, 1:ncomp, ]
+    res$cor.g.b             <- cor.g.b
 
     ## 4.2 Preparation of the results Block
-    Block$T.b         <-  Q.b[,1:ncomp,]
+    Block$T.b         <-  Q.b[, 1:ncomp, ]
     Block$blockcor    <-  blockcor
     res$Block         <-  Block                         # Results for each block
+    ##-----
 
     ##- 5. Return res ----
-    res$call   <- match.call()
+    res$call   <- NA
     class(res) <- c("ComDim", "list")
     ##-----
     
@@ -1249,7 +1231,6 @@ federateComDimRm <- function(loginFD, logins, func, symbol, H = 2, scale = "none
     # ---------------------------------------------------------------------------
     # Return Res
     # ---------------------------------------------------------------------------
-    Res$call   <- match.call()
     class(Res) <- c("federateComDim")
     
     return(Res)

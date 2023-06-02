@@ -1,6 +1,6 @@
 Package: dsMOdual
 Title: Server Side Functions on XX' Sum of Squares and Cross Products Matrices
-Version: 0.1.81
+Version: 0.1.82
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
@@ -11,7 +11,7 @@ Authors@R:
              family = "Dragan",
              role = c("ctb")))
 Depends: R (>= 3.5.0), DSI, DSOpal
-Imports: Matrix, bigmemory, parallel, SNFtool, uwot, dbscan
+Imports: Matrix, bigmemory, parallel, SNFtool, uwot, dbscan, RCurl, jsonlite
 Suggests: dsSwissKnifeClient
 Description: Server side functions on XX' sum of squares and cross products matrices.
 AggregateMethods:
@@ -21,7 +21,7 @@ AggregateMethods:
     federateSNF,
     federateUMAP,
     federateHdbscan
-License: GPL-3
+License: file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.3

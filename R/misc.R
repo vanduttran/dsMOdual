@@ -6,6 +6,7 @@
 #'  See \code{dsSwissKnifeClient:::.encode.arg}.
 #' @param some.object the object to be encoded
 #' @return encoded text with offending characters replaced by strings
+#' @import RCurl jsonlite
 #' @keywords internal
 .encode.arg <- function(some.object, serialize.it = FALSE){
     if(serialize.it){
@@ -30,6 +31,7 @@
 #' @details It looks for the string 'base64' in the argument to determine if it's encoded
 #' @param some.thing the thing to be decoded and deserialized from json if necessary
 #' @return the decoded and deserialized argument
+#' @import RCurl jsonlite
 #' @keywords internal
 .decode.arg <- function(some.thing, simplifyMatrix = FALSE){
     if(length(some.thing) == 1 && grepl('base64', some.thing, ignore.case = TRUE)){
