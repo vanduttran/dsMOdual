@@ -785,14 +785,8 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     Wm <- W %*% solve(crossprod(Px, W), tol=1e-150)      # Weights that take into account the deflation procedure
     
     # Unnormed global components
-    if (ncomp==1) {
-        LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
-        C <- Q * LambdaMoyen
-    }
-    else {
-        LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
-        C <- Q %*% sqrt(diag(LambdaMoyen, ))
-    }
+    LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
+    C <- Q %*% sqrt(diag(LambdaMoyen, ))
     
     globalcor <- NA #cor(X00, C)
     
