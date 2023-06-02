@@ -776,7 +776,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     })
     
     Px <- do.call(rbind, W.b)
-    W  <- do.call(rbind, lapply(1:ntab, function(k) {print(W.b[[k]]); print(diag(LAMBDA[k,])); tcrossprod(W.b[[k]], diag(LAMBDA[k,]))}))
+    W  <- do.call(rbind, lapply(1:ntab, function(k) {print(W.b[[k]]); print(diag(LAMBDA[k,])); print(LAMBDA); tcrossprod(W.b[[k]], diag(LAMBDA[k,]))}))
     W  <- do.call(cbind, lapply(1:ncomp, function(comp) normv(W[, comp])))
     colnames(W) <- compnames
     
