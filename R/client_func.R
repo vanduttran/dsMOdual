@@ -794,7 +794,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         C <- Q %*% sqrt(diag(LambdaMoyen))
     }
     
-    #globalcor <- cor(X00, C)
+    globalcor <- NA #cor(X00, C)
     
     for (k in 1:ntab) {
         cor.g.b[, , k] <- cor(Q, Q.b[, , k])
@@ -811,7 +811,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     res$explained.X         <- round(100*explained.X[1:ntab, 1:ncomp], 2)
     res$cumexplained        <- round(100*cumexplained[1:ncomp,], 2)
     res$contrib             <- round(100*contrib[1:ntab, 1:ncomp], 2)
-    #res$globalcor           <- globalcor[,1:ncomp]
+    res$globalcor           <- globalcor
     res$cor.g.b             <- cor.g.b
 
     ## 4.2 Preparation of the results Block
