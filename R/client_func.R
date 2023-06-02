@@ -561,7 +561,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     
     ## function: compute the total variance from a XX' matrix
     inertie <- function(tab) {
-        return (sum(diag(tab)))    #Froebenius norm
+        return (sum(diag(tab,)))    #Froebenius norm
     }
     
     ## function: compute the RV between WX and WY: similarity between two matrices
@@ -776,7 +776,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     })
     
     Px <- do.call(rbind, W.b)
-    W  <- do.call(rbind, lapply(1:ntab, function(k) {print(W.b[[k]]); print(diag(LAMBDA[k,])); print(LAMBDA); tcrossprod(W.b[[k]], diag(LAMBDA[k,]))}))
+    W  <- do.call(rbind, lapply(1:ntab, function(k) tcrossprod(W.b[[k]], diag(LAMBDA[k,], nrow=ncomp, ncol=ncomp))))
     W  <- do.call(cbind, lapply(1:ncomp, function(comp) normv(W[, comp])))
     colnames(W) <- compnames
     
@@ -791,7 +791,7 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     }
     else {
         LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
-        C <- Q %*% sqrt(diag(LambdaMoyen))
+        C <- Q %*% sqrt(diag(LambdaMoyen, ))
     }
     
     globalcor <- NA #cor(X00, C)
@@ -926,12 +926,12 @@ federateComDimRm <- function(loginFD, logins, func, symbol, H = 2, scale = "none
                            async=T)
     ## compute the total variance of a dataset
     inertie <- function(tab) {
-        return (sum(diag(tab)))    #Froebenius norm
+        return (sum(diag(tab,)))    #Froebenius norm
     }
 
     ## compute the RV between WX and WY
     coefficientRV <- function(WX, WY) {
-        rv <- sum(diag(WX %*% WY))/((sum(diag(WX %*% WX)) * sum(diag(WY %*% WY)))^0.5)
+        rv <- sum(diag(WX %*% WY,))/((sum(diag(WX %*% WX,)) * sum(diag(WY %*% WY,)))^0.5)
         return(rv)
     }
     # ---------------------------------------------------------------------------
@@ -1162,7 +1162,7 @@ federateComDimRm <- function(loginFD, logins, func, symbol, H = 2, scale = "none
     # })
     # return (W.b)
 
-    We <- do.call(rbind, lapply(1:ntab, function(k) tcrossprod(W.b[[k]], diag(LAMBDA[k,]))))
+    We <- do.call(rbind, lapply(1:ntab, function(k) tcrossprod(W.b[[k]], diag(LAMBDA[k,],))))
     #We <- do.call(rbind, lapply(1:ntab, function(k) W.b[[k]] %*% diag(LAMBDA[k,]))) #crossprod(as.matrix(X[,J==k]), Q)
     
     P.b <- W.b #lapply(W.b, function(x) t(x))
@@ -1181,7 +1181,7 @@ federateComDimRm <- function(loginFD, logins, func, symbol, H = 2, scale = "none
         C <- Q*LambdaMoyen
     } else {
         LambdaMoyen <- apply(LAMBDA, 2, mean)
-        C <- Q %*% sqrt(diag(LambdaMoyen))
+        C <- Q %*% sqrt(diag(LambdaMoyen,))
     }
     
     rownames(C) <- rownames(XX[[1]])
