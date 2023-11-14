@@ -525,8 +525,8 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         return (xxi)
     })
     names(XX_query) <- querytables
-    XX <- lapply(XX_query, "[[", "sscp")
-    queryvariables <- lapply(XX_query, "[[", "var")
+    XX <- lapply(XX_query, function(xxi) xxi$sscp)
+    queryvariables <- lapply(XX_query, function(xxi) xxi$var)
     
     ## set up the centered data table on every node
     loginFDdata <- .decode.arg(loginFD)
