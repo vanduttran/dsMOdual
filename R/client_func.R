@@ -289,6 +289,8 @@ matrix2DscFD <- function(value) {
             datashield.assign(opals, "tcrossProdSelf", as.symbol(paste0('tcrossProd(x=centeredData, y=NULL, chunk=', chunk, ')')), async=T)
             .printTime(".federateSSCP intermediate data computed")
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
+            variablenames <- datashield.aggregate(opals[1], as.symbol("colNames(centeredData)"), async=T)
+            
             datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", loginFD, "')")), async=T)
             tryCatch({
                 cat("Command: pushToDscFD(FD, 'tcrossProdSelf')", "\n")
@@ -311,6 +313,7 @@ matrix2DscFD <- function(value) {
             datashield.assign(opals, "tcrossProdSelf", as.symbol(paste0('tcrossProd(x=centeredData, y=NULL, chunk=', chunk, ')')), async=T)
             .printTime(".federateSSCP intermediate data computed")
             samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
+            variablenames <- datashield.aggregate(opals[1], as.symbol("colNames(centeredData)"), async=T)
             
             ##- received by each from other nodes ----
             prodDataCross <- lapply(names(opals), function(opn) {
@@ -471,7 +474,7 @@ matrix2DscFD <- function(value) {
         gc(reset=F)
     }
     
-    return (XXt)
+    return (list(sscp=XXt, variables=variablenames))
 }
 
 
@@ -516,10 +519,14 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
     
     ## compute SSCP matrix for each centered data table
     XX_query <- lapply(1:ntab, function(i) {
-        .federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+        xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                             funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                             byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+        return (xxi)
     })
     names(XX_query) <- querytables
-    XX <- XX_query
+    XX <- lapply(XX_query, "[[", "sscp")
+    queryvariables <- lapply(XX_query, "[[", "var")
     
     ## set up the centered data table on every node
     loginFDdata <- .decode.arg(loginFD)
@@ -548,11 +555,11 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
         return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
     
-    ## take variables (colnames)
-    queryvariables <- lapply(querytables, function(querytable) {
-        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
-    })
-    names(queryvariables) <- querytables
+    # ## take variables (colnames)
+    # queryvariables <- lapply(querytables, function(querytable) {
+    #     DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    # })
+    # names(queryvariables) <- querytables
     
     ## centered cbind-ed centered data matrix
     DSI::datashield.assign(opals, "centeredAllData",
@@ -764,9 +771,8 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2, scale = "no
             loadings <- datashield.aggregate(opals[opn], as.call(expr))
             return (loadings)
         }), recursive = F))
-    }, error=function(e) {
-        print(paste0("LOADING COMPUTATION PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
-    }, 
+    },
+    error=function(e) print(paste0("LOADING COMPUTATION PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
     finally=datashield.logout(opals))
     colnames(Wbk) <- compnames
     csnvar <- cumsum(nvar)
@@ -877,7 +883,10 @@ federateComDimRm <- function(loginFD, logins, func, symbol, H = 2, scale = "none
     
     ## compute SSCP matrix for each centered data table
     XX <- lapply(1:ntab, function(i) {
-        .federateSSCP(loginFD=loginFD, logins=logins, funcPreProc=funcPreProc, querytables=querytables, ind=i, byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+        xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                             funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                             byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+        return (xxi$sscp)
     })
     names(XX) <- querytables
     
@@ -1270,47 +1279,54 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
     logindata <- .decode.arg(logins)
     opals <- .login(logins=logindata) #datashield.login(logins=logindata)
 
-    tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
-        
-        ## apply funcPreProc for preparation of querytables on opals
-        ## TODO: control hacking!
-        ## TODO: control identical colnames!
-        funcPreProc(conns=opals, symbol=querytables)
-        
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
-    }, error=function(e) {
-        print(paste0("DATA MAKING PROCESS: ", e))
-        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
-    })
-    
-    ## take variables (colnames)
-    queryvariables <- lapply(querytables, function(querytable) {
-        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
-    })
-    names(queryvariables) <- querytables
-    DSI::datashield.logout(opals)
+    # tryCatch({
+    #     ## take a snapshot of the current session
+    #     safe.objs <- .ls.all()
+    #     safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+    #     ## lock everything so no objects can be changed
+    #     .lock.unlock(safe.objs, lockBinding)
+    #     
+    #     ## apply funcPreProc for preparation of querytables on opals
+    #     ## TODO: control hacking!
+    #     ## TODO: control identical colnames!
+    #     funcPreProc(conns=opals, symbol=querytables)
+    #     
+    #     ## unlock back everything
+    #     .lock.unlock(safe.objs, unlockBinding)
+    #     ## get rid of any sneaky objects that might have been created in the filters as side effects
+    #     .cleanup(safe.objs)
+    # }, error=function(e) {
+    #     print(paste0("DATA MAKING PROCESS: ", e))
+    #     return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    # })
+    # 
+    # datashield.assign(opals, "centeredData", as.symbol(paste0("center(", querytables[ind], ", subset=NULL, byColumn=", byColumn, ", scale=", scale, ")")), async=T)
+    # datashield.assign(opals, "tcrossProdSelf", as.symbol(paste0('tcrossProd(x=centeredData, y=NULL, chunk=', chunk, ')')), async=T)
+    # .printTime(".federateSSCP intermediate data computed")
+    # samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
+    # 
+    # ## take variables (colnames)
+    # queryvariables <- lapply(querytables, function(querytable) {
+    #     DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    # })
+    # names(queryvariables) <- querytables
+    # DSI::datashield.logout(opals)
     
     if (metric == "correlation") {
         ## compute (1 - correlation) distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
-            1 - .federateSSCP(loginFD=loginFD, logins=logins, 
-                              funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                              byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)/(length(queryvariables[[i]])-1)
+            xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                                 funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                 byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+            return (1 - xxi$sscp/(length(xxi$var)-1))
         })
     } else if (metric == "euclidean"){
         ## compute Euclidean distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
-            .toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins,
-                                       funcPreProc=funcPreProc, querytables=querytables, ind=i,
-                                       byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL))
+            xxi <- .federateSSCP(loginFD=loginFD, logins=logins,
+                                 funcPreProc=funcPreProc, querytables=querytables, ind=i,
+                                 byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+            return (.toEuclidean(xxi$sscp))
         })
     }
     
@@ -1323,7 +1339,6 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean', K =
     Ws <- lapply(XX, function(distmat) {
         affinityMatrix(distmat, K, sigma)
     })
-    
     ## fuse similarity graphs
     W <- SNF(Ws, K, t)
     
@@ -1368,48 +1383,50 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean', ch
     logindata <- .decode.arg(logins)
     opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     
-    tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
-        
-        ## apply funcPreProc for preparation of querytables on opals
-        ## TODO: control hacking!
-        ## TODO: control identical colnames!
-        funcPreProc(conns=opals, symbol=querytables)
-        
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
-    }, error=function(e) {
-        print(paste0("DATA MAKING PROCESS: ", e))
-        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
-    })
-    .printTime("federateUMAP data processed")
-    
-    ## take variables (colnames)
-    queryvariables <- lapply(querytables, function(querytable) {
-        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
-    })
-    names(queryvariables) <- querytables
-    DSI::datashield.logout(opals)
+    # tryCatch({
+    #     ## take a snapshot of the current session
+    #     safe.objs <- .ls.all()
+    #     safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+    #     ## lock everything so no objects can be changed
+    #     .lock.unlock(safe.objs, lockBinding)
+    #     
+    #     ## apply funcPreProc for preparation of querytables on opals
+    #     ## TODO: control hacking!
+    #     ## TODO: control identical colnames!
+    #     funcPreProc(conns=opals, symbol=querytables)
+    #     
+    #     ## unlock back everything
+    #     .lock.unlock(safe.objs, unlockBinding)
+    #     ## get rid of any sneaky objects that might have been created in the filters as side effects
+    #     .cleanup(safe.objs)
+    # }, error=function(e) {
+    #     print(paste0("DATA MAKING PROCESS: ", e))
+    #     return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    # })
+    # .printTime("federateUMAP data processed")
+    # 
+    # ## take variables (colnames)
+    # queryvariables <- lapply(querytables, function(querytable) {
+    #     DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    # })
+    # names(queryvariables) <- querytables
+    # DSI::datashield.logout(opals)
     
     if (metric == "correlation") {
         ## compute (1 - correlation) distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
-            as.dist(1 - .federateSSCP(loginFD=loginFD, logins=logins, 
-                                      funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                      byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)/(length(queryvariables[[i]])-1))
+            xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                                 funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                 byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+            return (as.dist(1 - xxi$sscp/(length(xxi$var)-1)))
         })
     } else if (metric == "euclidean"){
         ## compute Euclidean distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
-            as.dist(.toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
-                                               funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                               byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)))
+            xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                                 funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                 byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+            return (as.dist(.toEuclidean(xxi$sscp)))
         })
     }
     
@@ -1455,47 +1472,49 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
     logindata <- .decode.arg(logins)
     opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     
-    tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
-        
-        ## apply funcPreProc for preparation of querytables on opals
-        ## TODO: control hacking!
-        ## TODO: control identical colnames!
-        funcPreProc(conns=opals, symbol=querytables)
-        
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
-    }, error=function(e) {
-        print(paste0("DATA MAKING PROCESS: ", e))
-        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
-    })
-    
-    ## take variables (colnames)
-    queryvariables <- lapply(querytables, function(querytable) {
-        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
-    })
-    names(queryvariables) <- querytables
-    DSI::datashield.logout(opals)
+    # tryCatch({
+    #     ## take a snapshot of the current session
+    #     safe.objs <- .ls.all()
+    #     safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+    #     ## lock everything so no objects can be changed
+    #     .lock.unlock(safe.objs, lockBinding)
+    #     
+    #     ## apply funcPreProc for preparation of querytables on opals
+    #     ## TODO: control hacking!
+    #     ## TODO: control identical colnames!
+    #     funcPreProc(conns=opals, symbol=querytables)
+    #     
+    #     ## unlock back everything
+    #     .lock.unlock(safe.objs, unlockBinding)
+    #     ## get rid of any sneaky objects that might have been created in the filters as side effects
+    #     .cleanup(safe.objs)
+    # }, error=function(e) {
+    #     print(paste0("DATA MAKING PROCESS: ", e))
+    #     return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    # })
+    # 
+    # ## take variables (colnames)
+    # queryvariables <- lapply(querytables, function(querytable) {
+    #     DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    # })
+    # names(queryvariables) <- querytables
+    # DSI::datashield.logout(opals)
     
     if (metric == "correlation") {
         ## compute (1 - correlation) distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
-            as.dist(1 - .federateSSCP(loginFD=loginFD, logins=logins, 
-                                      funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                      byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)/(length(queryvariables[[i]])-1))
+            xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                                 funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                 byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+            return (as.dist(1 - xxi$sscp/(length(xxi$var)-1)))
         })
     } else if (metric == "euclidean"){
         ## compute Euclidean distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
-            as.dist(.toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
-                                               funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                               byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)))
+            xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                                 funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                 byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+            return (as.dist(.toEuclidean(xxi$sscp)))
         })
     }
     
@@ -1531,47 +1550,49 @@ testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk 
     logindata <- .decode.arg(logins)
     opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     
-    tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
-        
-        ## apply funcPreProc for preparation of querytables on opals
-        ## TODO: control hacking!
-        ## TODO: control identical colnames!
-        funcPreProc(conns=opals, symbol=querytables)
-        
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
-    }, error=function(e) {
-        print(paste0("DATA MAKING PROCESS: ", e))
-        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
-    })
-    
-    ## take variables (colnames)
-    queryvariables <- lapply(querytables, function(querytable) {
-        DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
-    })
-    names(queryvariables) <- querytables
-    DSI::datashield.logout(opals)
+    # tryCatch({
+    #     ## take a snapshot of the current session
+    #     safe.objs <- .ls.all()
+    #     safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+    #     ## lock everything so no objects can be changed
+    #     .lock.unlock(safe.objs, lockBinding)
+    #     
+    #     ## apply funcPreProc for preparation of querytables on opals
+    #     ## TODO: control hacking!
+    #     ## TODO: control identical colnames!
+    #     funcPreProc(conns=opals, symbol=querytables)
+    #     
+    #     ## unlock back everything
+    #     .lock.unlock(safe.objs, unlockBinding)
+    #     ## get rid of any sneaky objects that might have been created in the filters as side effects
+    #     .cleanup(safe.objs)
+    # }, error=function(e) {
+    #     print(paste0("DATA MAKING PROCESS: ", e))
+    #     return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    # })
+    # 
+    # ## take variables (colnames)
+    # queryvariables <- lapply(querytables, function(querytable) {
+    #     DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
+    # })
+    # names(queryvariables) <- querytables
+    # DSI::datashield.logout(opals)
     
     if (metric == "correlation") {
         ## compute (1 - correlation) distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
-            as.dist(1 - .federateSSCP(loginFD=loginFD, logins=logins, 
-                                      funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                      byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)/(length(queryvariables[[i]])-1))
+            xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                                 funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                 byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+            return (as.dist(1 - xxi$sscp/(length(xxi$var)-1)))
         })
     } else if (metric == "euclidean"){
         ## compute Euclidean distance between samples for each data table 
         XX <- lapply(1:ntab, function(i) {
-            as.dist(.toEuclidean(.federateSSCP(loginFD=loginFD, logins=logins, 
-                                               funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-                                               byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)))
+            xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                                 funcPreProc=funcPreProc, querytables=querytables, ind=i, 
+                                 byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
+            return (as.dist(.toEuclidean(xxi$sscp)))
         })
     }
     
