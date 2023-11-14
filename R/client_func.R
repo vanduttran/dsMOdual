@@ -474,7 +474,7 @@ matrix2DscFD <- function(value) {
         gc(reset=F)
     }
     
-    return (list(sscp=XXt, variables=variablenames))
+    return (list(sscp=XXt, variables=variablenames[[1]]))
 }
 
 
