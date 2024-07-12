@@ -7,12 +7,12 @@
 .lock.unlock(what, func)
 }
 \arguments{
-\item{what}{a list of  environments and their respective objects - the output of ls.all above}
+\item{what}{a list of  environments and their respective objects - the output of ls.all above.}
 
-\item{func}{a function, either lockBinding or unlockBinding}
+\item{func}{a function, either lockBinding or unlockBinding.}
 }
 \description{
-Locks or unlocks bindings in environments
+Locks or unlocks bindings in environments.
 See \code{dsSwissKnife:::.lock.unlock}.
 }
 \keyword{internal}

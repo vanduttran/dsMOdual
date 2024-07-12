@@ -9,7 +9,6 @@
   logins,
   funcPreProc,
   querytables,
-  ind = 1,
   byColumn = TRUE,
   scale = FALSE,
   chunk = 500,
@@ -30,13 +29,13 @@ symbol (name of the R symbol) (see datashield.assign).}
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{funcPreProc} are ignored.}
 
-\item{ind}{Index of table in querytables to compute SSCP. Default, ind = 1.}
-
 \item{byColumn}{A logical value indicating whether the input data is centered by column or row.
 Default, TRUE, centering by column. Constant variables across samples are removed. 
 If FALSE, centering and scaling by row. Constant samples across variables are removed.}
 
 \item{TOL}{Tolerance of 0}
+
+\item{ind}{Index of table in querytables to compute SSCP. Default, ind = 1.}
 }
 \description{
 Function for computing the federated SSCP matrix

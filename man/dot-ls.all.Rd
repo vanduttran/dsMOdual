@@ -7,13 +7,13 @@
 .ls.all(start = ".GlobalEnv")
 }
 \arguments{
-\item{start}{A character string of the environment (default .GlobalEnv)}
+\item{start}{A character string of the environment (default .GlobalEnv).}
 }
 \value{
-a list of environment names and the respective objects defined in each environment
+A list of environment names and the respective objects defined in each environment.
 }
 \description{
-\code{ls.all} returns all objects in all environments
+\code{ls.all} returns all objects in all environments.
 See \code{dsSwissKnife:::.ls.all}.
 }
 \keyword{internal}

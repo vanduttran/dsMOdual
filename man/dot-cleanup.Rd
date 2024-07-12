@@ -7,12 +7,12 @@
 .cleanup(initial, start = ".GlobalEnv")
 }
 \arguments{
-\item{start}{a character the environment name where to start (default .GlobalEnv)}
+\item{start}{a character the environment name where to start (default .GlobalEnv).}
 
-\item{what}{a list of  environments and their respective objects - the output of a previous call to ls.all}
+\item{what}{a list of  environments and their respective objects - the output of a previous call to ls.all.}
 }
 \description{
-This function removes objects from the current workspace
+This function removes objects from the current workspace.
 See \code{dsSwissKnife:::.cleanup}.
 }
 \keyword{internal}
