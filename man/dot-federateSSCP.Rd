@@ -13,6 +13,7 @@
   scale = FALSE,
   chunk = 500,
   mc.cores = 1,
+  width.cutoff = 500L,
   TOL = 1e-10
 )
 }
@@ -32,6 +33,8 @@ Other assigned R variables in \code{funcPreProc} are ignored.}
 \item{byColumn}{A logical value indicating whether the input data is centered by column or row.
 Default, TRUE, centering by column. Constant variables across samples are removed. 
 If FALSE, centering and scaling by row. Constant samples across variables are removed.}
+
+\item{width.cutoff}{Default, 500. See \code{deparse1}.}
 
 \item{TOL}{Tolerance of 0}
 

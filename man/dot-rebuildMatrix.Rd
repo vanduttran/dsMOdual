@@ -2,19 +2,19 @@
 % Please edit documentation in R/client_func.R
 \name{.rebuildMatrix}
 \alias{.rebuildMatrix}
-\title{Symmetric matrix reconstruction}
+\title{Matrix reconstruction}
 \usage{
 .rebuildMatrix(matblocks, mc.cores = 1)
 }
 \arguments{
-\item{matblocks}{List of lists of matrix blocks, obtained from .partitionMatrix}
+\item{matblocks}{List of lists of matrix blocks, obtained from .partitionMatrix.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+\item{mc.cores}{Number of cores for parallel computing. Default. 1.}
 }
 \value{
-The complete symmetric matrix
+The reconstructed matrix.
 }
 \description{
-Rebuild a matrix from its partition
+Rebuild a matrix from its partition.
 }
 \keyword{internal}

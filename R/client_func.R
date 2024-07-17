@@ -229,8 +229,9 @@ matrix2DscFD <- function(value) {
     ## NB: numerically imprecise: poseignum = min(Matrix::rankMatrix(B1), Matrix::rankMatrix(B2))
     ## this number of positive eigenvalues can upper-limitted by the number of variables, yet required as argument of the function .solveSSCP
     ## the following formula is empiric, based on the fact that errors of zero-value are random
-    poseignum <- min(Nmin+1, which(vals$XXt[1:Nmin]/(vals$XtX[1:Nmin]+.Machine$double.eps) < 0.99 |
-                                       vals$XtX[1:Nmin]/(vals$XXt[1:Nmin]+.Machine$double.eps) < 0.99)) - 1
+    poseignum <- min(Nmin+1,
+                     which(vals$XXt[1:Nmin]/(vals$XtX[1:Nmin]+.Machine$double.eps) < 0.99 |
+                               vals$XtX[1:Nmin]/(vals$XXt[1:Nmin]+.Machine$double.eps) < 0.99)) - 1
 
     vals <- mclapply(vals, mc.cores=length(vals), function(x) {
         x[(poseignum+1):length(x)] <- 0
@@ -258,13 +259,20 @@ matrix2DscFD <- function(value) {
     invisible(lapply(1:length(vecs), function(j) {
         vec <- vecs[[j]]
         cat("------", names(vecs)[j], "------\n")
-        cat("Determinant:", det(vec), "\n")
-        cat("Precision on v' = 1/v:", max(abs(t(vec) - solve(vec))), "\n")
-        cat("Precision on Norm_col = 1:", max(abs(apply(vec, 2, function(x) norm(as.matrix(x), "2")) - 1)), "\n")
-        cat("Precision on Norm_row = 1:", max(abs(apply(vec, 1, function(x) norm(as.matrix(x), "2")) - 1)), "\n")
-        cat("Precision on Orthogonal:", max(sapply(1:(ncol(vec)-1), function(i) {
-            max(sum(vec[i,] * vec[i+1,]), sum(vec[, i] * vec[, i+1]))
-        })), "\n")
+        cat("Determinant:",
+            det(vec), "\n")
+        cat("Precision on v' = 1/v:",
+            max(abs(t(vec) - solve(vec))), "\n")
+        cat("Precision on Norm_col = 1:",
+            max(abs(apply(vec, 2, function(x) norm(as.matrix(x), "2")) - 1)),
+            "\n")
+        cat("Precision on Norm_row = 1:",
+            max(abs(apply(vec, 1, function(x) norm(as.matrix(x), "2")) - 1)),
+            "\n")
+        cat("Precision on Orthogonal:",
+            max(sapply(1:(ncol(vec)-1), function(i) {
+                max(sum(vec[i,] * vec[i+1,]), sum(vec[, i] * vec[, i+1]))
+            })), "\n")
     }))
     
     ## solution S: X * r = vecB1 * E * S * vecB2' * r = Xr
@@ -366,8 +374,8 @@ matrix2DscFD <- function(value) {
                        ' --- ', datashield.errors(),
                        ' --- ', datashield.logout(opals)))
     })
+    .printTime(".federateSSCP Input data processed")
     
-    .printTime("Input data processed")
     ## compute XX' on opals
     tryCatch({
         ## center data
@@ -430,14 +438,13 @@ matrix2DscFD <- function(value) {
                                                   as.call(command),
                                                   async=T)
         .printTime("XX' communicated to FD: ")
-        ## names of XX'
-        tcrossProdNames <- querytables
+        
         ## rebuild XX'
         tcrossProdSelf <- lapply(tcrossProdSelfDSC, function(dscblocks) {
             tcps <- lapply(dscblocks, function(dscblocki) {
                 return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
             })
-            if (is.null(names(tcps))) names(tcps) <- tcrossProdNames
+            if (is.null(names(tcps))) names(tcps) <- querytables
             return (tcps)
         })
         gc(reset=F)
@@ -450,7 +457,8 @@ matrix2DscFD <- function(value) {
                        ' --- ', datashield.errors(),
                        ' --- ', datashield.logout(opals)))
     })
-
+    .printTime(".federateSSCP Single XX' communicated")
+    
     if (nNode==1) {
         XXt <- tcrossProdSelf[[1]]
         for (tab in querytables) {
@@ -466,9 +474,6 @@ matrix2DscFD <- function(value) {
                                            chunk=chunk)),
                               async=T)
         
-            #samplenames <- datashield.aggregate(opals, as.symbol("rowNames(centeredData)"), async=T)
-            #variablenames <- datashield.aggregate(opals[1], as.symbol("colNames(centeredData)"), async=T)
-            
             ##- received by each from other nodes ----
             prodDataCross <- lapply(names(opals), function(opn) {
                 ind.opn <- which(logindata$server == opn)
@@ -619,13 +624,9 @@ matrix2DscFD <- function(value) {
                     return (prodDataCross.opn)
                 }, error = function(e) {
                     print(paste0("CROSS PROCESS: ", e))
-                    datashield.assign(opals[opn], 'crossEnd',
-                                      as.symbol("crossLogout(mates)"),
-                                      async=T)
                     return (paste0("CROSS PROCESS: ", e,
                                    ' --- ', datashield.symbols(opals[opn]),
-                                   ' --- ', datashield.errors(),
-                                   ' --- ', datashield.logout(opals[opn])))
+                                   ' --- ', datashield.errors()))
                 }, finally = {
                     datashield.assign(opals[opn], 'crossEnd',
                                       as.symbol("crossLogout(mates)"),
@@ -635,23 +636,12 @@ matrix2DscFD <- function(value) {
             names(prodDataCross) <- names(opals)
             ##-----
             
-            # datashield.assign(opals, 'FD',
-            #                   as.symbol(paste0("crossLogin('", loginFD, "')")),
-            #                   async=T)
             tryCatch({
                 # command <- paste0("crossAggregate(FD, '", 
                 #                   .encode.arg(paste0("as.call(list(as.symbol('garbageCollect')", "))")), 
                 #                   "', async=T)")
                 # cat("Command: ", command, "\n")
                 # datashield.assign(opals, "GC", as.symbol(command), async=T)
-                
-                ## (X_i) * (X_i)': push this symmetric matrix from each node to FD
-                # cat("Command: pushToDscFD(FD, tcrossProdSelf)", "\n")
-                # tcrossProdSelfDSC <- datashield.aggregate(opals, as.symbol("pushToDscFD(FD, 'tcrossProdSelf')"), async=T)
-                # tcrossProdSelf <- mclapply(tcrossProdSelfDSC, mc.cores=mc.cores, function(dscblocks) {
-                #     return (.rebuildMatrixDsc(dscblocks))
-                # })
-                # .printTime(".federateSSCP XX' communicated to FD")
                 
                 ## send the single-column matrix from opals to FD
                 ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
@@ -667,65 +657,96 @@ matrix2DscFD <- function(value) {
                 singularProdCrossDSC <- datashield.aggregate(opals,
                                                              as.call(command),
                                                              async=T)
-                singularProdCross <- mclapply(singularProdCrossDSC,
-                                              mc.cores=mc.cores,
-                                              function(dscbigmatrix) {
-                    dscMatList <- lapply(dscbigmatrix, function(dsc) {
-                        dscMat <- do.call(rbind, lapply(dsc, function(dsci) {
-                            return (matrix(as.matrix(attach.big.matrix(dsci[[1]])), ncol=1))
-                        }))
-                        stopifnot(ncol(dscMat)==1)
-                        return (dscMat)
+                singularProdCross <- lapply(singularProdCrossDSC, function(dscspc) {
+                    lapply(dscspc, function(dscblocks) {
+                        spcs <- lapply(dscblocks, function(dscblocki) {
+                            return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
+                        })
+                        if (is.null(names(spcs))) names(spcs) <- querytables
+                        return (spcs)
                     })
-                    return (dscMatList)
                 })
-                .printTime(".federateSSCP Ar communicated to FD")
                 gc(reset=F)
-            },
-            error = function(e) print(paste0("FD PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
-            finally = datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
-        },
-        error = function(e) print(paste0("XX' PROCESS MULTIPLE: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors())),
-        finally = datashield.logout(opals))
+                .printTime(".federateSSCP Ar communicated to FD")
+            }, error = function(e) {
+                print(paste0("FD PROCESS MULTIPLE: ", e))
+                return (paste0("FD PROCESS MULTIPLE: ", e,
+                               ' --- ', datashield.symbols(opals),
+                               ' --- ', datashield.errors()))
+            }, finally = {
+                datashield.assign(opals, 'crossEnd',
+                                  as.symbol("crossLogout(FD)"), async=T)
+            })
+        }, error = function(e) {
+            print(paste0("XX' PROCESS MULTIPLE: ", e))
+            return (paste0("XX' PROCESS MULTIPLE: ", e,
+                           ' --- ', datashield.symbols(opals),
+                           ' --- ', datashield.errors()))
+        }, finally = {
+            datashield.logout(opals)
+        })
         
         ## deduced from received info by federation: (X_i) * (X_j)'
-        crossProductPair <- mclapply(1:(nNode-1), mc.cores=mc.cores, function(opi) {
-            crossi <- lapply((opi+1):(nNode), function(opj) {
-                opni <- names(opals)[opi]
-                opnj <- names(opals)[opj]
-                a1 <- .solveSSCP(XXt=prodDataCross[[opnj]][[opni]],
-                                 XtX=prodDataCross[[opni]][[opnj]],
-                                 r=tcrossProdSelf[[opnj]][, 1, drop=F],
-                                 Xr=singularProdCross[[opni]][[opnj]],
-                                 TOL=TOL)
-                a2 <- .solveSSCP(XXt=prodDataCross[[opni]][[opnj]],
-                                 XtX=prodDataCross[[opnj]][[opni]],
-                                 r=tcrossProdSelf[[opni]][, 1, drop=F],
-                                 Xr=singularProdCross[[opnj]][[opni]],
-                                 TOL=TOL)
-                cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))),  " / (", quantile(abs(a1)), ")\n")
-                return (a1)
-            })
-            names(crossi) <- names(opals)[(opi+1):(nNode)]
-            return (crossi)
+        crossProductPair <- lapply(querytables, function(tab) {
+            cptab <- mclapply(
+                1:(nNode-1),
+                mc.cores=mc.cores,
+                function(opi) {
+                    crossi <- lapply((opi+1):(nNode), function(opj) {
+                        opni <- names(opals)[opi]
+                        opnj <- names(opals)[opj]
+                        a1 <- .solveSSCP(XXt=prodDataCross[[opnj]][[opni]][[tab]],
+                                         XtX=prodDataCross[[opni]][[opnj]][[tab]],
+                                         r=tcrossProdSelf[[opnj]][[tab]][, 1, drop=F],
+                                         Xr=singularProdCross[[opni]][[opnj]][[tab]],
+                                         TOL=TOL)
+                        a2 <- .solveSSCP(XXt=prodDataCross[[opni]][[opnj]][[tab]],
+                                         XtX=prodDataCross[[opnj]][[opni]][[tab]],
+                                         r=tcrossProdSelf[[opni]][[tab]][, 1, drop=F],
+                                         Xr=singularProdCross[[opnj]][[opni]][[tab]],
+                                         TOL=TOL)
+                        cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))),
+                            " / (", quantile(abs(a1)), ")\n")
+                        return (a1)
+                    })
+                    names(crossi) <- names(opals)[(opi+1):(nNode)]
+                    return (crossi)
+                })
+            names(cptab) <- names(opals)[1:(nNode-1)]
+            return (cptab)
         })
-        names(crossProductPair) <- names(opals)[1:(nNode-1)]
+        names(crossProductPair) <- querytables
         .printTime(".federateSSCP XY' computed")
         
         ## SSCP whole matrix
-        XXt <- do.call(rbind, mclapply(1:nNode, mc.cores=mc.cores, function(opi) {
-            upper.opi <- do.call(cbind, as.list(crossProductPair[[names(opals)[opi]]]))
-            lower.opi <- do.call(cbind, lapply(setdiff(1:opi, opi), function(opj) {
-                t(crossProductPair[[names(opals)[opj]]][[names(opals)[opi]]])
-            }))
-            return (cbind(lower.opi, tcrossProdSelf[[opi]], upper.opi))
-        }))
-        rownames(XXt) <- colnames(XXt) <- unlist(samplenames[names(opals)], use.names=F)
+        XXt <- lapply(querytables, function(tab) {
+            XXt.tab <- do.call(rbind, mclapply(
+                1:nNode,
+                mc.cores=mc.cores,
+                function(opi) {
+                    upper.opi <- do.call(cbind, as.list(
+                        crossProductPair[[tab]][[names(opals)[opi]]]))
+                    lower.opi <- do.call(cbind, lapply(
+                        setdiff(1:opi, opi),
+                        function(opj) {
+                            t(crossProductPair[[tab]][[names(opals)[opj]]][[
+                                names(opals)[opi]]])
+                        }))
+                    return (cbind(lower.opi,
+                                  tcrossProdSelf[[opi]][[tab]],
+                                  upper.opi))
+                }))
+            rownames(XXt.tab) <- colnames(XXt.tab) <- 
+                unlist(samples, use.names=F)
+    
+            return (XXt.tab)
+        })
+        names(XXt) <- querytables
         .printTime(".federateSSCP whole XX' computed")
         gc(reset=F)
     }
     
-    return (list(sscp=XXt, variables=variablenames[[1]]))
+    return (list(sscp=XXt, variables=variables))
 }
 
 
