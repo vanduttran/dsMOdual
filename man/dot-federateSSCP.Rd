@@ -14,7 +14,8 @@
   chunk = 500,
   mc.cores = 1,
   width.cutoff = 500L,
-  TOL = 1e-10
+  TOL = 1e-10,
+  connRes = FALSE
 )
 }
 \arguments{
@@ -36,7 +37,9 @@ If FALSE, centering and scaling by row. Constant samples across variables are re
 
 \item{width.cutoff}{Default, 500. See \code{deparse1}.}
 
-\item{TOL}{Tolerance of 0}
+\item{TOL}{Tolerance of 0.}
+
+\item{connRes}{A logical value indicating if the connection to \code{logins} is returned. Default, no.}
 
 \item{ind}{Index of table in querytables to compute SSCP. Default, ind = 1.}
 }
