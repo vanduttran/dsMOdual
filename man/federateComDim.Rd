@@ -35,9 +35,10 @@ Only "none" is considered in this version.}
   "none" :  no weighting of the tables - (default) \cr
 "uniform": weighting to set the table at the same inertia \cr}
 
-\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned.
+Default, 500.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1.}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
 \item{threshold}{if the difference of fit<threshold then break the iterative loop (default 1E-10)}
 }
