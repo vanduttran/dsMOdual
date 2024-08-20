@@ -7,7 +7,7 @@
 .toEuclidean(XXt)
 }
 \arguments{
-\item{XXt}{An SSCP matrix XX'}
+\item{XXt}{An SSCP matrix XX'.}
 }
 \value{
 Euclidean distance

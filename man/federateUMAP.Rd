@@ -38,5 +38,6 @@ For correlation-based distance, the data from each cohort will be centered scale
 A matrix of optimized coordinates.
 }
 \description{
-Function for UMAP federated analysis on the virtual cohort combining multiple cohorts
+Function for UMAP federated analysis on the virtual cohort
+combining multiple cohorts
 }

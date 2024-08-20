@@ -5,7 +5,7 @@
 #'  There's a corresponding function in the server package called .decode.arg.
 #'  See \code{dsSwissKnifeClient:::.encode.arg}.
 #' @param some.object the object to be encoded
-#' @return encoded text with offending characters replaced by strings
+#' @returns encoded text with offending characters replaced by strings
 #' @importFrom RCurl base64Encode
 #' @importFrom jsonlite serializeJSON toJSON
 #' @keywords internal
@@ -32,7 +32,7 @@
 #' See \code{dsSwissKnife:::.decode.arg}.
 #' @details It looks for the string 'base64' in the argument to determine if it's encoded.
 #' @param some.thing the thing to be decoded and deserialized from json if necessary.
-#' @return the decoded and deserialized argument
+#' @returns the decoded and deserialized argument
 #' @importFrom jsonlite unserializeJSON fromJSON
 #' @importFrom RCurl base64Decode
 #' @keywords internal
@@ -64,7 +64,7 @@
 #' @title Wrapper of datashield.login
 #' @description This function ensures datashield.login to all the servers without error of simultaneously connecting to the same server.
 #' @param logins A data frame of login information. See \code{datashield.login}.
-#' @return Object(s) of class DSConnection
+#' @returns Object(s) of class DSConnection
 #' @importFrom DSI datashield.login datashield.logout
 #' @import DSOpal
 #' @keywords internal
@@ -98,7 +98,7 @@
 #' @description \code{ls.all} returns all objects in all environments.
 #' See \code{dsSwissKnife:::.ls.all}.
 #' @param start A character string of the environment (default .GlobalEnv).
-#' @return A list of environment names and the respective objects defined in each environment.
+#' @returns A list of environment names and the respective objects defined in each environment.
 #' @keywords internal
 .ls.all <- function(start = '.GlobalEnv'){
     envir <- get(start)
