@@ -32,7 +32,7 @@ Other assigned R variables in \code{func} are ignored.}
 Only "none" is considered in this version.}
 
 \item{option}{weighting of te tables \cr
-  "none" :  no weighting of the tables - (default) \cr
+  "none" : no weighting of the tables - (default) \cr
 "uniform": weighting to set the table at the same inertia \cr}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
@@ -46,6 +46,6 @@ Default, 500.}
 A \code{ComDim} object. See \code{MBAnalysis::ComDim}.
 }
 \description{
-Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
-Finding common dimensions in multitable data (Xk, k=1...K)
+Function for ComDim federated analysis on the virtual cohort
+combining multiple cohorts: finding common dimensions in multiblock data.
 }

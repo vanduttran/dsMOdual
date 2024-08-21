@@ -41,4 +41,3 @@ If FALSE, centering and scaling by row. Constant samples across variables are re
 \description{
 Deprecated
 }
-\keyword{internal}

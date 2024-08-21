@@ -15,6 +15,7 @@ Imports: RCurl, jsonlite, Matrix, arrow, bigmemory, parallel, SNFtool, uwot, dbs
 Suggests: dsSwissKnifeClient
 Description: Server side functions on XX' sum of squares and cross products matrices.
 AggregateMethods:
+    testSSCP,
     matrix2DscFD,
     federateComDim,
     federateSNF,

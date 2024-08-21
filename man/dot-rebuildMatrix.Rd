@@ -7,9 +7,10 @@
 .rebuildMatrix(matblocks, mc.cores = 1)
 }
 \arguments{
-\item{matblocks}{List of lists of matrix blocks, obtained from .partitionMatrix.}
+\item{matblocks}{List of lists of matrix blocks, obtained from
+.partitionMatrix.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default. 1.}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }
 \value{
 The reconstructed matrix.

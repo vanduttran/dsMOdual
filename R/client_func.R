@@ -36,7 +36,7 @@ matrix2DscFD <- function(value) {
     #tcp <- .decode.arg(valued)
     #tcp <- do.call(rbind, .decode.arg(valued))
     tcp <- as.matrix(read_ipc_stream(.decode.arg(value)))
-    print(tcp)
+    #print(tcp)
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     rm(list=c("tcp"))
     return (dscbigmatrix)
@@ -75,24 +75,28 @@ matrix2DscFD <- function(value) {
 
 #' @title Matrix reconstruction
 #' @description Rebuild a matrix from its partition.
-#' @param matblocks List of lists of matrix blocks, obtained from .partitionMatrix.
-#' @param mc.cores Number of cores for parallel computing. Default. 1.
+#' @param matblocks List of lists of matrix blocks, obtained from
+#' .partitionMatrix.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns The reconstructed matrix.
 #' @importFrom parallel mclapply
 #' @keywords internal
 .rebuildMatrix <- function(matblocks, mc.cores = 1) {
     uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
     ## combine the blocks into one matrix
-    if (length(uptcp)>1) {
+    if (length(uptcp) > 1) {
         if (length(unique(sapply(uptcp, ncol)))==1) {
             tcp <- do.call(rbind, uptcp)
         } else {
             ## without the first layer of blocks
-            no1tcp <- mclapply(2:length(uptcp), mc.cores=mc.cores, function(i) {
-                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-                    t(matblocks[[j]][[i-j+1]])
-                })), uptcp[[i]])
-            })
+            no1tcp <- mclapply(
+                2:length(uptcp),
+                mc.cores=mc.cores,
+                function(i) {
+                    cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+                        t(matblocks[[j]][[i-j+1]])
+                    })), uptcp[[i]])
+                })
             ## with the first layer of blocks
             tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
             rm(list=c("no1tcp"))
@@ -166,6 +170,7 @@ matrix2DscFD <- function(value) {
     return (tcp)
 }
 
+
 #' @title Symmetric matrix reconstruction
 #' @description Rebuild a symmetric matrix from its partition bigmemory objects
 #' @param dscblocks List of lists of bigmemory objects pointed to matrix blocks
@@ -187,7 +192,8 @@ matrix2DscFD <- function(value) {
 
 
 #' @title Euclidean distance
-#' @description Transform XX' matrix into Euclidean between samples (rows) in X
+#' @description Transform XX' matrix into Euclidean distance between samples
+#' (rows) in X
 #' @param XXt An SSCP matrix XX'.
 #' @returns Euclidean distance
 #' @keywords internal
@@ -495,7 +501,7 @@ matrix2DscFD <- function(value) {
         })
         gc(reset=F)
     }, error = function(e) {
-        print(paste0("SSCP PUSH PROCESS: ", e))
+        .printTime(paste0("SSCP PUSH PROCESS: ", e))
         datashield.assign(opals, 'crossEnd',
                           as.symbol("crossLogout(FD)"), async=T)
         return (paste0("SSCP PUSH PROCESS: ", e,
@@ -654,7 +660,7 @@ matrix2DscFD <- function(value) {
                         .printTime(paste0(".federateSSCP XY'YX' tripleProd
                                           communicated to FD: ", opn))
                     }, error = function(e) {
-                        print(paste0("CROSS SSCP PUSH PROCESS: ", e))
+                        .printTime(paste0("CROSS SSCP PUSH PROCESS: ", e))
                         return (paste0("CROSS SSCP PUSH PROCESS: ", e,
                                        ' --- ', datashield.symbols(opals[opn]),
                                        ' --- ', datashield.errors()))
@@ -670,7 +676,7 @@ matrix2DscFD <- function(value) {
                     })
                     return (prodDataCross.opn)
                 }, error = function(e) {
-                    print(paste0("CROSS PROCESS: ", e))
+                    .printTime(paste0("CROSS PROCESS: ", e))
                     return (paste0("CROSS PROCESS: ", e,
                                    ' --- ', datashield.symbols(opals[opn]),
                                    ' --- ', datashield.errors()))
@@ -718,7 +724,7 @@ matrix2DscFD <- function(value) {
                 gc(reset=F)
                 .printTime(".federateSSCP Ar communicated to FD")
             }, error = function(e) {
-                print(paste0("FD PROCESS MULTIPLE: ", e))
+                .printTime(paste0("FD PROCESS MULTIPLE: ", e))
                 datashield.assign(opals, 'crossEnd',
                                   as.symbol("crossLogout(FD)"), async=T)
                 return (paste0("FD PROCESS MULTIPLE: ", e,
@@ -727,7 +733,7 @@ matrix2DscFD <- function(value) {
                                ' --- ', datashield.logout(opals)))
             })
         }, error = function(e) {
-            print(paste0("XX' PROCESS MULTIPLE: ", e))
+            .printTime(paste0("XX' PROCESS MULTIPLE: ", e))
             return (paste0("XX' PROCESS MULTIPLE: ", e,
                            ' --- ', datashield.symbols(opals),
                            ' --- ', datashield.errors(),
@@ -809,8 +815,8 @@ matrix2DscFD <- function(value) {
 
 
 #' @title Federated ComDim
-#' @description Function for ComDim federated analysis on the virtual cohort combining multiple cohorts
-#' Finding common dimensions in multitable data (Xk, k=1...K)
+#' @description Function for ComDim federated analysis on the virtual cohort
+#' combining multiple cohorts: finding common dimensions in multiblock data.
 #' @usage federateComDim(loginFD, logins, func, symbol,
 #' ncomp = 2,
 #' scale = "none",
@@ -831,7 +837,7 @@ matrix2DscFD <- function(value) {
 #' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table. 
 #' Only "none" is considered in this version.
 #' @param option weighting of te tables \cr
-#'        "none" :  no weighting of the tables - (default) \cr
+#'        "none" : no weighting of the tables - (default) \cr
 #'      "uniform": weighting to set the table at the same inertia \cr
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
 #' Default, 500.
@@ -1152,16 +1158,16 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2,
                          y=as.symbol("pushed_FD"),
                          chunk=chunk)),
             async=T)
-        ## send loadings to FD
+        ## send loadings from opals to FD
         command <- list(as.symbol("pushToDscFD"),
                         as.symbol("FD"),
                         as.symbol("loadings"),
                         async=T)
-        cat("Command: pushToDscFD(FD, 'loadings')", "\n")
+        cat("Command: pushToDscFD(FD, loadings)", "\n")
         loadingsDSC <- datashield.aggregate(opals, as.call(command), async=T)
         .printTime("federatedComDim Loadings communicated to FD")
     }, error = function(e) {
-        print(paste0("LOADING COMPUTATION PROCESS: ", e))
+        .printTime(paste0("LOADING COMPUTATION PROCESS: ", e))
         return (paste0("LOADING COMPUTATION PROCESS: ", e,
                        ' --- ', datashield.symbols(opals),
                        ' --- ', datashield.errors()))
@@ -1580,8 +1586,8 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @param TOL Tolerance of 0
 #' @import DSOpal parallel bigmemory
-# ' @export
-#' @keywords internal
+#' @export
+# #' @keywords internal
 testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk = 500, mc.cores = 1, TOL = 1e-10) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
