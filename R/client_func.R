@@ -378,7 +378,6 @@ matrix2DscFD <- function(value) {
 #' @param querytables Vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{funcPreProc} are ignored.
-#' @param ind Index of table in querytables to compute SSCP. Default, ind = 1.
 #' @param byColumn A logical value indicating whether the input data is centered by column or row.
 #' Default, TRUE, centering by column. Constant variables across samples are removed. 
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
@@ -1588,7 +1587,11 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' @import DSOpal parallel bigmemory
 #' @export
 # #' @keywords internal
-testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean', chunk = 500, mc.cores = 1, TOL = 1e-10) {
+testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean',
+                     chunk = 500, mc.cores = 1, TOL = 1e-10,
+                     width.cutoff = 500L, ...) {
+    .printTime("testSSCP started")
+    TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
