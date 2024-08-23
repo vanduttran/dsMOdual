@@ -201,10 +201,6 @@ matrix2DscFD <- function(value) {
     if (!isSymmetric(XXt) || any(rownames(XXt) != colnames(XXt)))
         stop('Input XXt (an SSCP matrix) should be symmetric.')
     .printTime("toEuclidean XXt started")
-    # print(class(XXt))
-    # print(dim(XXt))
-    # print(sum(XXt))
-    # print(XXt[1:3,1:3])
     #lowerTri <- cbind(do.call(cbind, mclapply(1:(ncol(XXt)-1), mc.cores=max(2, min(ncol(XXt)-1, detectCores())), function(i) {
     lowerTri <- cbind(do.call(cbind, lapply(1:(ncol(XXt)-1), function(i) {
         res <- sapply((i+1):ncol(XXt), function(j) {
@@ -227,7 +223,7 @@ matrix2DscFD <- function(value) {
 #' @param XXt XX'
 #' @param XtX X'X
 #' @param r A non-null vector of length \code{ncol(X'X)}
-#' @param Xr A vector of length \code{nrow(XX'}, equals to the product Xr
+#' @param Xr A vector of length \code{nrow(XX'}, equals to the product Xr.
 #' @param TOL Tolerance of 0
 #' @importFrom parallel mclapply
 #' @importFrom Matrix rankMatrix
@@ -372,20 +368,24 @@ matrix2DscFD <- function(value) {
 #' @description Function for computing the federated SSCP matrix
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
-#' @param funcPreProc Definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' @param funcPreProc Definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of DSConnection-classes), 
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param querytables Vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' @param querytables Vector of names of the R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{funcPreProc} are ignored.
-#' @param byColumn A logical value indicating whether the input data is centered by column or row.
-#' Default, TRUE, centering by column. Constant variables across samples are removed. 
-#' If FALSE, centering and scaling by row. Constant samples across variables are removed.
+#' @param byColumn A logical value indicating whether the input data is
+#' centered by column or row. Default, TRUE, centering by column, with constant
+#' variables across samples are removed. If FALSE, centering and scaling by
+#' row, with constant samples across variables are removed.
 #' @param width.cutoff Default, 500. See \code{deparse1}.
 #' @param TOL Tolerance of 0.
-#' @param connRes A logical value indicating if the connection to \code{logins} is returned. Default, no.
+#' @param connRes A logical value indicating if the connection to \code{logins}
+#' is returned. Default, FALSE, connections are closed.
 #' @importFrom parallel mclapply
-#' @importFrom DSI datashield.aggregate datashield.assign datashield.logout datashield.errors datashield.symbols
+#' @importFrom DSI datashield.aggregate datashield.assign datashield.logout
+#' datashield.errors datashield.symbols
 #' @keywords internal
 .federateSSCP <- function(loginFD, logins, funcPreProc, querytables,
                           byColumn = TRUE, scale = FALSE,
@@ -419,7 +419,7 @@ matrix2DscFD <- function(value) {
         ## filters as side effects
         .cleanup(safe.objs)
     }, error=function(e) {
-        print(paste0("DATA MAKING PROCESS: ", e))
+        .printTime(paste0("DATA MAKING PROCESS: ", e))
         return (paste0("DATA MAKING PROCESS: ", e,
                        ' --- ', datashield.symbols(opals),
                        ' --- ', datashield.errors(),
@@ -437,7 +437,11 @@ matrix2DscFD <- function(value) {
                                                 setNames(
                                                     lapply(querytables,
                                                            as.symbol),
-                                                    querytables))))),
+                                                    querytables))),
+                                    subset=NULL,
+                                    byColumn=byColumn,
+                                    scale=scale
+                                    )),
                           async=T)
         
         ## samples
@@ -470,7 +474,7 @@ matrix2DscFD <- function(value) {
                                            .encode.arg(loginFDdata), "')")),
                           async=T)
     }, error=function(e) {
-        print(paste0("SSCP MAKING PROCESS: ", e))
+        .printTime(paste0("SSCP MAKING PROCESS: ", e))
         return (paste0("SSCP MAKING PROCESS: ", e,
                        ' --- ', datashield.symbols(opals),
                        ' --- ', datashield.errors(),
@@ -485,7 +489,7 @@ matrix2DscFD <- function(value) {
                         as.symbol("FD"),
                         as.symbol("tcrossProdSelf"),
                         async=T)
-        cat("Command: pushToDscFD(FD, 'tcrossProdSelf')", "\n")
+        cat("Command: pushToDscFD(FD, tcrossProdSelf)", "\n")
         tcrossProdSelfDSC <- datashield.aggregate(opals,
                                                   as.call(command),
                                                   async=T)
@@ -816,24 +820,29 @@ matrix2DscFD <- function(value) {
 #' @title Federated ComDim
 #' @description Function for ComDim federated analysis on the virtual cohort
 #' combining multiple cohorts: finding common dimensions in multiblock data.
-#' @usage federateComDim(loginFD, logins, func, symbol,
-#' ncomp = 2,
-#' scale = "none",
-#' option = "uniform",
-#' chunk = 500,
-#' mc.cores = 1,
-#' threshold = 1e-10
-#' )
+#' @usage federateComDim(loginFD,
+#'                       logins,
+#'                       func,
+#'                       symbol,
+#'                       ncomp = 2,
+#'                       scale = "none",
+#'                       option = "uniform",
+#'                       chunk = 500,
+#'                       mc.cores = 1,
+#'                       width.cutoff = 500L,
+#'                       threshold = 1e-10)
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
-#' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' @param func Encoded definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of DSConnection-classes), 
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' @param symbol Encoded vector of names of the R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
 #' @param ncomp Number of common dimensions
-#' @param scale  either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table. 
+#' @param scale  either value "none" / "sd" indicating the same scaling for
+#' all tables or a vector of scaling ("none" / "sd") for each table. 
 #' Only "none" is considered in this version.
 #' @param option weighting of te tables \cr
 #'        "none" : no weighting of the tables - (default) \cr
@@ -841,12 +850,15 @@ matrix2DscFD <- function(value) {
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
 #' Default, 500.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
-#' @param threshold if the difference of fit<threshold then break the iterative loop (default 1E-10)
+#' @param threshold if the difference of fit<threshold then break the iterative
+#' loop (default 1E-10)
 #' @returns A \code{ComDim} object. See \code{MBAnalysis::ComDim}.
-#' @importFrom DSI datashield.logout datashield.errors datashield.symbols datashield.assign
+#' @importFrom DSI datashield.logout datashield.errors datashield.symbols
+#' datashield.assign
 #' @importFrom arrow write_to_raw
 #' @export
-federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2,
+federateComDim <- function(loginFD, logins, func, symbol,
+                           ncomp = 2,
                            scale = "none", option = "uniform",
                            chunk = 500, mc.cores = 1,
                            width.cutoff = 500L, threshold = 1e-10) {
@@ -1270,34 +1282,47 @@ federateComDim <- function(loginFD, logins, func, symbol, ncomp = 2,
 
 
 #' @title Federated SNF
-#' @description Function for SNF federated analysis on the virtual cohort combining multiple cohorts
-#' @usage federateSNF(loginFD, logins, func, symbol,
-#' metric = 'euclidean',
-#' K = 20,
-#' sigma = 0.5,
-#' t = 20,
-#' chunk = 500,
-#' mc.cores = 1)
+#' @description Function for SNF federated analysis on the virtual cohort
+#' combining multiple cohorts
+#' @usage federateSNF(loginFD,
+#'                    logins,
+#'                    func,
+#'                    symbol,
+#'                    metric = 'euclidean',
+#'                    K = 20,
+#'                    sigma = 0.5,
+#'                    t = 20,
+#'                    chunk = 500,
+#'                    mc.cores = 1,
+#'                    width.cutoff = 500L)
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
-#' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' @param func Encoded definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of DSConnection-classes), 
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' @param symbol Encoded vector of names of the R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param metric Either \code{euclidean} or \code{correlation} for distance metric between samples. 
-#' For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
-#' For correlation-based distance, the data from each cohort will be centered scaled for each sample.
-#' @param K Number of neighbors in K-nearest neighbors part of the algorithm, see \code{SNFtool::SNF}.
+#' @param metric Either \code{euclidean} or \code{correlation} for distance
+#' metric between samples. 
+#' For Euclidean distance, the data from each cohort will be centered (not
+#' scaled) for each variable.
+#' For correlation-based distance, the data from each cohort will be centered
+#' scaled for each sample.
+#' @param K Number of neighbors in K-nearest neighbors part of the algorithm,
+#' see \code{SNFtool::SNF}.
 #' @param sigma Variance for local model, see \code{SNFtool::affinityMatrix}.
-#' @param t Number of iterations for the diffusion process, see \code{SNFtool::SNF}.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
-#' @param mc.cores Number of cores for parallel computing. Default: 1.
+#' @param t Number of iterations for the diffusion process,
+#' see \code{SNFtool::SNF}.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns The overall status matrix derived W.
-#' @import SNFtool DSI
+#' @importFrom SNFtool SNF affinityMatrix
 #' @export
-federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean',
+federateSNF <- function(loginFD, logins, func, symbol,
+                        metric = "euclidean",
                         K = 20, sigma = 0.5, t = 20,
                         chunk = 500, mc.cores = 1,
                         width.cutoff = 500L) {
@@ -1307,7 +1332,7 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean',
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
-    metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
+    metric <- match.arg(metric, choices=c("euclidean", "correlation"))
     
     ## compute SSCP matrix for each centered data table
     XX_query <- .federateSSCP(loginFD=loginFD, logins=logins, 
@@ -1326,7 +1351,7 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean',
             .toEuclidean(XX_query$sscp[[i]])
         }
     })
-    names(XX) <- names(XX_query$sscp)
+    names(XX) <- querytables
     
     # if (metric == "correlation") {
     #     ## compute (1 - correlation) distance between samples for each data table 
@@ -1365,31 +1390,40 @@ federateSNF <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' @title Federated UMAP
 #' @description Function for UMAP federated analysis on the virtual cohort
 #' combining multiple cohorts
-#' @usage federateUMAP(loginFD, logins, func, symbol,
-#' metric = 'euclidean',
-#' chunk = 500,
-#' mc.cores = 1,
-#' ...
-#' )
+#' @usage federateUMAP(loginFD,
+#'                     logins,
+#'                     func,
+#'                     symbol,
+#'                     metric = 'euclidean',
+#'                     chunk = 500,
+#'                     mc.cores = 1,
+#'                     width.cutoff = 500L,
+#'                     ...)
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
-#' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' @param func Encoded definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of DSConnection-classes), 
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' @param symbol Encoded vector of names of the R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param metric Either \code{euclidean} or \code{correlation} for distance metric between samples. 
-#' For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
-#' For correlation-based distance, the data from each cohort will be centered scaled for each sample.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
-#' @param mc.cores Number of cores for parallel computing. Default: 1.
+#' @param metric Either \code{euclidean} or \code{correlation} for distance
+#' metric between samples. 
+#' For Euclidean distance, the data from each cohort will be centered (not
+#' scaled) for each variable.
+#' For correlation-based distance, the data from each cohort will be centered
+#' scaled for each sample.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @param ... see \code{uwot::umap}
 #' @returns A matrix of optimized coordinates.
-#' @import uwot DSI
-#' @importFrom "stats" "as.dist" "cor" "quantile" "setNames"
+#' @importFrom uwot umap
+#' @importFrom stats as.dist
 #' @export
-federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean',
+federateUMAP <- function(loginFD, logins, func, symbol,
+                         metric = "euclidean",
                          chunk = 500, mc.cores = 1,
                          width.cutoff = 500L, ...) {
     #require(DSOpal)
@@ -1398,7 +1432,7 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean',
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
-    metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
+    metric <- match.arg(metric, choices=c("euclidean", "correlation"))
 
     ## compute SSCP matrix for each centered data table
     XX_query <- .federateSSCP(loginFD=loginFD, logins=logins, 
@@ -1421,7 +1455,7 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean',
                 ))
         }
     })
-    names(XX) <- names(XX_query$sscp)
+    names(XX) <- querytables
     
     # if (metric == "correlation") {
     #     ## compute (1 - correlation) distance between samples for each data table 
@@ -1452,34 +1486,45 @@ federateUMAP <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 
 
 #' @title Federated hdbscan
-#' @description Function for hdbscan federated analysis on the virtual cohort combining multiple cohorts
-#' @usage federateHdbscan(loginFD, logins, func, symbol,
-#' metric = 'euclidean',
-#' minPts = 10,
-#' chunk = 500,
-#' mc.cores = 1,
-#' ...
-#' )
+#' @description Function for hdbscan federated analysis on the virtual cohort
+#' combining multiple cohorts
+#' @usage federateHdbscan(loginFD,
+#'                        logins,
+#'                        func,
+#'                        symbol,
+#'                        metric = 'euclidean',
+#'                        minPts = 10,
+#'                        chunk = 500,
+#'                        mc.cores = 1,
+#'                        width.cutoff = 500L,
+#'                        ...)
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
-#' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' @param func Encoded definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of DSConnection-classes), 
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' @param symbol Encoded vector of names of the R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param metric Either \code{euclidean} or \code{correlation} for distance metric between samples. 
-#' For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
-#' For correlation-based distance, the data from each cohort will be centered scaled for each sample.
-#' @param minPts Minimum size of clusters, see \code{dbscan::hdbscan}. Default: 10.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
-#' @param mc.cores Number of cores for parallel computing. Default: 1.
+#' @param metric Either \code{euclidean} or \code{correlation} for distance
+#' metric between samples. 
+#' For Euclidean distance, the data from each cohort will be centered (not
+#' scaled) for each variable.
+#' For correlation-based distance, the data from each cohort will be centered
+#' scaled for each sample.
+#' @param minPts Minimum size of clusters, see \code{dbscan::hdbscan}.
+#' Default, 10.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @param ... see \code{dbscan::hdbscan}
 #' @returns An object of class \code{hdbscan}.
-#' @import dbscan DSI
+#' @importFrom dbscan hdbscan
 #' @export
-federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
-                            minPts = 10, chunk = 500, mc.cores = 1,
+federateHdbscan <- function(loginFD, logins, func, symbol,
+                            metric = "euclidean", minPts = 10, 
+                            chunk = 500, mc.cores = 1,
                             width.cutoff = 500L, ...) {
     #require(DSOpal)
     .printTime("federateHdbscan started")
@@ -1487,37 +1532,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
-    metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
-    # logindata <- .decode.arg(logins)
-    # opals <- .login(logins=logindata) #datashield.login(logins=logindata)
-    # 
-    # tryCatch({
-    #     ## take a snapshot of the current session
-    #     safe.objs <- .ls.all()
-    #     safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-    #     ## lock everything so no objects can be changed
-    #     .lock.unlock(safe.objs, lockBinding)
-    #     
-    #     ## apply funcPreProc for preparation of querytables on opals
-    #     ## TODO: control hacking!
-    #     ## TODO: control identical colnames!
-    #     funcPreProc(conns=opals, symbol=querytables)
-    #     
-    #     ## unlock back everything
-    #     .lock.unlock(safe.objs, unlockBinding)
-    #     ## get rid of any sneaky objects that might have been created in the filters as side effects
-    #     .cleanup(safe.objs)
-    # }, error=function(e) {
-    #     print(paste0("DATA MAKING PROCESS: ", e))
-    #     return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
-    # })
-    # 
-    # ## take variables (colnames)
-    # queryvariables <- lapply(querytables, function(querytable) {
-    #     DSI::datashield.aggregate(opals[1], as.symbol(paste0('colNames(', querytable, ')')), async=F)[[1]]
-    # })
-    # names(queryvariables) <- querytables
-    # DSI::datashield.logout(opals)
+    metric <- match.arg(metric, choices=c("euclidean", "correlation"))
     
     ## compute SSCP matrix for each centered data table
     XX_query <- .federateSSCP(loginFD=loginFD, logins=logins, 
@@ -1540,7 +1555,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
             ))
         }
     })
-    names(XX) <- names(XX_query$sscp)
+    names(XX) <- querytables
     
     # if (metric == "correlation") {
     #     ## compute (1 - correlation) distance between samples for each data table 
@@ -1572,10 +1587,12 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' @description Deprecated
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
-#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' @param func Encoded definition of a function for preparation of raw data
+#' matrices. 
 #' Two arguments are required: conns (list of DSConnection-classes), 
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param symbol Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' @param symbol Encoded vector of names of the R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
 #' @param byColumn A logical value indicating whether the input data is centered by column or row.
@@ -1584,18 +1601,19 @@ federateHdbscan <- function(loginFD, logins, func, symbol, metric = 'euclidean',
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500
 #' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @param TOL Tolerance of 0
-#' @import DSOpal parallel bigmemory
 #' @export
 # #' @keywords internal
-testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean',
+testSSCP <- function(loginFD, logins, func, symbol,
+                     metric = "euclidean",
                      chunk = 500, mc.cores = 1, TOL = 1e-10,
                      width.cutoff = 500L, ...) {
+    #require(DSOpal)
     .printTime("testSSCP started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
-    metric <- match.arg(metric, choices=c('euclidean', 'correlation'))
+    metric <- match.arg(metric, choices=c("euclidean", "correlation"))
     
     ## compute SSCP matrix for each centered data table
     XX_query <- .federateSSCP(loginFD=loginFD, logins=logins, 
@@ -1618,7 +1636,7 @@ testSSCP <- function(loginFD, logins, func, symbol, metric = 'euclidean',
             ))
         }
     })
-    names(XX) <- names(XX_query$sscp)
+    names(XX) <- querytables
     
     # if (metric == "correlation") {
     #     ## compute (1 - correlation) distance between samples for each data table 
