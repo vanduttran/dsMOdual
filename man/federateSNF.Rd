@@ -4,44 +4,56 @@
 \alias{federateSNF}
 \title{Federated SNF}
 \usage{
-federateSNF(loginFD, logins, func, symbol,
-metric = 'euclidean',
-K = 20,
-sigma = 0.5,
-t = 20,
-chunk = 500,
-mc.cores = 1)
+federateSNF(loginFD,
+                   logins,
+                   func,
+                   symbol,
+                   metric = 'euclidean',
+                   K = 20,
+                   sigma = 0.5,
+                   t = 20,
+                   chunk = 500,
+                   mc.cores = 1,
+                   width.cutoff = 500L)
 }
 \arguments{
 \item{loginFD}{Login information of the FD server}
 
 \item{logins}{Login information of data repositories}
 
-\item{func}{Encoded definition of a function for preparation of raw data matrices. 
-Two arguments are required: conns (list of DSConnection-classes), 
+\item{func}{Encoded definition of a function for preparation of raw data
+matrices. Two arguments are required: conns (list of DSConnection-classes), 
 symbol (name of the R symbol) (see datashield.assign).}
 
-\item{symbol}{Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+\item{symbol}{Encoded vector of names of the R symbols to assign in the
+DataSHIELD R session on each server in \code{logins}.
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{func} are ignored.}
 
-\item{metric}{Either \code{euclidean} or \code{correlation} for distance metric between samples. 
-For Euclidean distance, the data from each cohort will be centered (not scaled) for each variable.
-For correlation-based distance, the data from each cohort will be centered scaled for each sample.}
+\item{metric}{Either \code{euclidean} or \code{correlation} for distance
+metric between samples. 
+For Euclidean distance, the data from each cohort will be centered (not
+scaled) for each variable.
+For correlation-based distance, the data from each cohort will be centered
+scaled for each sample.}
 
-\item{K}{Number of neighbors in K-nearest neighbors part of the algorithm, see \code{SNFtool::SNF}.}
+\item{K}{Number of neighbors in K-nearest neighbors part of the algorithm,
+see \code{SNFtool::SNF}.}
 
 \item{sigma}{Variance for local model, see \code{SNFtool::affinityMatrix}.}
 
-\item{t}{Number of iterations for the diffusion process, see \code{SNFtool::SNF}.}
+\item{t}{Number of iterations for the diffusion process,
+see \code{SNFtool::SNF}.}
 
-\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned.
+Default, 500.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1.}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }
 \value{
 The overall status matrix derived W.
 }
 \description{
-Function for SNF federated analysis on the virtual cohort combining multiple cohorts
+Function for SNF federated analysis on the virtual cohort
+combining multiple cohorts
 }

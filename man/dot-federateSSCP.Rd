@@ -23,25 +23,26 @@
 
 \item{logins}{Login information of data repositories}
 
-\item{funcPreProc}{Definition of a function for preparation of raw data matrices. 
-Two arguments are required: conns (list of DSConnection-classes), 
+\item{funcPreProc}{Definition of a function for preparation of raw data
+matrices. Two arguments are required: conns (list of DSConnection-classes), 
 symbol (name of the R symbol) (see datashield.assign).}
 
-\item{querytables}{Vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+\item{querytables}{Vector of names of the R symbols to assign in the
+DataSHIELD R session on each server in \code{logins}.
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{funcPreProc} are ignored.}
 
-\item{byColumn}{A logical value indicating whether the input data is centered by column or row.
-Default, TRUE, centering by column. Constant variables across samples are removed. 
-If FALSE, centering and scaling by row. Constant samples across variables are removed.}
+\item{byColumn}{A logical value indicating whether the input data is
+centered by column or row. Default, TRUE, centering by column, with constant
+variables across samples are removed. If FALSE, centering and scaling by
+row, with constant samples across variables are removed.}
 
 \item{width.cutoff}{Default, 500. See \code{deparse1}.}
 
 \item{TOL}{Tolerance of 0.}
 
-\item{connRes}{A logical value indicating if the connection to \code{logins} is returned. Default, no.}
-
-\item{ind}{Index of table in querytables to compute SSCP. Default, ind = 1.}
+\item{connRes}{A logical value indicating if the connection to \code{logins}
+is returned. Default, FALSE, connections are closed.}
 }
 \description{
 Function for computing the federated SSCP matrix

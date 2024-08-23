@@ -4,31 +4,36 @@
 \alias{federateComDim}
 \title{Federated ComDim}
 \usage{
-federateComDim(loginFD, logins, func, symbol,
-ncomp = 2,
-scale = "none",
-option = "uniform",
-chunk = 500,
-mc.cores = 1,
-threshold = 1e-10
-)
+federateComDim(loginFD,
+                      logins,
+                      func,
+                      symbol,
+                      ncomp = 2,
+                      scale = "none",
+                      option = "uniform",
+                      chunk = 500,
+                      mc.cores = 1,
+                      width.cutoff = 500L,
+                      threshold = 1e-10)
 }
 \arguments{
 \item{loginFD}{Login information of the FD server}
 
 \item{logins}{Login information of data repositories}
 
-\item{func}{Encoded definition of a function for preparation of raw data matrices. 
-Two arguments are required: conns (list of DSConnection-classes), 
+\item{func}{Encoded definition of a function for preparation of raw data
+matrices. Two arguments are required: conns (list of DSConnection-classes), 
 symbol (name of the R symbol) (see datashield.assign).}
 
-\item{symbol}{Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+\item{symbol}{Encoded vector of names of the R symbols to assign in the
+DataSHIELD R session on each server in \code{logins}.
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{func} are ignored.}
 
 \item{ncomp}{Number of common dimensions}
 
-\item{scale}{either value "none" / "sd" indicating the same scaling for all tables or a vector of scaling ("none" / "sd") for each table. 
+\item{scale}{either value "none" / "sd" indicating the same scaling for
+all tables or a vector of scaling ("none" / "sd") for each table. 
 Only "none" is considered in this version.}
 
 \item{option}{weighting of te tables \cr
@@ -40,7 +45,8 @@ Default, 500.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
-\item{threshold}{if the difference of fit<threshold then break the iterative loop (default 1E-10)}
+\item{threshold}{if the difference of fit<threshold then break the iterative
+loop (default 1E-10)}
 }
 \value{
 A \code{ComDim} object. See \code{MBAnalysis::ComDim}.

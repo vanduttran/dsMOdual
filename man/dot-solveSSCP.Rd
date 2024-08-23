@@ -13,7 +13,7 @@
 
 \item{r}{A non-null vector of length \code{ncol(X'X)}}
 
-\item{Xr}{A vector of length \code{nrow(XX'}, equals to the product Xr}
+\item{Xr}{A vector of length \code{nrow(XX'}, equals to the product Xr.}
 
 \item{TOL}{Tolerance of 0}
 }

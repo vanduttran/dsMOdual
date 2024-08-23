@@ -12,7 +12,9 @@ testSSCP(
   metric = "euclidean",
   chunk = 500,
   mc.cores = 1,
-  TOL = 1e-10
+  TOL = 1e-10,
+  width.cutoff = 500L,
+  ...
 )
 }
 \arguments{
@@ -20,11 +22,13 @@ testSSCP(
 
 \item{logins}{Login information of data repositories}
 
-\item{func}{Encoded definition of a function for preparation of raw data matrices. 
+\item{func}{Encoded definition of a function for preparation of raw data
+matrices. 
 Two arguments are required: conns (list of DSConnection-classes), 
 symbol (name of the R symbol) (see datashield.assign).}
 
-\item{symbol}{Encoded vector of names of the R symbols to assign in the Datashield R session on each server in \code{logins}.
+\item{symbol}{Encoded vector of names of the R symbols to assign in the
+DataSHIELD R session on each server in \code{logins}.
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{func} are ignored.}
 
