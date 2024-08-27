@@ -1176,6 +1176,17 @@ federateComDim <- function(loginFD, logins, func, symbol,
                         async=T)
         cat("Command: pushToDscFD(FD, loadings)", "\n")
         loadingsDSC <- datashield.aggregate(opals, as.call(command), async=T)
+        loadingsLoc <- lapply(loadingsDSC, function(dscblocks) {
+            cps <- lapply(names(dscblocks), function(dscn) {
+                cpsi <- .rebuildMatrixDsc(dscblocks[[dscn]], mc.cores=mc.cores)
+                colnames(cpsi) <- paste0("Comp.", 1:ncomp)
+                rownames(cpsi) <- queryvariables[[gsub("__common" ,"", dscn)]]
+                return (cpsi)
+            })
+            names(cps) <- gsub("__common" ,"", names(dscblocks))
+            return (cps)
+        })
+        gc(reset=F)
         .printTime("federatedComDim Loadings communicated to FD")
     }, error = function(e) {
         .printTime(paste0("LOADING COMPUTATION PROCESS: ", e))
@@ -1187,18 +1198,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
                           as.symbol("crossLogout(FD)"), async=T)
         datashield.logout(opals)
     })
-    
-    loadingsLoc <- lapply(loadingsDSC, function(dscblocks) {
-        cps <- lapply(names(dscblocks), function(dscn) {
-            cpsi <- .rebuildMatrixDsc(dscblocks[[dscn]], mc.cores=mc.cores)
-            colnames(cpsi) <- paste0("Comp.", 1:ncomp)
-            rownames(cpsi) <- queryvariables[[gsub("__common" ,"", dscn)]]
-            return (cpsi)
-        })
-        names(cps) <- gsub("__common" ,"", names(dscblocks))
-        return (cps)
-    })
-    gc(reset=F)
     
     W.b <- lapply(querytables, function(tab) {
         Reduce('+', lapply(loadingsLoc, function(ll) ll[[tab]]))
