@@ -1192,7 +1192,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
         cps <- lapply(names(dscblocks), function(dscn) {
             cpsi <- .rebuildMatrixDsc(dscblocks[[dscn]], mc.cores=mc.cores)
             colnames(cpsi) <- paste0("Comp.", 1:ncomp)
-            rownames(cpsi) <- variables[[gsub("__common" ,"", dscn)]]
+            rownames(cpsi) <- queryvariables[[gsub("__common" ,"", dscn)]]
             return (cpsi)
         })
         names(cps) <- gsub("__common" ,"", names(dscblocks))
@@ -1203,8 +1203,9 @@ federateComDim <- function(loginFD, logins, func, symbol,
     W.b <- lapply(querytables, function(tab) {
         Reduce('+', lapply(loadingsLoc, function(ll) ll[[tab]]))
     })
+    names(W.b) <- querytables
     if (option=="uniform") {
-        W.b <- lapply(queryvariables, function(tab) {
+        W.b <- lapply(querytables, function(tab) {
             W.b[[tab]]/inertia0.sqrt[tab]
         })
     }
