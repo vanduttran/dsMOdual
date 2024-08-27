@@ -1345,7 +1345,7 @@ federateSNF <- function(loginFD, logins, func, symbol,
     XX <- lapply(1:ntab, function(i) {
         if (metric == "correlation") {
             ## compute (1 - correlation) distance between samples
-            1 - XX_query$sscp[[i]]/length(XX_query$variables[[i]]-1)
+            1 - XX_query$sscp[[i]]/(length(XX_query$variables[[i]])-1)
         } else if (metric == "euclidean") {
             ## compute Euclidean distance between samples
             .toEuclidean(XX_query$sscp[[i]])
@@ -1446,7 +1446,7 @@ federateUMAP <- function(loginFD, logins, func, symbol,
         if (metric == "correlation") {
             ## compute (1 - correlation) distance between samples
             return (as.dist(
-                1 - XX_query$sscp[[i]]/length(XX_query$variables[[i]]-1)
+                1 - XX_query$sscp[[i]]/(length(XX_query$variables[[i]])-1)
                 ))
         } else if (metric == "euclidean") {
             ## compute Euclidean distance between samples
@@ -1546,7 +1546,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
         if (metric == "correlation") {
             ## compute (1 - correlation) distance between samples
             return (as.dist(
-                1 - XX_query$sscp[[i]]/length(XX_query$variables[[i]]-1)
+                1 - XX_query$sscp[[i]]/(length(XX_query$variables[[i]])-1)
             ))
         } else if (metric == "euclidean") {
             ## compute Euclidean distance between samples
@@ -1627,7 +1627,7 @@ testSSCP <- function(loginFD, logins, func, symbol,
         if (metric == "correlation") {
             ## compute (1 - correlation) distance between samples
             return (as.dist(
-                1 - XX_query$sscp[[i]]/length(XX_query$variables[[i]]-1)
+                1 - XX_query$sscp[[i]]/(length(XX_query$variables[[i]])-1)
             ))
         } else if (metric == "euclidean") {
             ## compute Euclidean distance between samples
