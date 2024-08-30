@@ -55,5 +55,5 @@ The overall status matrix derived W.
 }
 \description{
 Function for SNF federated analysis on the virtual cohort
-combining multiple cohorts
+combining multiple cohorts.
 }

@@ -47,5 +47,5 @@ A matrix of optimized coordinates.
 }
 \description{
 Function for UMAP federated analysis on the virtual cohort
-combining multiple cohorts
+combining multiple cohorts.
 }

@@ -1,5 +1,5 @@
 #' @title Garbage collection
-#' @description Call gc on the federated server
+#' @description Call gc on the federated server.
 #' @keywords internal
 garbageCollect <- function() {
     gc(reset=T)
@@ -8,8 +8,8 @@ garbageCollect <- function() {
 
 
 #' @title Bigmemory description of a matrix
-#' @description Bigmemory description of a matrix
-#' @param value Encoded value of a matrix
+#' @description Bigmemory description of a matrix.
+#' @param value Encoded value of a matrix.
 #' @import bigmemory
 #' @returns Bigmemory description of the given matrix
 #' @keywords internal
@@ -23,8 +23,8 @@ matrix2DscFDrm <- function(value) {
 
 
 #' @title Bigmemory description of a matrix
-#' @description Bigmemory description of a matrix
-#' @param value Encoded value of a matrix
+#' @description Bigmemory description of a matrix.
+#' @param value Encoded value of a matrix.
 #' @returns Bigmemory description of the given matrix
 #' @importFrom arrow read_ipc_stream
 #' @importFrom bigmemory as.big.matrix describe
@@ -44,10 +44,10 @@ matrix2DscFD <- function(value) {
 
 
 #' @title Matrix partition
-#' @description Partition a matrix into blocks
-#' @param x A matrix
-#' @param seprow A numeric vectors indicating sizes of blocks in rows
-#' @param sepcol A numeric vectors indicating sizes of blocks in columns
+#' @description Partition a matrix into blocks.
+#' @param x A matrix.
+#' @param seprow A numeric vectors indicating sizes of blocks in rows.
+#' @param sepcol A numeric vectors indicating sizes of blocks in columns.
 #' @returns List of blocks
 #' @importFrom arrow arrow_table
 #' @keywords internal
@@ -114,9 +114,10 @@ matrix2DscFD <- function(value) {
 
 
 #' @title Symmetric matrix reconstruction
-#' @description Rebuild a matrix from its partition
-#' @param matblocks List of lists of matrix blocks, obtained from .partitionMatrix
-#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @description Rebuild a matrix from its partition.
+#' @param matblocks List of lists of matrix blocks, obtained from
+#' .partitionMatrix.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns The complete symmetric matrix
 #' @keywords internal
 .rebuildMatrixrm <- function(matblocks, mc.cores = 1) {
@@ -193,7 +194,7 @@ matrix2DscFD <- function(value) {
 
 #' @title Euclidean distance
 #' @description Transform XX' matrix into Euclidean distance between samples
-#' (rows) in X
+#' (rows) in X.
 #' @param XXt An SSCP matrix XX'.
 #' @returns Euclidean distance
 #' @keywords internal
@@ -219,7 +220,7 @@ matrix2DscFD <- function(value) {
 
 
 #' @title Find X from XX' and X'X
-#' @description Find X from XX' and X'X
+#' @description Find X from XX' and X'X.
 #' @param XXt XX'
 #' @param XtX X'X
 #' @param r A non-null vector of length \code{ncol(X'X)}
@@ -365,7 +366,7 @@ matrix2DscFD <- function(value) {
 
 
 #' @title Federated SSCP
-#' @description Function for computing the federated SSCP matrix
+#' @description Function for computing the federated SSCP matrix.
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
 #' @param funcPreProc Definition of a function for preparation of raw data
@@ -397,7 +398,7 @@ matrix2DscFD <- function(value) {
     logindata   <- .decode.arg(logins)
     opals <- .login(logins=logindata)
     nnode <- length(opals)
-    .printTime(".federateSSCP login-ed")
+    .printTime(".federateSSCP Login-ed")
     
     tryCatch({
         ## take a snapshot of the current session
@@ -834,7 +835,7 @@ matrix2DscFD <- function(value) {
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
 #' @param func Encoded definition of a function for preparation of raw data
-#' matrices. Two arguments are required: conns (list of DSConnection-classes), 
+#' matrices. Two arguments are required: conns (list of Opal connections), 
 #' symbol (name of the R symbol) (see datashield.assign).
 #' @param symbol Encoded vector of names of the R symbols to assign in the
 #' DataSHIELD R session on each server in \code{logins}.
@@ -1283,7 +1284,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
 
 #' @title Federated SNF
 #' @description Function for SNF federated analysis on the virtual cohort
-#' combining multiple cohorts
+#' combining multiple cohorts.
 #' @usage federateSNF(loginFD,
 #'                    logins,
 #'                    func,
@@ -1389,7 +1390,7 @@ federateSNF <- function(loginFD, logins, func, symbol,
 
 #' @title Federated UMAP
 #' @description Function for UMAP federated analysis on the virtual cohort
-#' combining multiple cohorts
+#' combining multiple cohorts.
 #' @usage federateUMAP(loginFD,
 #'                     logins,
 #'                     func,
@@ -1487,7 +1488,7 @@ federateUMAP <- function(loginFD, logins, func, symbol,
 
 #' @title Federated hdbscan
 #' @description Function for hdbscan federated analysis on the virtual cohort
-#' combining multiple cohorts
+#' combining multiple cohorts.
 #' @usage federateHdbscan(loginFD,
 #'                        logins,
 #'                        func,

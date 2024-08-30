@@ -21,6 +21,6 @@
 X
 }
 \description{
-Find X from XX' and X'X
+Find X from XX' and X'X.
 }
 \keyword{internal}

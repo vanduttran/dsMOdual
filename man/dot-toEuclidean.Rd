@@ -14,6 +14,6 @@ Euclidean distance
 }
 \description{
 Transform XX' matrix into Euclidean distance between samples
-(rows) in X
+(rows) in X.
 }
 \keyword{internal}

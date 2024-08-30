@@ -51,5 +51,5 @@ An object of class \code{hdbscan}.
 }
 \description{
 Function for hdbscan federated analysis on the virtual cohort
-combining multiple cohorts
+combining multiple cohorts.
 }

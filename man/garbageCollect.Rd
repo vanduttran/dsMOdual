@@ -7,6 +7,6 @@
 garbageCollect()
 }
 \description{
-Call gc on the federated server
+Call gc on the federated server.
 }
 \keyword{internal}

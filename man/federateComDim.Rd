@@ -22,7 +22,7 @@ federateComDim(loginFD,
 \item{logins}{Login information of data repositories}
 
 \item{func}{Encoded definition of a function for preparation of raw data
-matrices. Two arguments are required: conns (list of DSConnection-classes), 
+matrices. Two arguments are required: conns (list of Opal connections), 
 symbol (name of the R symbol) (see datashield.assign).}
 
 \item{symbol}{Encoded vector of names of the R symbols to assign in the

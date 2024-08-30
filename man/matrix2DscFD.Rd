@@ -7,11 +7,11 @@
 matrix2DscFD(value)
 }
 \arguments{
-\item{value}{Encoded value of a matrix}
+\item{value}{Encoded value of a matrix.}
 }
 \value{
 Bigmemory description of the given matrix
 }
 \description{
-Bigmemory description of a matrix
+Bigmemory description of a matrix.
 }

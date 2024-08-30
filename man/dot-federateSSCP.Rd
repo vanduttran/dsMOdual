@@ -45,6 +45,6 @@ row, with constant samples across variables are removed.}
 is returned. Default, FALSE, connections are closed.}
 }
 \description{
-Function for computing the federated SSCP matrix
+Function for computing the federated SSCP matrix.
 }
 \keyword{internal}
