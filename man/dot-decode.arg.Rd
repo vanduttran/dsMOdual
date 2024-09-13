@@ -7,18 +7,22 @@
 .decode.arg(some.thing, simplifyMatrix = FALSE)
 }
 \arguments{
-\item{some.thing}{the thing to be decoded and deserialized from json if necessary.}
+\item{some.thing}{the thing to be decoded and deserialized from json if
+necessary.}
+
+\item{simplifyMatrix}{see \code{jsonlite::fromJSON}}
 }
 \value{
 the decoded and deserialized argument
 }
 \description{
-Work around the restrictions imposed by the Opal server on function arguments.
-The Opal server is very picky as regards function arguments. The workaround is
-to serialize and encode them on the client and strip the right padding.
-See \code{dsSwissKnife:::.decode.arg}.
+Work around the restrictions imposed by the Opal server on
+function arguments. The Opal server is very picky as regards function
+arguments. The workaround is to serialize and encode them on the client and
+strip the right padding. See \code{dsSwissKnife:::.decode.arg}.
 }
 \details{
-It looks for the string 'base64' in the argument to determine if it's encoded.
+It looks for the string 'base64' in the argument to determine if
+it is encoded.
 }
 \keyword{internal}

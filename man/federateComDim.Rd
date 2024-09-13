@@ -9,12 +9,13 @@ federateComDim(loginFD,
                       func,
                       symbol,
                       ncomp = 2,
-                      scale = "none",
-                      option = "uniform",
+                      scale = FALSE,
+                      scale.block = TRUE,
+                      threshold = 1e-8,
                       chunk = 500,
                       mc.cores = 1,
-                      width.cutoff = 500L,
-                      threshold = 1e-10)
+                      width.cutoff = 500L
+                      )
 }
 \arguments{
 \item{loginFD}{Login information of the FD server}
@@ -32,21 +33,22 @@ Other assigned R variables in \code{func} are ignored.}
 
 \item{ncomp}{Number of common dimensions}
 
-\item{scale}{either value "none" / "sd" indicating the same scaling for
-all tables or a vector of scaling ("none" / "sd") for each table. 
-Only "none" is considered in this version.}
+\item{scale}{A logical value indicating if variables are scaled to unit
+variance. Default, FALSE. See \code{MBAnalysis::ComDim}.}
 
-\item{option}{weighting of te tables \cr
-  "none" : no weighting of the tables - (default) \cr
-"uniform": weighting to set the table at the same inertia \cr}
+\item{scale.block}{A logical value indicating if each block of variables is
+divided by the square root of its inertia. Default, TRUE.
+See \code{MBAnalysis::ComDim}.}
+
+\item{threshold}{if the difference of fit<threshold then break the iterative
+loop (default 1e-8)}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
 Default, 500.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
-\item{threshold}{if the difference of fit<threshold then break the iterative
-loop (default 1E-10)}
+\item{width.cutoff}{Default, 500. See \code{deparse1}.}
 }
 \value{
 A \code{ComDim} object. See \code{MBAnalysis::ComDim}.

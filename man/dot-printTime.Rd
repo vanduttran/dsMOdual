@@ -10,6 +10,6 @@
 \item{message}{A character string}
 }
 \description{
-Print current time
+Print current time.
 }
 \keyword{internal}

@@ -4,12 +4,14 @@
 \alias{.cleanup}
 \title{Remove objects from the current workspace}
 \usage{
-.cleanup(initial, start = ".GlobalEnv")
+.cleanup(what, start = ".GlobalEnv")
 }
 \arguments{
-\item{start}{a character the environment name where to start (default .GlobalEnv).}
+\item{what}{a list of  environments and their respective objects -
+the output of a previous call to ls.all.}
 
-\item{what}{a list of  environments and their respective objects - the output of a previous call to ls.all.}
+\item{start}{a character the environment name where to start. Default,
+.GlobalEnv.}
 }
 \description{
 This function removes objects from the current workspace.

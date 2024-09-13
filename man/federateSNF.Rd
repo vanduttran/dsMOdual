@@ -49,6 +49,8 @@ see \code{SNFtool::SNF}.}
 Default, 500.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
+
+\item{width.cutoff}{Default, 500. See \code{deparse1}.}
 }
 \value{
 The overall status matrix derived W.

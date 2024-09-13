@@ -7,12 +7,13 @@
 .login(logins)
 }
 \arguments{
-\item{logins}{A data frame of login information. See \code{datashield.login}.}
+\item{logins}{A dataframe of login information. See \code{datashield.login}.}
 }
 \value{
-Object(s) of class DSConnection
+Object(s) of class OpalConnection
 }
 \description{
-This function ensures datashield.login to all the servers without error of simultaneously connecting to the same server.
+This function ensures \code{datashield.login} to all the
+servers without error of simultaneously connecting to the same server.
 }
 \keyword{internal}

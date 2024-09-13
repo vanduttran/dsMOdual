@@ -7,7 +7,8 @@
 .lock.unlock(what, func)
 }
 \arguments{
-\item{what}{a list of  environments and their respective objects - the output of ls.all above.}
+\item{what}{a list of  environments and their respective objects - 
+the output of \code{.ls.all}}
 
 \item{func}{a function, either lockBinding or unlockBinding.}
 }

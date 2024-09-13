@@ -40,6 +40,8 @@ Default, 500.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
+\item{width.cutoff}{Default, 500. See \code{deparse1}.}
+
 \item{...}{see \code{uwot::umap}}
 }
 \value{

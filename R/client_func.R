@@ -30,13 +30,7 @@ matrix2DscFDrm <- function(value) {
 #' @importFrom bigmemory as.big.matrix describe
 #' @export
 matrix2DscFD <- function(value) {
-    #valued <- .decode.arg(value)
-    #print(head(valued))
-    # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
-    #tcp <- .decode.arg(valued)
-    #tcp <- do.call(rbind, .decode.arg(valued))
     tcp <- as.matrix(read_ipc_stream(.decode.arg(value)))
-    #print(tcp)
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     rm(list=c("tcp"))
     return (dscbigmatrix)
@@ -202,7 +196,6 @@ matrix2DscFD <- function(value) {
     if (!isSymmetric(XXt) || any(rownames(XXt) != colnames(XXt)))
         stop('Input XXt (an SSCP matrix) should be symmetric.')
     .printTime("toEuclidean XXt started")
-    #lowerTri <- cbind(do.call(cbind, mclapply(1:(ncol(XXt)-1), mc.cores=max(2, min(ncol(XXt)-1, detectCores())), function(i) {
     lowerTri <- cbind(do.call(cbind, lapply(1:(ncol(XXt)-1), function(i) {
         res <- sapply((i+1):ncol(XXt), function(j) {
             ## d(Xi, Xj)^2 = Xi'Xi - 2Xi'Xj + Xj'Xj
@@ -826,6 +819,473 @@ matrix2DscFD <- function(value) {
 #'                       func,
 #'                       symbol,
 #'                       ncomp = 2,
+#'                       scale = FALSE,
+#'                       scale.block = TRUE,
+#'                       threshold = 1e-8,
+#'                       chunk = 500,
+#'                       mc.cores = 1,
+#'                       width.cutoff = 500L
+#'                       )
+#' @param loginFD Login information of the FD server
+#' @param logins Login information of data repositories
+#' @param func Encoded definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of Opal connections), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param symbol Encoded vector of names of the R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
+#' The assigned R variables will be used as the input raw data.
+#' Other assigned R variables in \code{func} are ignored.
+#' @param ncomp Number of common dimensions
+#' @param scale A logical value indicating if variables are scaled to unit
+#' variance. Default, FALSE. See \code{MBAnalysis::ComDim}.
+#' @param scale.block A logical value indicating if each block of variables is
+#' divided by the square root of its inertia. Default, TRUE.
+#' See \code{MBAnalysis::ComDim}.
+#' @param threshold if the difference of fit<threshold then break the iterative
+#' loop (default 1e-8)
+#' @param width.cutoff Default, 500. See \code{deparse1}.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
+#' @returns A \code{ComDim} object. See \code{MBAnalysis::ComDim}.
+#' @importFrom DSI datashield.logout datashield.errors datashield.symbols
+#' datashield.assign
+#' @importFrom arrow write_to_raw
+#' @export
+federateComDim <- function(loginFD, logins, func, symbol,
+                           ncomp = 2,
+                           scale = FALSE,
+                           scale.block = TRUE,
+                           threshold = 1e-8,
+                           chunk = 500, mc.cores = 1,
+                           width.cutoff = 500L) {
+    #require(DSOpal)
+    .printTime("federateComDim started")
+    TOL <- 1e-10
+    funcPreProc <- .decode.arg(func)
+    querytables <- .decode.arg(symbol)
+    ntab <- length(querytables)
+    
+    if (!is.logical(scale)) stop("scale must be logical.")
+    if (!is.logical(scale.block)) stop("scale.block must be logical.")
+    
+    ## compute SSCP matrix for each centered data table
+    XX_query <- .federateSSCP(loginFD=loginFD, logins=logins, 
+                              funcPreProc=funcPreProc, querytables=querytables,
+                              byColumn=TRUE,
+                              chunk=chunk, mc.cores=mc.cores,
+                              width.cutoff=width.cutoff, TOL=TOL, 
+                              connRes=T)
+    XX <- XX_query$sscp
+    querysamples <- XX_query$samples
+    queryvariables <- XX_query$variables
+    opals <- XX_query$conns
+    nnode <- length(opals)
+    
+    ## function: compute the total variance from a XX' matrix
+    inertie <- function(tab) {
+        return (sum(diag(tab)))
+    }
+    
+    ## function: compute the RV between WX and WY: 
+    ## similarity between two matrices
+    # coefficientRV <- function(WX, WY) {
+    #     rv <- inertie(WX %*% WY)/(sqrt(inertie(WX %*% WX) *
+    #                                        inertie(WY %*% WY)))
+    #     return (rv)
+    # }
+    
+    ## function: normalize a vector to a unit vector
+    normv <- function(x) {
+        normx <- norm(x, type='2')
+        if (normx==0) normx <- 1
+        return (x/normx)
+    }
+    
+    ##### ComDim algorithm inherited from MBAnalysis #####
+    
+    ##- 0. Preliminary tests ----
+    if (any(sapply(XX, is.na)))
+        stop("No NA values are allowed.")
+    if (!all(sapply(XX, isSymmetric, check.attributes=T)))
+        stop("XX elements should be symmetric.")
+    if (length(unique(sapply(XX, nrow))) != 1)
+        stop("XX elements should be the same dimension.")
+    ## number of samples
+    # nind <- unique(unlist(apply(sapply(XX, dim), 1, unique)))
+    # if (length(nind) > 1)
+    #     stop("XX elements should be symmetric of the same dimension")
+    # samples <- sapply(XX, function(x) intersect(rownames(x), colnames(x)))
+    # if (is.list(samples) && max(lengths(samples))==0) {
+    #     XX <- lapply(XX, function(x) {
+    #         rownames(x) <- colnames(x) <- paste("Ind", 1:nind, sep='.')
+    #         return (x)
+    #     })
+    #     samples <- sapply(XX, function(x) union(rownames(x), colnames(x)))
+    # }
+    # if (is.list(samples) || is.list(apply(samples, 1, unique)))
+    #     stop("XX elements should have the same rownames and colnames")
+    # 
+    ##-----
+    
+    ##- 1. Output preparation ----
+    nind <- nrow(XX[[1]])
+    samples <- unlist(querysamples)
+    if (any(samples!=rownames(XX[[1]])))
+        stop("Wrong samples order.")
+    nvar <- lengths(queryvariables)
+    if (ncomp > 2 && min(sapply(XX, rankMatrix)) <= ncomp) {
+        print(paste0("Security issue: maximum ",
+                     min(sapply(XX, rankMatrix)) - 1,
+                     " components could be inquired. ncomp will be set to 2."))
+        ncomp <- 2
+    }
+    if (ncomp < 1) {
+        print("ncomp should be at least 1. ncomp will be set to 2.")
+        ncomp <- 2
+    }
+    compnames <- paste("Dim.", 1:ncomp, sep="")
+    
+    ## optimal value of the criterion
+    optimalcrit  <- vector("numeric", ncomp)
+    names(optimalcrit) <- compnames
+    
+    #contrib           <- matrix(0, nrow=ntab, ncol=ncomp)
+    #dimnames(contrib) <- list(querytables, compnames)
+    
+    ## Specific weights for each dataset and each dimension
+    LAMBDA <- #NNLAMBDA <-
+        matrix(1, nrow=ntab, ncol=ncomp,
+               dimnames=list(querytables, compnames))
+    
+    ## Normed global components
+    Q <- matrix(0, nrow=nind, ncol=ncomp,
+                dimnames=list(samples, compnames))
+
+    ## Block components
+    Q.b <- array(0, dim=c(nind, ncomp, ntab),
+                 dimnames=list(samples, compnames, querytables))
+
+    ## Correlations between global components and respective block components
+    # cor.g.b <- array(0, dim=c(ncomp, ncomp, ntab),
+    #                  dimnames=list(compnames, compnames, querytables))
+
+    ## Weights for the block components
+    # W.b      <- vector("list", length=ntab)
+    # ## Correlation between the original variables of each block and its block
+    # ## components (loadings)
+    # blockcor <- vector("list", length=ntab)
+    # for (k in 1:ntab) {
+    #     W.b[[k]] <- blockcor[[k]] <- matrix(0, nrow=nvar[k], ncol=ncomp)
+    #     dimnames(W.b[[k]]) <- dimnames(blockcor[[k]]) <-
+    #         list(queryvariables[[k]], compnames)
+    # }
+    
+    ## Weights for the block components
+    ## Correlation between the original variables of each block and its block
+    ## components (loadings)
+    # W.b <- blockcor <- lapply(querytables, function(tab) {
+    #     matrix(0, nrow=nvar[tab], ncol=ncomp,
+    #            dimnames=list(queryvariables[[tab]], compnames))
+    # })
+    # names(W.b) <- querytables
+    
+    ## Weights for the global components
+    ## Modified Weights to take account of deflation
+    # W <- Wm <- matrix(0, nrow=sum(nvar), ncol=ncomp,
+    #                         dimnames=list(do.call(c, queryvariables),
+    #                                       compnames))
+    
+    ## Percentage of explained inertia of each Xb block and global
+    explained.X  <- matrix(0, nrow=ntab+1, ncol=ncomp,
+                           dimnames=list(c(querytables, 'Global'), compnames))
+    cumexplained <- matrix(0, nrow=ncomp, ncol=2,
+                           dimnames=list(compnames, c("%explX", "cum%explX")))
+    
+    ## Concatenated Xb block components at current dimension comp
+    #tb           <- matrix(0, nrow=nind, ncol=ntab)
+    #components   <- vector("numeric", length=2)
+    
+    ## Block results
+    Block <- NULL
+    ## Output
+    res   <- NULL
+    ##-----
+    
+    ##- 2. Required parameters and data preparation ----
+    ## Pre-processing: block weighting to set each block inertia equal to 1
+    if (scale.block) {
+        inertia <- sapply(XX, inertie)
+        XX <- lapply(querytables, function(tab) {
+            XX[[tab]]/inertia[tab]
+        })
+        names(XX) <- querytables
+        inertia0.sqrt <- sqrt(inertia)
+    }
+    XX0 <- XX
+    IT.X <- sapply(XX, inertie) # Inertia of each block of variable
+    IT.X <- c(IT.X, sum(IT.X[1:ntab]))
+    
+    ## Computation of the cross-product matrices among individuals
+    ## (or association matrices)
+    Trace <- IT.X[1:ntab]
+    Itot  <- 0
+    ##-----
+    
+    ##- 3. Computation of Q, LAMBDA and scores for the various dimensions ----
+    ## Iterative computation of the various components
+    for (comp in 1:ncomp)  {
+        previousfit <- 0
+        deltafit <- threshold + 1
+        
+        ## 3.1 Interatively compute the comp-th common component
+        while (deltafit > threshold) {
+            ## Weighted sum of XX'
+            P <- Reduce("+", lapply(1:ntab, function(k)
+                LAMBDA[k, comp] * XX[[k]]
+            ))
+            ## NB. svd is sensitive to noise (~1e-15) in P
+            #reseig    <- eigen(P)
+            #Q[, comp] <- reseig$vectors[, 1]
+            ressvd    <- svd(P, nu=1, nv=1)
+            Q[, comp] <- ressvd$u
+            
+            #optimalcrit[comp] <- reseig$values[1]
+            LAMBDA[, comp] <- sapply(1:ntab, function(k) {
+                crossprod(Q[, comp, drop=F],
+                          crossprod(XX[[k]],
+                                    Q[, comp, drop=F]))
+            })
+            fit <- sum(LAMBDA[, comp]^2)
+            
+            if (previousfit==0)
+                deltafit <- threshold + 1
+            else
+                deltafit <- (fit - previousfit)/previousfit
+            previousfit <- fit
+        }
+        optimalcrit[comp] <- sum(LAMBDA[, comp]^2)
+        #LAMBDA[, comp]    <- normv(LAMBDA[, comp])
+        
+        ## 3.2 Storage of the results associated with dimension comp
+        for (k in 1:ntab) {
+            explained.X[k, comp] <- inertie(tcrossprod(Q[, comp]) %*% XX[[k]]
+                                            %*% tcrossprod(Q[, comp]))
+            Q.b[, comp, k] <- XX[[k]] %*% Q[, comp]
+        }
+        explained.X[ntab+1, comp] <- sum(explained.X[1:ntab, comp])
+        
+        # LAMBDA[, comp]   <- sapply(1:ntab, function(k) {
+        #     t(Q[, comp]) %*% Q.b[, comp, k]
+        # })
+        
+        ## Non normalized specific weights
+        #NNLAMBDA[, comp] <- LAMBDA[, comp]
+        #LAMBDA[, comp]   <- normv(LAMBDA[, comp])
+        
+        # 3.3 Deflation
+        ## Deflation of XX
+        proj <- diag(1, nind) - tcrossprod(Q[, comp])
+        XX <- lapply(XX, function(xx) proj %*% xx %*% t(proj))
+    }
+    
+    ## Explained inertia for X
+    explained.X       <- sweep(explained.X, 1, IT.X, "/")
+    cumexplained[, 1] <- explained.X[ntab+1, 1:ncomp]
+    cumexplained[, 2] <- cumsum(cumexplained[, 1])
+    
+    ## Global components (scores of individuals)
+    Scor.g <- tcrossprod(Q, sqrt(diag(colSums(LAMBDA), ncol = ncol(LAMBDA))))
+    # Unnormed global components
+    #LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
+    #C <- Q %*% sqrt(diag(LambdaMoyen, ))
+    ##-----
+    
+    ##- 4. Loadings ----
+    size <- c(0, lengths(querysamples))
+    Qlist <- setNames(lapply(2:length(size), function(i) {
+        Qi <- Q[(cumsum(size)[i-1]+1):cumsum(size)[i], , drop=F]
+        rownames(Qi) <- querysamples[[i-1]]
+        return (Qi)
+    }), names(opals))
+    chunkList <- mclapply(Qlist, mc.cores=mc.cores, function(xx) {
+        nblocksrow <- ceiling(nrow(xx)/chunk)
+        sepblocksrow <- rep(ceiling(nrow(xx)/nblocksrow), nblocksrow-1)
+        sepblocksrow <- c(sepblocksrow, nrow(xx) - sum(sepblocksrow))
+        tcpblocks <- .partitionMatrix(xx, seprow=sepblocksrow, sepcol=ncomp)
+        return (lapply(tcpblocks, function(tcpb) {
+            return (lapply(tcpb, function(tcp) {
+                return (.encode.arg(write_to_raw(tcp)))
+            }))
+        }))
+    })
+    tryCatch({
+        ## send Qlist from FD to opals
+        # TOCHECK: security on pushed data
+        invisible(sapply(names(opals), function(opn) {
+            lapply(1:length(chunkList[opn]), function(i) {
+                lapply(1:length(chunkList[[i]]), function(j) {
+                    lapply(1:length(chunkList[[i]][[j]]), function(k) {
+                        datashield.assign(
+                            opals[opn], paste(c('FD', i, j, k),
+                                              collapse="__"),
+                            as.call(list(as.symbol("matrix2DscMate"),
+                                         chunkList[opn][[i]][[j]][[k]])),
+                            async=T)
+                    })
+                })
+            })
+            datashield.assign(
+                opals[opn],
+                paste("pushed", 'FD', sep="_"),
+                as.call(list(as.symbol("rebuildMatrixVar"),
+                             symbol='FD',
+                             len1=length(chunkList[opn]),
+                             len2=lengths(chunkList[opn]),
+                             len3=lapply(chunkList[opn], lengths),
+                             querytables="common")),
+                async=T)
+            # gc on opals
+            # command <- paste0("crossAggregate(FD, '",
+            #                   .encode.arg(paste0("as.call(list(as.symbol('garbageCollect')", "))")),
+            #                   "', async=T)")
+            # cat("Command: ", command, "\n")
+            # datashield.assign(opals, "GC", as.symbol(command), async=T)
+        }))
+        ## compute loadings X'*Qlist
+        datashield.assign(
+            opals,
+            "loadings", 
+            as.call(list(as.symbol("crossProd"),
+                         x=as.symbol("centeredData"),
+                         y=as.symbol("pushed_FD"),
+                         chunk=chunk)),
+            async=T)
+        ## send loadings from opals to FD
+        command <- list(as.symbol("pushToDscFD"),
+                        as.symbol("FD"),
+                        as.symbol("loadings"),
+                        async=T)
+        cat("Command: pushToDscFD(FD, loadings)", "\n")
+        loadingsDSC <- datashield.aggregate(opals, as.call(command), async=T)
+        loadingsLoc <- lapply(loadingsDSC, function(dscblocks) {
+            cps <- lapply(names(dscblocks), function(dscn) {
+                cpsi <- .rebuildMatrixDsc(dscblocks[[dscn]], mc.cores=mc.cores)
+                colnames(cpsi) <- paste0("Comp.", 1:ncomp)
+                rownames(cpsi) <- queryvariables[[gsub("__common" ,"", dscn)]]
+                return (cpsi)
+            })
+            names(cps) <- gsub("__common" ,"", names(dscblocks))
+            return (cps)
+        })
+        gc(reset=F)
+        .printTime("federatedComDim Loadings communicated to FD")
+    }, error = function(e) {
+        .printTime(paste0("LOADING COMPUTATION PROCESS: ", e))
+        return (paste0("LOADING COMPUTATION PROCESS: ", e,
+                       ' --- ', datashield.symbols(opals),
+                       ' --- ', datashield.errors()))
+    }, finally = {
+        datashield.assign(opals, 'crossEnd',
+                          as.symbol("crossLogout(FD)"), async=T)
+        datashield.logout(opals)
+    })
+
+    ## Weights for the block components
+    W.b <- lapply(querytables, function(tab) {
+        Reduce('+', lapply(loadingsLoc, function(ll) ll[[tab]]))
+    })
+    names(W.b) <- querytables
+    if (scale.block) {
+        W.b <- lapply(querytables, function(tab) {
+            W.b[[tab]]/inertia0.sqrt[tab]
+        })
+    }
+    names(W.b) <- querytables
+    
+    W.g[, comp] <- unlist(sapply(1:ntab, function(j) {
+        LAMBDA[j, comp] * W.b[[j]][, comp]
+    }))
+    W.g[, comp] <- normv(W.g[, comp])
+    # Wbk <- Reduce('+', unlist(mclapply(names(opals),
+    #                                    mc.cores=1, function(opn) {
+    #     expr <- list(as.symbol("loadings"),
+    #                  as.symbol("centeredAllData"),
+    #                  .encode.arg(Qlist[[opn]]))
+    #     loadings <- datashield.aggregate(opals[opn], as.call(expr))
+    #     return (loadings)
+    # }), recursive = F))
+    
+    #colnames(Wbk) <- compnames
+    #csnvar <- cumsum(nvar)
+    # W.b <- mclapply(1:ntab, mc.cores=ntab, function(k) {
+    #     if (option=="uniform") return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F]/inertia0.sqrt[k])
+    #     return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F])
+    # })
+    
+    ## Loadings for the global components: normed
+    Load.g <- tcrossprod(do.call(rbind, W.b),
+                         sqrt(diag(colSums(LAMBDA), ncol = ncol(LAMBDA))))
+    Load.g <- t(t(Load.g)/colSums(Scor.g^2)) 
+    
+    ## Global weights: normed
+    W.g <- do.call(rbind, mclapply(1:ntab, mc.cores=mc.cores, function(k)
+        tcrossprod(W.b[[k]], diag(LAMBDA[k,], nrow=ncomp, ncol=ncomp))))
+    W.g <- do.call(cbind, mclapply(1:ncomp, mc.cores=mc.cores, function(comp)
+        normv(W.g[, comp])))
+    colnames(W.g) <- compnames
+    
+    ## Global projection
+    Proj.g <- W.g %*% solve(crossprod(Load.g, W.g),
+                            tol=9.99999999999999e-301)
+    ##-----
+    
+    #contrib <- t(t(NNLAMBDA)/colSums(NNLAMBDA))
+    
+    ## Weights that take into account the deflation procedure
+    #Wm <- W %*% solve(crossprod(Px, W), tol=1e-150)
+    
+    # globalcor <- NA #cor(X00, C)
+    # 
+    # for (k in 1:ntab) {
+    #     cor.g.b[, , k] <- cor(Q, Q.b[, , k])
+    #     blockcor[[k]] <- NA #cor(X0[[k]], Q.b[, 1:ncomp, k])
+    #     #if (is.null(rownames(blockcor[[k]]))) rownames(blockcor[[k]]) <- names(group[k])
+    # }
+    
+    ##- 5. Results ----
+    ## Global
+    res$components   <- c(ncomp=ncomp)
+    res$optimalcrit  <- optimalcrit[1:ncomp]
+    res$saliences    <- LAMBDA[, 1:ncomp, drop=FALSE]
+    res$T.g          <- Q
+    res$Scor.g       <- Scor.g
+    res$W.g          <- W.g
+    res$Load.g       <- Load.g
+    res$Proj.g       <- Proj.g
+    res$explained.X  <- explained.X
+    res$cumexplained <- cumexplained*100
+    
+    ## Blocks
+    Block$T.b <- Q.b
+    Block$W.b <- W.b
+    res$Block <- Block
+    res$call  <- match.call()
+    class(res) <- c("ComDim", "list")
+    ##-----
+    
+    return (res)
+}
+
+
+#' @title Federated ComDim
+#' @description Function for ComDim federated analysis on the virtual cohort
+#' combining multiple cohorts: finding common dimensions in multiblock data.
+#' @usage federateComDim(loginFD,
+#'                       logins,
+#'                       func,
+#'                       symbol,
+#'                       ncomp = 2,
 #'                       scale = "none",
 #'                       option = "uniform",
 #'                       chunk = 500,
@@ -857,8 +1317,8 @@ matrix2DscFD <- function(value) {
 #' @importFrom DSI datashield.logout datashield.errors datashield.symbols
 #' datashield.assign
 #' @importFrom arrow write_to_raw
-#' @export
-federateComDim <- function(loginFD, logins, func, symbol,
+#' @keywords internal
+federateComDim1 <- function(loginFD, logins, func, symbol,
                            ncomp = 2,
                            scale = "none", option = "uniform",
                            chunk = 500, mc.cores = 1,
@@ -1084,11 +1544,14 @@ federateComDim <- function(loginFD, logins, func, symbol,
         
         ## 3.2 Storage of the results associated with dimension comp
         for (k in 1:ntab) {
-            #W.b[[k]][, comp] <- t(X[[k]]) %*% Q[, comp]
             explained.X[k, comp] <- inertie(tcrossprod(Q[, comp]) %*% XX[[k]]
                                             %*% tcrossprod(Q[, comp]))
-            Q.b[, comp, k] <- XX[[k]] %*% Q[, comp]
+            #Q.b[, comp, k] <- XX[[k]] %*% Q[, comp]
         }
+        
+        Q.b[, comp,] <- sapply(1:ntab, function(k) {
+            XX[[k]] %*% Q[, comp]
+        })
         
         LAMBDA[, comp]   <- sapply(1:ntab, function(k) {
             t(Q[, comp]) %*% Q.b[, comp, k]
@@ -1319,6 +1782,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
 #' Default, 500.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
+#' @param width.cutoff Default, 500. See \code{deparse1}.
 #' @returns The overall status matrix derived W.
 #' @importFrom SNFtool SNF affinityMatrix
 #' @export
@@ -1418,6 +1882,7 @@ federateSNF <- function(loginFD, logins, func, symbol,
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
 #' Default, 500.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
+#' @param width.cutoff Default, 500. See \code{deparse1}.
 #' @param ... see \code{uwot::umap}
 #' @returns A matrix of optimized coordinates.
 #' @importFrom uwot umap
@@ -1457,24 +1922,6 @@ federateUMAP <- function(loginFD, logins, func, symbol,
         }
     })
     names(XX) <- querytables
-    
-    # if (metric == "correlation") {
-    #     ## compute (1 - correlation) distance between samples for each data table 
-    #     XX <- lapply(1:ntab, function(i) {
-    #         xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
-    #                              funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-    #                              byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-    #         return (as.dist(1 - xxi$sscp/(length(xxi$var)-1)))
-    #     })
-    # } else if (metric == "euclidean"){
-    #     ## compute Euclidean distance between samples for each data table 
-    #     XX <- lapply(1:ntab, function(i) {
-    #         xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
-    #                              funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-    #                              byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-    #         return (as.dist(.toEuclidean(xxi$sscp)))
-    #     })
-    # }
     
     return (setNames(
         lapply(1:ntab, function(i) {
@@ -1519,6 +1966,7 @@ federateUMAP <- function(loginFD, logins, func, symbol,
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
 #' Default, 500.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
+#' @param width.cutoff Default, 500. See \code{deparse1}.
 #' @param ... see \code{dbscan::hdbscan}
 #' @returns An object of class \code{hdbscan}.
 #' @importFrom dbscan hdbscan
@@ -1558,24 +2006,6 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
     })
     names(XX) <- querytables
     
-    # if (metric == "correlation") {
-    #     ## compute (1 - correlation) distance between samples for each data table 
-    #     XX <- lapply(1:ntab, function(i) {
-    #         xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
-    #                              funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-    #                              byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-    #         return (as.dist(1 - xxi$sscp/(length(xxi$var)-1)))
-    #     })
-    # } else if (metric == "euclidean"){
-    #     ## compute Euclidean distance between samples for each data table 
-    #     XX <- lapply(1:ntab, function(i) {
-    #         xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
-    #                              funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-    #                              byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-    #         return (as.dist(.toEuclidean(xxi$sscp)))
-    #     })
-    # }
-    
     return (setNames(
         lapply(1:ntab, function(i) {
             dbscan::hdbscan(XX[[i]], minPts = minPts, ...)
@@ -1601,6 +2031,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500
 #' @param mc.cores Number of cores for parallel computing. Default: 1.
+#' @param width.cutoff Default, 500. See \code{deparse1}.
 #' @param TOL Tolerance of 0
 #' @export
 # #' @keywords internal

@@ -38,6 +38,8 @@ Other assigned R variables in \code{func} are ignored.}
 
 \item{TOL}{Tolerance of 0}
 
+\item{width.cutoff}{Default, 500. See \code{deparse1}.}
+
 \item{byColumn}{A logical value indicating whether the input data is centered by column or row.
 Default, TRUE, centering by column. Constant variables across samples are removed. 
 If FALSE, centering and scaling by row. Constant samples across variables are removed.}
