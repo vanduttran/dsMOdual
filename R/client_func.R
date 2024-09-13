@@ -223,7 +223,7 @@ matrix2DscFD <- function(value) {
 #' @importFrom Matrix rankMatrix
 #' @keywords internal
 #' @returns X
-.solveSSCP <- function(XXt, XtX, r, Xr, TOL = 1e-10) {
+.solveSSCP <- function(XXt, XtX, r, Xr, TOL = .Machine$double.eps) {
     if (length(r) != ncol(XtX)) {
         stop("r length shoud match ncol(XtX).")
     }
@@ -253,9 +253,12 @@ matrix2DscFD <- function(value) {
     vecs <- list("XXt"=vecB1, "XtX"=vecB2)
     vals <- list("XXt"=valB1, "XtX"=valB2)
     
-    ## NB: numerically imprecise: poseignum = min(Matrix::rankMatrix(B1), Matrix::rankMatrix(B2))
-    ## this number of positive eigenvalues can upper-limitted by the number of variables, yet required as argument of the function .solveSSCP
-    ## the following formula is empiric, based on the fact that errors of zero-value are random
+    ## NB: numerically imprecise: poseignum = min(Matrix::rankMatrix(B1),
+    ## Matrix::rankMatrix(B2))
+    ## this number of positive eigenvalues can upper-limitted by the number of
+    ## variables, yet required as argument of the function .solveSSCP
+    ## the following formula is empiric, based on the fact that errors of
+    ## zero-value are random
     poseignum <- min(
         Nmin+1,
         which(
@@ -293,7 +296,7 @@ matrix2DscFD <- function(value) {
         cat("Determinant:",
             det(vec), "\n")
         cat("Precision on v' = 1/v:",
-            max(abs(t(vec) - solve(vec))), "\n")
+            max(abs(t(vec) - solve(vec, tol=1e-150))), "\n")
         cat("Precision on Norm_col = 1:",
             max(abs(apply(vec, 2, function(x) norm(as.matrix(x), "2")) - 1)),
             "\n")
@@ -385,7 +388,7 @@ matrix2DscFD <- function(value) {
                           byColumn = TRUE, scale = FALSE,
                           chunk = 500, mc.cores = 1,
                           width.cutoff = 500L,
-                          TOL = 1e-10,
+                          TOL = .Machine$double.eps,
                           connRes = FALSE) {
     loginFDdata <- .decode.arg(loginFD)
     logindata   <- .decode.arg(logins)
@@ -860,7 +863,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
                            chunk = 500, mc.cores = 1,
                            width.cutoff = 500L) {
     .printTime("federateComDim started")
-    TOL <- 1e-10
+    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1067,21 +1070,21 @@ federateComDim <- function(loginFD, logins, func, symbol,
         #LAMBDA[, comp]    <- normv(LAMBDA[, comp])
         
         ## 3.2 Storage of the results associated with dimension comp
-        for (k in 1:ntab) {
-            explained.X[k, comp] <- inertie(tcrossprod(Q[, comp]) %*% XX[[k]]
-                                            %*% tcrossprod(Q[, comp]))
-            Q.b[, comp, k] <- XX[[k]] %*% Q[, comp]
-        }
+        # for (k in 1:ntab) {
+        #     explained.X[k, comp] <- inertie(tcrossprod(Q[, comp]) %*% XX[[k]]
+        #                                     %*% tcrossprod(Q[, comp]))
+        #     #Q.b[, comp, k] <- XX[[k]] %*% Q[, comp]
+        # }
+        
+        explained.X[, comp] <- sapply(1:ntab, function(k) {
+            inertie(tcrossprod(Q[, comp]) %*% XX[[k]]
+                    %*% tcrossprod(Q[, comp]))
+        })
         explained.X[ntab+1, comp] <- sum(explained.X[1:ntab, comp])
-        
-        # LAMBDA[, comp]   <- sapply(1:ntab, function(k) {
-        #     t(Q[, comp]) %*% Q.b[, comp, k]
-        # })
-        
-        ## Non normalized specific weights
-        #NNLAMBDA[, comp] <- LAMBDA[, comp]
-        #LAMBDA[, comp]   <- normv(LAMBDA[, comp])
-        
+        Q.b[, comp,] <- sapply(1:ntab, function(k) {
+            crossprod(XX[[k]], Q[, comp, drop=F])
+        })
+
         # 3.3 Deflation
         ## Deflation of XX
         proj <- diag(1, nind) - tcrossprod(Q[, comp])
@@ -1095,9 +1098,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
     
     ## Global components (scores of individuals)
     Scor.g <- tcrossprod(Q, sqrt(diag(colSums(LAMBDA), ncol = ncol(LAMBDA))))
-    # Unnormed global components
-    #LambdaMoyen <- apply(NNLAMBDA^2, 2, sum)
-    #C <- Q %*% sqrt(diag(LambdaMoyen, ))
     ##-----
     
     ##- 4. Loadings ----
@@ -1215,35 +1215,23 @@ federateComDim <- function(loginFD, logins, func, symbol,
     colnames(W.g) <- compnames
     
     ## Global projection
-    Proj.g <- W.g %*% solve(crossprod(Load.g, W.g),
-                            tol=9.99999999999999e-301)
+    Proj.g <- W.g %*% solve(crossprod(Load.g, W.g), tol=1e-150)
     ##-----
-    
-    #contrib <- t(t(NNLAMBDA)/colSums(NNLAMBDA))
-    
-    ## Weights that take into account the deflation procedure
-    #Wm <- W %*% solve(crossprod(Px, W), tol=1e-150)
-    
-    # globalcor <- NA #cor(X00, C)
-    # 
-    # for (k in 1:ntab) {
-    #     cor.g.b[, , k] <- cor(Q, Q.b[, , k])
-    #     blockcor[[k]] <- NA #cor(X0[[k]], Q.b[, 1:ncomp, k])
-    #     #if (is.null(rownames(blockcor[[k]]))) rownames(blockcor[[k]]) <- names(group[k])
-    # }
     
     ##- 5. Results ----
     ## Global
     res$components   <- c(ncomp=ncomp)
-    res$optimalcrit  <- optimalcrit[1:ncomp]
-    res$saliences    <- LAMBDA[, 1:ncomp, drop=FALSE]
+    res$optimalcrit  <- optimalcrit
+    res$saliences    <- LAMBDA
     res$T.g          <- Q
     res$Scor.g       <- Scor.g
     res$W.g          <- W.g
     res$Load.g       <- Load.g
     res$Proj.g       <- Proj.g
-    res$explained.X  <- explained.X
-    res$cumexplained <- cumexplained*100
+    res$explained.X  <- round(100 * explained.X[1:ntab, 1:ncomp, 
+                                                drop = FALSE], 2)
+    res$cumexplained <- round(100 * cumexplained[1:ncomp, ], 
+                              2)
     
     ## Blocks
     Block$T.b <- Q.b
@@ -1304,7 +1292,7 @@ federateComDim1 <- function(loginFD, logins, func, symbol,
                            width.cutoff = 500L, threshold = 1e-10) {
     #require(DSOpal)
     .printTime("federateComDim started")
-    TOL <- 1e-10
+    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1525,12 +1513,8 @@ federateComDim1 <- function(loginFD, logins, func, symbol,
         for (k in 1:ntab) {
             explained.X[k, comp] <- inertie(tcrossprod(Q[, comp]) %*% XX[[k]]
                                             %*% tcrossprod(Q[, comp]))
-            #Q.b[, comp, k] <- XX[[k]] %*% Q[, comp]
+            Q.b[, comp, k] <- XX[[k]] %*% Q[, comp]
         }
-        
-        Q.b[, comp,] <- sapply(1:ntab, function(k) {
-            XX[[k]] %*% Q[, comp]
-        })
         
         LAMBDA[, comp]   <- sapply(1:ntab, function(k) {
             t(Q[, comp]) %*% Q.b[, comp, k]
@@ -1772,7 +1756,7 @@ federateSNF <- function(loginFD, logins, func, symbol,
                         width.cutoff = 500L) {
     #require(DSOpal)
     .printTime("federateSNF started")
-    TOL <- 1e-10
+    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1873,7 +1857,7 @@ federateUMAP <- function(loginFD, logins, func, symbol,
                          width.cutoff = 500L, ...) {
     #require(DSOpal)
     .printTime("federateUMAP started")
-    TOL <- 1e-10
+    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1956,7 +1940,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
                             width.cutoff = 500L, ...) {
     #require(DSOpal)
     .printTime("federateHdbscan started")
-    TOL <- 1e-10
+    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -2020,7 +2004,7 @@ testSSCP <- function(loginFD, logins, func, symbol,
                      width.cutoff = 500L, ...) {
     #require(DSOpal)
     .printTime("testSSCP started")
-    TOL <- 1e-10
+    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
