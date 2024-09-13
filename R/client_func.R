@@ -859,7 +859,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
                            threshold = 1e-8,
                            chunk = 500, mc.cores = 1,
                            width.cutoff = 500L) {
-    #require(DSOpal)
     .printTime("federateComDim started")
     TOL <- 1e-10
     funcPreProc <- .decode.arg(func)
@@ -1202,26 +1201,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
         })
     }
     names(W.b) <- querytables
-    
-    W.g[, comp] <- unlist(sapply(1:ntab, function(j) {
-        LAMBDA[j, comp] * W.b[[j]][, comp]
-    }))
-    W.g[, comp] <- normv(W.g[, comp])
-    # Wbk <- Reduce('+', unlist(mclapply(names(opals),
-    #                                    mc.cores=1, function(opn) {
-    #     expr <- list(as.symbol("loadings"),
-    #                  as.symbol("centeredAllData"),
-    #                  .encode.arg(Qlist[[opn]]))
-    #     loadings <- datashield.aggregate(opals[opn], as.call(expr))
-    #     return (loadings)
-    # }), recursive = F))
-    
-    #colnames(Wbk) <- compnames
-    #csnvar <- cumsum(nvar)
-    # W.b <- mclapply(1:ntab, mc.cores=ntab, function(k) {
-    #     if (option=="uniform") return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F]/inertia0.sqrt[k])
-    #     return (Wbk[ifelse(k==1, 1, csnvar[k-1]+1):csnvar[k], , drop=F])
-    # })
     
     ## Loadings for the global components: normed
     Load.g <- tcrossprod(do.call(rbind, W.b),
