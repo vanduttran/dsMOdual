@@ -889,14 +889,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
         return (sum(diag(tab)))
     }
     
-    ## function: compute the RV between WX and WY: 
-    ## similarity between two matrices
-    # coefficientRV <- function(WX, WY) {
-    #     rv <- inertie(WX %*% WY)/(sqrt(inertie(WX %*% WX) *
-    #                                        inertie(WY %*% WY)))
-    #     return (rv)
-    # }
-    
     ## function: normalize a vector to a unit vector
     normv <- function(x) {
         normx <- norm(x, type='2')
@@ -952,13 +944,9 @@ federateComDim <- function(loginFD, logins, func, symbol,
     optimalcrit  <- vector("numeric", ncomp)
     names(optimalcrit) <- compnames
     
-    #contrib           <- matrix(0, nrow=ntab, ncol=ncomp)
-    #dimnames(contrib) <- list(querytables, compnames)
-    
     ## Specific weights for each dataset and each dimension
-    LAMBDA <- #NNLAMBDA <-
-        matrix(1, nrow=ntab, ncol=ncomp,
-               dimnames=list(querytables, compnames))
+    LAMBDA <- matrix(1, nrow=ntab, ncol=ncomp,
+                     dimnames=list(querytables, compnames))
     
     ## Normed global components
     Q <- matrix(0, nrow=nind, ncol=ncomp,
@@ -968,45 +956,11 @@ federateComDim <- function(loginFD, logins, func, symbol,
     Q.b <- array(0, dim=c(nind, ncomp, ntab),
                  dimnames=list(samples, compnames, querytables))
 
-    ## Correlations between global components and respective block components
-    # cor.g.b <- array(0, dim=c(ncomp, ncomp, ntab),
-    #                  dimnames=list(compnames, compnames, querytables))
-
-    ## Weights for the block components
-    # W.b      <- vector("list", length=ntab)
-    # ## Correlation between the original variables of each block and its block
-    # ## components (loadings)
-    # blockcor <- vector("list", length=ntab)
-    # for (k in 1:ntab) {
-    #     W.b[[k]] <- blockcor[[k]] <- matrix(0, nrow=nvar[k], ncol=ncomp)
-    #     dimnames(W.b[[k]]) <- dimnames(blockcor[[k]]) <-
-    #         list(queryvariables[[k]], compnames)
-    # }
-    
-    ## Weights for the block components
-    ## Correlation between the original variables of each block and its block
-    ## components (loadings)
-    # W.b <- blockcor <- lapply(querytables, function(tab) {
-    #     matrix(0, nrow=nvar[tab], ncol=ncomp,
-    #            dimnames=list(queryvariables[[tab]], compnames))
-    # })
-    # names(W.b) <- querytables
-    
-    ## Weights for the global components
-    ## Modified Weights to take account of deflation
-    # W <- Wm <- matrix(0, nrow=sum(nvar), ncol=ncomp,
-    #                         dimnames=list(do.call(c, queryvariables),
-    #                                       compnames))
-    
-    ## Percentage of explained inertia of each Xb block and global
+    ## Percentage of explained inertia of each block and global
     explained.X  <- matrix(0, nrow=ntab+1, ncol=ncomp,
                            dimnames=list(c(querytables, 'Global'), compnames))
     cumexplained <- matrix(0, nrow=ncomp, ncol=2,
                            dimnames=list(compnames, c("%explX", "cum%explX")))
-    
-    ## Concatenated Xb block components at current dimension comp
-    #tb           <- matrix(0, nrow=nind, ncol=ntab)
-    #components   <- vector("numeric", length=2)
     
     ## Block results
     Block <- NULL
@@ -1040,7 +994,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
         previousfit <- 0
         deltafit <- threshold + 1
         
-        ## 3.1 Interatively compute the comp-th common component
+        ## Interatively compute the comp-th common component
         while (deltafit > threshold) {
             ## Weighted sum of XX'
             P <- Reduce("+", lapply(1:ntab, function(k)
@@ -1052,7 +1006,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
             ressvd    <- svd(P, nu=1, nv=1)
             Q[, comp] <- ressvd$u
             
-            #optimalcrit[comp] <- reseig$values[1]
             LAMBDA[, comp] <- sapply(1:ntab, function(k) {
                 crossprod(Q[, comp, drop=F],
                           crossprod(XX[[k]],
@@ -1067,16 +1020,9 @@ federateComDim <- function(loginFD, logins, func, symbol,
             previousfit <- fit
         }
         optimalcrit[comp] <- sum(LAMBDA[, comp]^2)
-        #LAMBDA[, comp]    <- normv(LAMBDA[, comp])
-        
-        ## 3.2 Storage of the results associated with dimension comp
-        # for (k in 1:ntab) {
-        #     explained.X[k, comp] <- inertie(tcrossprod(Q[, comp]) %*% XX[[k]]
-        #                                     %*% tcrossprod(Q[, comp]))
-        #     #Q.b[, comp, k] <- XX[[k]] %*% Q[, comp]
-        # }
-        
-        explained.X[, comp] <- sapply(1:ntab, function(k) {
+
+        ## Percentage of explained inertia of each block and global
+        explained.X[1:ntab, comp] <- sapply(1:ntab, function(k) {
             inertie(tcrossprod(Q[, comp]) %*% XX[[k]]
                     %*% tcrossprod(Q[, comp]))
         })
@@ -1084,8 +1030,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
         Q.b[, comp,] <- sapply(1:ntab, function(k) {
             crossprod(XX[[k]], Q[, comp, drop=F])
         })
-
-        # 3.3 Deflation
+        
         ## Deflation of XX
         proj <- diag(1, nind) - tcrossprod(Q[, comp])
         XX <- lapply(XX, function(xx) proj %*% xx %*% t(proj))
