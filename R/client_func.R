@@ -1173,10 +1173,9 @@ federateComDim <- function(loginFD, logins, func, symbol,
     res$W.g          <- W.g
     res$Load.g       <- Load.g
     res$Proj.g       <- Proj.g
-    res$explained.X  <- round(100 * explained.X[1:ntab, 1:ncomp, 
-                                                drop = FALSE], 2)
-    res$cumexplained <- round(100 * cumexplained[1:ncomp, ], 
+    res$explained.X  <- round(100 * explained.X[1:ntab, 1:ncomp, drop = FALSE],
                               2)
+    res$cumexplained <- round(100 * cumexplained[1:ncomp, ], 2)
     
     ## Blocks
     Block$T.b <- Q.b
