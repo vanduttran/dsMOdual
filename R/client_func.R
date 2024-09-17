@@ -966,6 +966,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
     Block <- NULL
     ## Output
     res   <- NULL
+    call  <- NULL
     ##-----
     
     ##- 2. Required parameters and data preparation ----
