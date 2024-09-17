@@ -1044,6 +1044,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
     
     ## Global components (scores of individuals)
     Scor.g <- tcrossprod(Q, sqrt(diag(colSums(LAMBDA), ncol = ncol(LAMBDA))))
+    colnames(Scor.g) <- compnames
     ##-----
     
     ##- 4. Loadings ----
@@ -1151,7 +1152,8 @@ federateComDim <- function(loginFD, logins, func, symbol,
     ## Loadings for the global components: normed
     Load.g <- tcrossprod(do.call(rbind, W.b),
                          sqrt(diag(colSums(LAMBDA), ncol = ncol(LAMBDA))))
-    Load.g <- t(t(Load.g)/colSums(Scor.g^2)) 
+    Load.g <- t(t(Load.g)/colSums(Scor.g^2))
+    colnames(Load.g) <- compnames
     
     ## Global weights: normed
     W.g <- do.call(rbind, mclapply(1:ntab, mc.cores=mc.cores, function(k)
@@ -1162,6 +1164,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
     
     ## Global projection
     Proj.g <- W.g %*% solve(crossprod(Load.g, W.g), tol=1e-150)
+    colnames(Proj.g) <- compnames
     ##-----
     
     ##- 5. Results ----
@@ -1176,12 +1179,19 @@ federateComDim <- function(loginFD, logins, func, symbol,
     res$Proj.g       <- Proj.g
     res$explained.X  <- round(100 * explained.X[1:ntab, 1:ncomp, drop = FALSE],
                               2)
-    res$cumexplained <- round(100 * cumexplained[1:ncomp, ], 2)
+    res$cumexplained <- round(100 * cumexplained[1:ncomp, ],
+                              2)
     
     ## Blocks
     Block$T.b <- Q.b
     Block$W.b <- W.b
     res$Block <- Block
+    # call$X <- matrix(0, nrow=nind, ncol=sum(nvar),
+    #                  dimnames=list(unlist(querysamples),
+    #                                unlist(queryvariables)))
+    # call$Xcale <- list()
+    # call$Xscale$mean <- rep(0, sum(nvar))
+    # call$Xscale$scale <- rep(1, sum(nvar))
     call$size.block <- nvar
     call$name.block <- querytables
     call$ncomp <- ncomp
