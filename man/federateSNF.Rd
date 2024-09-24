@@ -12,8 +12,9 @@ federateSNF(loginFD,
                    K = 20,
                    sigma = 0.5,
                    t = 20,
-                   chunk = 500,
+                   chunk = 500L,
                    mc.cores = 1,
+                   TOL = .Machine$double.eps,
                    width.cutoff = 500L)
 }
 \arguments{
@@ -46,11 +47,13 @@ see \code{SNFtool::SNF}.}
 see \code{SNFtool::SNF}.}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
-Default, 500.}
+Default, 500L.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
-\item{width.cutoff}{Default, 500. See \code{deparse1}.}
+\item{TOL}{Tolerance of 0. Default, \code{.Machine$double.eps}.}
+
+\item{width.cutoff}{Default, 500L. See \code{deparse1}.}
 }
 \value{
 The overall status matrix derived W.

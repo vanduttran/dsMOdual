@@ -4,7 +4,7 @@
 \alias{.solveSSCP}
 \title{Find X from XX' and X'X}
 \usage{
-.solveSSCP(XXt, XtX, r, Xr, TOL = 1e-10)
+.solveSSCP(XXt, XtX, r, Xr, TOL = .Machine$double.eps)
 }
 \arguments{
 \item{XXt}{XX'}
@@ -15,7 +15,7 @@
 
 \item{Xr}{A vector of length \code{nrow(XX'}, equals to the product Xr.}
 
-\item{TOL}{Tolerance of 0}
+\item{TOL}{Tolerance of 0. Default, \code{.Machine$double.eps}.}
 }
 \value{
 X

@@ -11,10 +11,10 @@
   querytables,
   byColumn = TRUE,
   scale = FALSE,
-  chunk = 500,
+  chunk = 500L,
   mc.cores = 1,
+  TOL = .Machine$double.eps,
   width.cutoff = 500L,
-  TOL = 1e-10,
   connRes = FALSE
 )
 }
@@ -37,9 +37,17 @@ centered by column or row. Default, TRUE, centering by column, with constant
 variables across samples are removed. If FALSE, centering and scaling by
 row, with constant samples across variables are removed.}
 
-\item{width.cutoff}{Default, 500. See \code{deparse1}.}
+\item{scale}{A logical value indicating whether the variables should be
+scaled to have unit variance. Default, FALSE.}
 
-\item{TOL}{Tolerance of 0.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned.
+Default, 500L.}
+
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
+
+\item{TOL}{Tolerance of 0. Default, \code{.Machine$double.eps}.}
+
+\item{width.cutoff}{Default, 500L. See \code{deparse1}.}
 
 \item{connRes}{A logical value indicating if the connection to \code{logins}
 is returned. Default, FALSE, connections are closed.}

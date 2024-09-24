@@ -10,21 +10,6 @@ garbageCollect <- function() {
 #' @title Bigmemory description of a matrix
 #' @description Bigmemory description of a matrix.
 #' @param value Encoded value of a matrix.
-#' @import bigmemory
-#' @returns Bigmemory description of the given matrix
-#' @keywords internal
-matrix2DscFDrm <- function(value) {
-    valued <- .decode.arg(value)
-    tcp <- do.call(rbind, .decode.arg(valued))
-    dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
-    rm(list=c("valued", "tcp"))
-    return (dscbigmatrix)
-}
-
-
-#' @title Bigmemory description of a matrix
-#' @description Bigmemory description of a matrix.
-#' @param value Encoded value of a matrix.
 #' @returns Bigmemory description of the given matrix
 #' @importFrom arrow read_ipc_stream
 #' @importFrom bigmemory as.big.matrix describe
@@ -108,65 +93,6 @@ matrix2DscFD <- function(value) {
 
 
 #' @title Symmetric matrix reconstruction
-#' @description Rebuild a matrix from its partition.
-#' @param matblocks List of lists of matrix blocks, obtained from
-#' .partitionMatrix.
-#' @param mc.cores Number of cores for parallel computing. Default, 1.
-#' @returns The complete symmetric matrix
-#' @keywords internal
-.rebuildMatrixrm <- function(matblocks, mc.cores = 1) {
-    uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
-    .printTime("perform .rebuildMatrix")
-    print(lapply(uptcp, range))
-    .printTime("wrote uptcp")
-    ## combine the blocks into one matrix
-    if (length(uptcp)>1) {
-        if (length(unique(sapply(uptcp, ncol)))==1) {
-            tcp <- do.call(rbind, uptcp)
-        } else {
-            ## without the first layer of blocks
-            no1tcp <- mclapply(2:length(uptcp), mc.cores=mc.cores, function(i) {
-                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-                    t(matblocks[[j]][[i-j+1]])
-                })), uptcp[[i]])
-            })
-            ## with the first layer of blocks
-            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
-            rm(list=c("no1tcp"))
-        }
-    } else {
-        tcp <- uptcp[[1]]
-    }
-    print(sum(tcp))
-    print(tcp[1:3,1:3])
-    print(range(tcp))
-    print(max(abs(tcp-t(tcp))))
-    .printTime("diff tcp - t(tcp)")
-    stopifnot(isSymmetric(tcp))
-    rm(list=c("uptcp"))
-    return (tcp)
-}
-
-
-#' @title Symmetric matrix reconstruction
-#' @description Rebuild a symmetric matrix from its partition bigmemory objects
-#' @param dscblocks List of lists of bigmemory objects pointed to matrix blocks
-#' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @returns The complete symmetric matrix
-#' @keywords internal
-.rebuildMatrixDscrm <- function(dscblocks, mc.cores = 1) {
-    ## access to matrix blocks 
-    matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
-        lapply(y, function(x) {
-            return (as.matrix(attach.big.matrix(x)))
-        })
-    })
-    tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
-    return (tcp)
-}
-
-
-#' @title Symmetric matrix reconstruction
 #' @description Rebuild a symmetric matrix from its partition bigmemory objects
 #' @param dscblocks List of lists of bigmemory objects pointed to matrix blocks
 #' @param mc.cores Number of cores for parallel computing. Default: 1
@@ -218,11 +144,11 @@ matrix2DscFD <- function(value) {
 #' @param XtX X'X
 #' @param r A non-null vector of length \code{ncol(X'X)}
 #' @param Xr A vector of length \code{nrow(XX'}, equals to the product Xr.
-#' @param TOL Tolerance of 0
+#' @param TOL Tolerance of 0. Default, \code{.Machine$double.eps}.
+#' @returns X
 #' @importFrom parallel mclapply
 #' @importFrom Matrix rankMatrix
 #' @keywords internal
-#' @returns X
 .solveSSCP <- function(XXt, XtX, r, Xr, TOL = .Machine$double.eps) {
     if (length(r) != ncol(XtX)) {
         stop("r length shoud match ncol(XtX).")
@@ -262,8 +188,8 @@ matrix2DscFD <- function(value) {
     poseignum <- min(
         Nmin+1,
         which(
-            vals$XXt[1:Nmin]/(vals$XtX[1:Nmin]+.Machine$double.eps) < 0.99 |
-                vals$XtX[1:Nmin]/(vals$XXt[1:Nmin]+.Machine$double.eps) < 0.99)
+            vals$XXt[1:Nmin]/(vals$XtX[1:Nmin]+TOL) < 0.99 |
+                vals$XtX[1:Nmin]/(vals$XXt[1:Nmin]+TOL) < 0.99)
         ) - 1
     
     vals <- mclapply(vals, mc.cores=length(vals), function(x) {
@@ -286,7 +212,8 @@ matrix2DscFD <- function(value) {
     # poseignum <- unique(sapply(vals, function(x) {
     #     max(which(x > 0))
     # }))
-    # cat("Number of strictly positive eigenvalues:", poseignum, "with tolerance of", tol, "\n")
+    # cat("Number of strictly positive eigenvalues:", poseignum,
+    #     "with tolerance of", tol, "\n")
     # stopifnot(length(poseignum)==1)
     
     ## verify deduced info
@@ -376,8 +303,13 @@ matrix2DscFD <- function(value) {
 #' centered by column or row. Default, TRUE, centering by column, with constant
 #' variables across samples are removed. If FALSE, centering and scaling by
 #' row, with constant samples across variables are removed.
-#' @param width.cutoff Default, 500. See \code{deparse1}.
-#' @param TOL Tolerance of 0.
+#' @param scale A logical value indicating whether the variables should be
+#' scaled to have unit variance. Default, FALSE.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500L.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
+#' @param TOL Tolerance of 0. Default, \code{.Machine$double.eps}.
+#' @param width.cutoff Default, 500L. See \code{deparse1}.
 #' @param connRes A logical value indicating if the connection to \code{logins}
 #' is returned. Default, FALSE, connections are closed.
 #' @importFrom parallel mclapply
@@ -386,9 +318,9 @@ matrix2DscFD <- function(value) {
 #' @keywords internal
 .federateSSCP <- function(loginFD, logins, funcPreProc, querytables,
                           byColumn = TRUE, scale = FALSE,
-                          chunk = 500, mc.cores = 1,
-                          width.cutoff = 500L,
+                          chunk = 500L, mc.cores = 1,
                           TOL = .Machine$double.eps,
+                          width.cutoff = 500L,
                           connRes = FALSE) {
     loginFDdata <- .decode.arg(loginFD)
     logindata   <- .decode.arg(logins)
@@ -825,7 +757,7 @@ matrix2DscFD <- function(value) {
 #'                       scale = FALSE,
 #'                       scale.block = TRUE,
 #'                       threshold = 1e-8,
-#'                       chunk = 500,
+#'                       chunk = 500L,
 #'                       mc.cores = 1,
 #'                       width.cutoff = 500L
 #'                       )
@@ -846,10 +778,11 @@ matrix2DscFD <- function(value) {
 #' See \code{MBAnalysis::ComDim}.
 #' @param threshold if the difference of fit<threshold then break the iterative
 #' loop (default 1e-8)
-#' @param width.cutoff Default, 500. See \code{deparse1}.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
+#' @param TOL Tolerance of 0. Default, \code{.Machine$double.eps}.
+#' @param width.cutoff Default, 500L. See \code{deparse1}.
 #' @returns A \code{ComDim} object. See \code{MBAnalysis::ComDim}.
 #' @importFrom DSI datashield.logout datashield.errors datashield.symbols
 #' datashield.assign
@@ -860,10 +793,10 @@ federateComDim <- function(loginFD, logins, func, symbol,
                            scale = FALSE,
                            scale.block = TRUE,
                            threshold = 1e-8,
-                           chunk = 500, mc.cores = 1,
+                           chunk = 500L, mc.cores = 1,
+                           TOL = .Machine$double.eps,
                            width.cutoff = 500L) {
     .printTime("federateComDim started")
-    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1216,8 +1149,9 @@ federateComDim <- function(loginFD, logins, func, symbol,
 #'                    K = 20,
 #'                    sigma = 0.5,
 #'                    t = 20,
-#'                    chunk = 500,
+#'                    chunk = 500L,
 #'                    mc.cores = 1,
+#'                    TOL = .Machine$double.eps,
 #'                    width.cutoff = 500L)
 #' @param loginFD Login information of the FD server
 #' @param logins Login information of data repositories
@@ -1240,20 +1174,20 @@ federateComDim <- function(loginFD, logins, func, symbol,
 #' @param t Number of iterations for the diffusion process,
 #' see \code{SNFtool::SNF}.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
-#' @param width.cutoff Default, 500. See \code{deparse1}.
+#' @param TOL Tolerance of 0. Default, \code{.Machine$double.eps}.
+#' @param width.cutoff Default, 500L. See \code{deparse1}.
 #' @returns The overall status matrix derived W.
 #' @importFrom SNFtool SNF affinityMatrix
 #' @export
 federateSNF <- function(loginFD, logins, func, symbol,
                         metric = "euclidean",
                         K = 20, sigma = 0.5, t = 20,
-                        chunk = 500, mc.cores = 1,
+                        chunk = 500L, mc.cores = 1,
+                        TOL = .Machine$double.eps,
                         width.cutoff = 500L) {
-    #require(DSOpal)
     .printTime("federateSNF started")
-    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1320,8 +1254,9 @@ federateSNF <- function(loginFD, logins, func, symbol,
 #'                     func,
 #'                     symbol,
 #'                     metric = 'euclidean',
-#'                     chunk = 500,
+#'                     chunk = 500L,
 #'                     mc.cores = 1,
+#'                     TOL = .Machine$double.eps,
 #'                     width.cutoff = 500L,
 #'                     ...)
 #' @param loginFD Login information of the FD server
@@ -1340,9 +1275,10 @@ federateSNF <- function(loginFD, logins, func, symbol,
 #' For correlation-based distance, the data from each cohort will be centered
 #' scaled for each sample.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
-#' @param width.cutoff Default, 500. See \code{deparse1}.
+#' @param TOL Tolerance of 0. Default, \code{.Machine$double.eps}.
+#' @param width.cutoff Default, 500L. See \code{deparse1}.
 #' @param ... see \code{uwot::umap}
 #' @returns A matrix of optimized coordinates.
 #' @importFrom uwot umap
@@ -1350,11 +1286,10 @@ federateSNF <- function(loginFD, logins, func, symbol,
 #' @export
 federateUMAP <- function(loginFD, logins, func, symbol,
                          metric = "euclidean",
-                         chunk = 500, mc.cores = 1,
+                         chunk = 500L, mc.cores = 1,
+                         TOL = .Machine$double.eps,
                          width.cutoff = 500L, ...) {
-    #require(DSOpal)
     .printTime("federateUMAP started")
-    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1402,8 +1337,9 @@ federateUMAP <- function(loginFD, logins, func, symbol,
 #'                        symbol,
 #'                        metric = 'euclidean',
 #'                        minPts = 10,
-#'                        chunk = 500,
+#'                        chunk = 500L,
 #'                        mc.cores = 1,
+#'                        TOL = .Machine$double.eps,
 #'                        width.cutoff = 500L,
 #'                        ...)
 #' @param loginFD Login information of the FD server
@@ -1424,20 +1360,20 @@ federateUMAP <- function(loginFD, logins, func, symbol,
 #' @param minPts Minimum size of clusters, see \code{dbscan::hdbscan}.
 #' Default, 10.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
-#' @param width.cutoff Default, 500. See \code{deparse1}.
+#' @param TOL Tolerance of 0. Default, \code{.Machine$double.eps}.
+#' @param width.cutoff Default, 500L. See \code{deparse1}.
 #' @param ... see \code{dbscan::hdbscan}
 #' @returns An object of class \code{hdbscan}.
 #' @importFrom dbscan hdbscan
 #' @export
 federateHdbscan <- function(loginFD, logins, func, symbol,
                             metric = "euclidean", minPts = 10, 
-                            chunk = 500, mc.cores = 1,
+                            chunk = 500L, mc.cores = 1,
+                            TOL = .Machine$double.eps,
                             width.cutoff = 500L, ...) {
-    #require(DSOpal)
     .printTime("federateHdbscan started")
-    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1486,22 +1422,25 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
 #' DataSHIELD R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param byColumn A logical value indicating whether the input data is centered by column or row.
-#' Default, TRUE, centering by column. Constant variables across samples are removed. 
-#' If FALSE, centering and scaling by row. Constant samples across variables are removed.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500
-#' @param mc.cores Number of cores for parallel computing. Default: 1.
-#' @param width.cutoff Default, 500. See \code{deparse1}.
-#' @param TOL Tolerance of 0
+#' @param metric Either \code{euclidean} or \code{correlation} for distance
+#' metric between samples. 
+#' For Euclidean distance, the data from each cohort will be centered (not
+#' scaled) for each variable.
+#' For correlation-based distance, the data from each cohort will be centered
+#' scaled for each sample.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500L.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
+#' @param TOL Tolerance of 0. Default, \code{.Machine$double.eps}.
+#' @param width.cutoff Default, 500L. See \code{deparse1}.
 #' @export
 # #' @keywords internal
 testSSCP <- function(loginFD, logins, func, symbol,
                      metric = "euclidean",
-                     chunk = 500, mc.cores = 1, TOL = 1e-10,
+                     chunk = 500L, mc.cores = 1,
+                     TOL = .Machine$double.eps,
                      width.cutoff = 500L, ...) {
-    #require(DSOpal)
     .printTime("testSSCP started")
-    TOL <- .Machine$double.eps
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1529,24 +1468,6 @@ testSSCP <- function(loginFD, logins, func, symbol,
         }
     })
     names(XX) <- querytables
-    
-    # if (metric == "correlation") {
-    #     ## compute (1 - correlation) distance between samples for each data table 
-    #     XX <- lapply(1:ntab, function(i) {
-    #         xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
-    #                              funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-    #                              byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-    #         return (as.dist(1 - xxi$sscp/(length(xxi$var)-1)))
-    #     })
-    # } else if (metric == "euclidean"){
-    #     ## compute Euclidean distance between samples for each data table 
-    #     XX <- lapply(1:ntab, function(i) {
-    #         xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
-    #                              funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-    #                              byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-    #         return (as.dist(.toEuclidean(xxi$sscp)))
-    #     })
-    # }
     
     return (XX)
 }

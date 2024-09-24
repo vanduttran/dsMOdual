@@ -10,9 +10,9 @@ testSSCP(
   func,
   symbol,
   metric = "euclidean",
-  chunk = 500,
+  chunk = 500L,
   mc.cores = 1,
-  TOL = 1e-10,
+  TOL = .Machine$double.eps,
   width.cutoff = 500L,
   ...
 )
@@ -32,17 +32,21 @@ DataSHIELD R session on each server in \code{logins}.
 The assigned R variables will be used as the input raw data.
 Other assigned R variables in \code{func} are ignored.}
 
-\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500}
+\item{metric}{Either \code{euclidean} or \code{correlation} for distance
+metric between samples. 
+For Euclidean distance, the data from each cohort will be centered (not
+scaled) for each variable.
+For correlation-based distance, the data from each cohort will be centered
+scaled for each sample.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned.
+Default, 500L.}
 
-\item{TOL}{Tolerance of 0}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
-\item{width.cutoff}{Default, 500. See \code{deparse1}.}
+\item{TOL}{Tolerance of 0. Default, \code{.Machine$double.eps}.}
 
-\item{byColumn}{A logical value indicating whether the input data is centered by column or row.
-Default, TRUE, centering by column. Constant variables across samples are removed. 
-If FALSE, centering and scaling by row. Constant samples across variables are removed.}
+\item{width.cutoff}{Default, 500L. See \code{deparse1}.}
 }
 \description{
 Deprecated

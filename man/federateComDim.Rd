@@ -12,7 +12,7 @@ federateComDim(loginFD,
                       scale = FALSE,
                       scale.block = TRUE,
                       threshold = 1e-8,
-                      chunk = 500,
+                      chunk = 500L,
                       mc.cores = 1,
                       width.cutoff = 500L
                       )
@@ -44,11 +44,13 @@ See \code{MBAnalysis::ComDim}.}
 loop (default 1e-8)}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
-Default, 500.}
+Default, 500L.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
-\item{width.cutoff}{Default, 500. See \code{deparse1}.}
+\item{TOL}{Tolerance of 0. Default, \code{.Machine$double.eps}.}
+
+\item{width.cutoff}{Default, 500L. See \code{deparse1}.}
 }
 \value{
 A \code{ComDim} object. See \code{MBAnalysis::ComDim}.
