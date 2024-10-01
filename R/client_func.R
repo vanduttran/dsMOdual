@@ -193,7 +193,8 @@ matrix2DscFD <- function(value) {
         ) - 1
     
     vals <- mclapply(vals, mc.cores=length(vals), function(x) {
-        x[(poseignum+1):length(x)] <- 0
+        if (poseignum < length(x))
+            x[(poseignum+1):length(x)] <- 0
         return (x)
     })
 
@@ -312,7 +313,7 @@ matrix2DscFD <- function(value) {
 #' @param width.cutoff Default, 500L. See \code{deparse1}.
 #' @param connRes A logical value indicating if the connection to \code{logins}
 #' is returned. Default, FALSE, connections are closed.
-#' @importFrom parallel mclapply
+#' @importFrom parallel mclapply detectCores
 #' @importFrom DSI datashield.aggregate datashield.assign datashield.logout
 #' datashield.errors datashield.symbols
 #' @keywords internal
@@ -469,7 +470,7 @@ matrix2DscFD <- function(value) {
                                     .encode.arg(logindata.opn),
                                     "')")
                 datashield.assign(opals[opn], 'mates',
-                                  as.symbol(opals.loc), async=F)
+                                  as.symbol(opals.loc), async=T)
                 tryCatch({
                     ## prepare raw data matrices on mates of opn
                     command.opn <- list(as.symbol("crossAssignFunc"),
@@ -479,7 +480,7 @@ matrix2DscFD <- function(value) {
                     .printTime("Command: crossAssignFunc(mates, funcPreProc, ...)")
                     invisible(datashield.aggregate(opals[opn],
                                                    as.call(command.opn),
-                                                   async=F))
+                                                   async=T))
                     
                     ## center raw data on mates of opn
                     command.opn <- list(
@@ -498,12 +499,12 @@ matrix2DscFD <- function(value) {
                                       scale=scale)),
                             width.cutoff=width.cutoff)),
                         value.call=T,
-                        async=F
+                        async=T
                     )
                     .printTime("Command: crossAssign(mates, centeredDataMate)")
                     invisible(datashield.aggregate(opals[opn],
                                                    as.call(command.opn),
-                                                   async=F))
+                                                   async=T))
                     
                     ## create singularProd from mates of opn
                     command.opn <- paste0(
@@ -514,18 +515,18 @@ matrix2DscFD <- function(value) {
                         singularProd(centeredDataMate), ...")
                     datashield.assign(opals[opn],
                                       "singularProdMate",
-                                      as.symbol(command.opn), async=F)
+                                      as.symbol(command.opn), async=T)
                     
                     ## send X'X from opn to mates of opn
                     command.opn <- list(as.symbol("pushToDscMate"),
                                         as.symbol("mates"),
                                         as.symbol("crossProdSelf"),
                                         opn,
-                                        async=F)
+                                        async=T)
                     .printTime("Command: pushToDscMate(mates, crossProdSelf...")
                     invisible(datashield.aggregate(opals[opn],
                                                    as.call(command.opn),
-                                                   async=F))
+                                                   async=T))
                     .printTime(paste0(
                         ".federateSSCP Pairwise X'X communicated: ",
                         opn))
@@ -543,13 +544,13 @@ matrix2DscFD <- function(value) {
                                       mc.cores=mc.cores)),
                             width.cutoff=width.cutoff)),
                         value.call=T,
-                        async=F
+                        async=T
                     )
                     .printTime("Command: crossAssign(mates, prodDataCross,
                         tripleProdChunk(...")
                     invisible(datashield.aggregate(opals[opn],
                                                    as.call(command.opn),
-                                                   async=F))
+                                                   async=T))
                     
                     ## login to FD from mates
                     command.opn <- paste0(
@@ -560,7 +561,7 @@ matrix2DscFD <- function(value) {
                         crossLogin(...")
                     invisible(datashield.aggregate(opals[opn],
                                                    as.symbol(command.opn),
-                                                   async=F))
+                                                   async=T))
                     
                     ## push X_i * X_j * X_j' * X_i' to FD from mates
                     tryCatch({
@@ -582,7 +583,8 @@ matrix2DscFD <- function(value) {
                             function(dscblocks) {
                                 pdcs <- lapply(dscblocks, function(dscblocki) {
                                     return (.rebuildMatrixDsc(
-                                        dscblocki, mc.cores=1))
+                                        dscblocki,
+                                        mc.cores=max(1, detectCores()/nnode)))
                                 })
                                 if (is.null(names(pdcs)))
                                     names(pdcs) <- querytables
@@ -641,17 +643,22 @@ matrix2DscFD <- function(value) {
                 singularProdCrossDSC <- datashield.aggregate(opals,
                                                              as.call(command),
                                                              async=T)
-                singularProdCross <- lapply(singularProdCrossDSC,
-                                            function(dscspc) {
-                    lapply(dscspc, function(dscblocks) {
-                        spcs <- lapply(dscblocks, function(dscblocki) {
-                            return (.rebuildMatrixDsc(dscblocki,
-                                                      mc.cores=mc.cores))
-                        })
-                        if (is.null(names(spcs))) names(spcs) <- querytables
-                        return (spcs)
+                singularProdCross <- lapply(
+                    singularProdCrossDSC,
+                    function(dscspc) {
+                        lapply(
+                            dscspc,
+                            function(dscblocks) {
+                                spcs <- lapply(dscblocks, function(dscblocki) {
+                                    return (.rebuildMatrixDsc(
+                                        dscblocki,
+                                        mc.cores=mc.cores))
+                                })
+                                if (is.null(names(spcs)))
+                                    names(spcs) <- querytables
+                                return (spcs)
+                            })
                     })
-                })
                 gc(reset=F)
                 .printTime(".federateSSCP Ar communicated to FD")
             }, error = function(e) {
