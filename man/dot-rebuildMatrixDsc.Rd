@@ -9,7 +9,7 @@
 \arguments{
 \item{dscblocks}{List of lists of bigmemory objects pointed to matrix blocks}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }
 \value{
 The complete symmetric matrix

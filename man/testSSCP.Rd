@@ -51,3 +51,4 @@ Default, 500L.}
 \description{
 Deprecated
 }
+\keyword{internal}

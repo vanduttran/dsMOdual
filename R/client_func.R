@@ -1,12 +1,3 @@
-#' @title Garbage collection
-#' @description Call gc on the federated server.
-#' @keywords internal
-garbageCollect <- function() {
-    gc(reset=T)
-    return (NULL)
-}
-
-
 #' @title Bigmemory description of a matrix
 #' @description Bigmemory description of a matrix.
 #' @param value Encoded value of a matrix.
@@ -95,7 +86,7 @@ matrix2DscFD <- function(value) {
 #' @title Symmetric matrix reconstruction
 #' @description Rebuild a symmetric matrix from its partition bigmemory objects
 #' @param dscblocks List of lists of bigmemory objects pointed to matrix blocks
-#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns The complete symmetric matrix
 #' @importFrom parallel mclapply
 #' @importFrom bigmemory attach.big.matrix
@@ -623,12 +614,6 @@ matrix2DscFD <- function(value) {
             ##-----
             
             tryCatch({
-                # command <- paste0("crossAggregate(FD, '",
-                #                   .encode.arg(paste0("as.call(list(as.symbol('garbageCollect')", "))")),
-                #                   "', async=T)")
-                # cat("Command: ", command, "\n")
-                # datashield.assign(opals, "GC", as.symbol(command), async=T)
-
                 ## send the single-column matrix from opals to FD
                 ## (X_i) * (X_j)' * ((X_j) * (X_j)')[,1]
                 datashield.assign(opals, "singularProdCross",
@@ -808,6 +793,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
     ntab <- length(querytables)
     
     if (!is.logical(scale)) stop("scale must be logical.")
+    if (scale) stop("Only scale=FALSE is considered.")
     if (!is.logical(scale.block)) stop("scale.block must be logical.")
     
     ## compute SSCP matrix for each centered data table
@@ -1218,24 +1204,6 @@ federateSNF <- function(loginFD, logins, func, symbol,
     })
     names(XX) <- querytables
     
-    # if (metric == "correlation") {
-    #     ## compute (1 - correlation) distance between samples for each data table 
-    #     XX <- lapply(1:ntab, function(i) {
-    #         xxi <- .federateSSCP(loginFD=loginFD, logins=logins, 
-    #                              funcPreProc=funcPreProc, querytables=querytables, ind=i, 
-    #                              byColumn=FALSE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-    #         return (1 - xxi$sscp/(length(xxi$var)-1))
-    #     })
-    # } else if (metric == "euclidean"){
-    #     ## compute Euclidean distance between samples for each data table 
-    #     XX <- lapply(1:ntab, function(i) {
-    #         xxi <- .federateSSCP(loginFD=loginFD, logins=logins,
-    #                              funcPreProc=funcPreProc, querytables=querytables, ind=i,
-    #                              byColumn=TRUE, chunk=chunk, mc.cores=mc.cores, TOL=TOL)
-    #         return (.toEuclidean(xxi$sscp))
-    #     })
-    # }
-    
     ## take common samples
     commons <- Reduce(intersect, lapply(XX, rownames))
     XX <- lapply(XX, function(distmat) {
@@ -1330,7 +1298,6 @@ federateUMAP <- function(loginFD, logins, func, symbol,
             #ret_model = FALSE, ret_nn = FALSE, ret_extra = c(),
         }),
         querytables))
-    
 }
 
 
@@ -1439,8 +1406,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @param TOL Tolerance of 0. Default, \code{.Machine$double.eps}.
 #' @param width.cutoff Default, 500L. See \code{deparse1}.
-#' @export
-# #' @keywords internal
+#' @keywords internal
 testSSCP <- function(loginFD, logins, func, symbol,
                      metric = "euclidean",
                      chunk = 500L, mc.cores = 1,
