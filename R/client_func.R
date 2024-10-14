@@ -1016,12 +1016,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
                              len3=lapply(chunkList[opn], lengths),
                              querytables="common")),
                 async=T)
-            # gc on opals
-            # command <- paste0("crossAggregate(FD, '",
-            #                   .encode.arg(paste0("as.call(list(as.symbol('garbageCollect')", "))")),
-            #                   "', async=T)")
-            # cat("Command: ", command, "\n")
-            # datashield.assign(opals, "GC", as.symbol(command), async=T)
         }))
         ## compute loadings X'*Qlist
         datashield.assign(
