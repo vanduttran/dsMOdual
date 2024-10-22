@@ -712,7 +712,6 @@ matrix2DscFD <- function(value) {
         ## deduced from received info by federation: (X_i) * (X_j)'
         mc.tabs <- min(ntab, mc.cores)
         mc.nodes1 <- max(1, min(nnode-1, floor(mc.cores/mc.tabs)))
-        mc.nodes2 <- max(1, min(nnode-opi, floor(mc.cores/mc.nodes1)))
         crossProductPair <- mclapply(
             querytables,
             mc.cores=mc.tabs,
@@ -721,6 +720,8 @@ matrix2DscFD <- function(value) {
                     1:(nnode-1),
                     mc.cores=mc.nodes1,
                     function(opi) {
+                        mc.nodes2 <- max(1, min(nnode-opi,
+                                                floor(mc.cores/mc.nodes1)))
                         crossi <- mclapply(
                             (opi+1):(nnode),
                             mc.cores=mc.nodes2,
