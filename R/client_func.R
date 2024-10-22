@@ -318,6 +318,9 @@ matrix2DscFD <- function(value) {
     logindata   <- .decode.arg(logins)
     opals <- .login(logins=logindata)
     nnode <- length(opals)
+    ntab <- length(querytables)
+    mc.cores <- min(mc.cores, detectCores())
+    mc.nodes <- min(mc.cores, nnode)
     .printTime(".federateSSCP Login-ed")
     
     tryCatch({
@@ -366,11 +369,14 @@ matrix2DscFD <- function(value) {
                           async=T)
         
         ## samples
-        samples <- lapply(
-            datashield.aggregate(opals,
-                                 as.symbol("rowNames(centeredData)"),
-                                 async=T),
-            function(x) x[[1]])
+        samplesTabs <- datashield.aggregate(
+            opals,
+            as.symbol("rowNames(centeredData)"),
+            async=T)
+        samples <- mclapply(
+            names(opals),
+            mc.cores=mc.nodes,
+            function(opn) samplesTabs[[opn]][[1]])
         
         ## variables
         variables <- datashield.aggregate(
@@ -416,13 +422,27 @@ matrix2DscFD <- function(value) {
                                                   async=T)
         
         ## rebuild XX'
-        tcrossProdSelf <- lapply(tcrossProdSelfDSC, function(dscblocks) {
-            tcps <- lapply(dscblocks, function(dscblocki) {
-                return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
+        tcrossProdSelf <- mclapply(
+            names(opals),
+            mc.cores=mc.nodes,
+            function(opn) {
+                #dscblocks <- tcrossProdSelfDSC[[opn]]
+                #tcps <- lapply(dscblocks, function(dscblocki) {
+                mc.tabs <- max(1, min(ntab, floor(mc.cores/mc.nodes)))
+                tcps <- mclapply(
+                    querytables,#dscblocks,
+                    mc.cores=mc.tabs,
+                    function(tab) {#dscblocki) {
+                        mc.chunks <- max(1, floor(mc.cores/(mc.nodes*mc.tabs)))
+                        return (.rebuildMatrixDsc(
+                            #dscblocki,
+                            tcrossProdSelfDSC[[opn]][[tab]],
+                            mc.cores=mc.chunks))
+                    })
+                #if (is.null(names(tcps))) 
+                names(tcps) <- querytables
+                return (tcps)
             })
-            if (is.null(names(tcps))) names(tcps) <- querytables
-            return (tcps)
-        })
         gc(reset=F)
     }, error = function(e) {
         .printTime(paste0("SSCP PUSH PROCESS: ", e))
@@ -450,8 +470,8 @@ matrix2DscFD <- function(value) {
                                            chunk=chunk)),
                               async=T)
         
-            ##- received by each from other nodes ----
-            prodDataCross <- mclapply(names(opals), mc.cores=nnode, function(opn) {
+            ## login from each to other nodes
+            invisible(lapply(names(opals), function(opn) {
                 ind.opn <- which(logindata$server == opn)
                 logindata.opn <- logindata[-ind.opn, , drop=F]
                 logindata.opn$user <- logindata.opn$userserver
@@ -462,6 +482,21 @@ matrix2DscFD <- function(value) {
                                     "')")
                 datashield.assign(opals[opn], 'mates',
                                   as.symbol(opals.loc), async=T)
+            }))
+            ## TODO: crossLogin sessions can remain if one of them fails
+            
+            ##- received by each from other nodes ----
+            prodDataCross <- mclapply(names(opals), mc.cores=mc.nodes, function(opn) {
+                # ind.opn <- which(logindata$server == opn)
+                # logindata.opn <- logindata[-ind.opn, , drop=F]
+                # logindata.opn$user <- logindata.opn$userserver
+                # logindata.opn$password <- logindata.opn$passwordserver
+                # ## from each node opn, log in other nodes (mates)
+                # opals.loc <- paste0("crossLogin('",
+                #                     .encode.arg(logindata.opn),
+                #                     "')")
+                # datashield.assign(opals[opn], 'mates',
+                #                   as.symbol(opals.loc), async=T)
                 tryCatch({
                     ## prepare raw data matrices on mates of opn
                     command.opn <- list(as.symbol("crossAssignFunc"),
@@ -572,13 +607,18 @@ matrix2DscFD <- function(value) {
                         prodDataCross.opn <- lapply(
                             prodDataCrossDSC[[opn]],
                             function(dscblocks) {
-                                pdcs <- lapply(dscblocks, function(dscblocki) {
-                                    return (.rebuildMatrixDsc(
-                                        dscblocki,
-                                        mc.cores=max(1, detectCores()/nnode)))
-                                })
-                                if (is.null(names(pdcs)))
-                                    names(pdcs) <- querytables
+                                mc.tabs <- max(1, min(ntab, floor(mc.cores/mc.nodes)))
+                                pdcs <- mclapply(
+                                    querytables,
+                                    mc.cores=mc.tabs,
+                                    function(tab) {
+                                        mc.chunks <- max(1, floor(mc.cores/(mc.nodes*mc.tabs)))
+                                        return (.rebuildMatrixDsc(
+                                            dscblocks[[tab]],
+                                            mc.cores=mc.chunks))
+                                    })
+                                #if (is.null(names(pdcs)))
+                                names(pdcs) <- querytables
                                 return (pdcs)
                             })
                         .printTime(paste0(".federateSSCP XY'YX' tripleProd
@@ -628,21 +668,27 @@ matrix2DscFD <- function(value) {
                 singularProdCrossDSC <- datashield.aggregate(opals,
                                                              as.call(command),
                                                              async=T)
-                singularProdCross <- lapply(
-                    singularProdCrossDSC,
-                    function(dscspc) {
-                        lapply(
-                            dscspc,
-                            function(dscblocks) {
-                                spcs <- lapply(dscblocks, function(dscblocki) {
-                                    return (.rebuildMatrixDsc(
-                                        dscblocki,
-                                        mc.cores=mc.cores))
-                                })
-                                if (is.null(names(spcs)))
-                                    names(spcs) <- querytables
-                                return (spcs)
-                            })
+                singularProdCross <- mclapply(
+                    names(opals),
+                    mc.cores=mc.nodes,
+                    #singularProdCrossDSC,
+                    function(opn) {
+                        lapply(singularProdCrossDSC[[opn]],
+                               function(dscblocks) {
+                                   mc.tabs <- max(1, min(ntab, floor(mc.cores/mc.nodes)))
+                                   spcs <- mclapply(
+                                       querytables,
+                                       mc.cores=mc.tabs,
+                                       function(tab) {
+                                           mc.chunks <- max(1, floor(mc.cores/(mc.nodes*mc.tabs)))
+                                           return (.rebuildMatrixDsc(
+                                               dscblocks[[tab]],
+                                               mc.cores=mc.chunks))
+                                       })
+                                   #if (is.null(names(spcs)))
+                                   names(spcs) <- querytables
+                                   return (spcs)
+                               })
                     })
                 gc(reset=F)
                 .printTime(".federateSSCP Ar communicated to FD")
@@ -664,62 +710,74 @@ matrix2DscFD <- function(value) {
         })
         
         ## deduced from received info by federation: (X_i) * (X_j)'
-        crossProductPair <- lapply(querytables, function(tab) {
-            cptab <- mclapply(
-                1:(nnode-1),
-                mc.cores=mc.cores,
-                function(opi) {
-                    crossi <- lapply((opi+1):(nnode), function(opj) {
-                        opni <- names(opals)[opi]
-                        opnj <- names(opals)[opj]
-                        a1 <- .solveSSCP(
-                            XXt=prodDataCross[[opnj]][[opni]][[tab]],
-                            XtX=prodDataCross[[opni]][[opnj]][[tab]],
-                            r=tcrossProdSelf[[opnj]][[tab]][, 1, drop=F],
-                            Xr=singularProdCross[[opni]][[opnj]][[tab]],
-                            TOL=TOL)
-                        a2 <- .solveSSCP(
-                            XXt=prodDataCross[[opni]][[opnj]][[tab]],
-                            XtX=prodDataCross[[opnj]][[opni]][[tab]],
-                            r=tcrossProdSelf[[opni]][[tab]][, 1, drop=F],
-                            Xr=singularProdCross[[opnj]][[opni]][[tab]],
-                            TOL=TOL)
-                        cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))),
-                            " / (", quantile(abs(a1)), ")\n")
-                        return (a1)
+        mc.tabs <- min(ntab, mc.cores)
+        crossProductPair <- mclapply(
+            querytables,
+            mc.cores=mc.tabs,
+            function(tab) {
+                mc.nodes1 <- max(1, min(nnode-1, floor(mc.cores/mc.tabs)))
+                cptab <- mclapply(
+                    1:(nnode-1),
+                    mc.cores=mc.nodes1,
+                    function(opi) {
+                        mc.nodes2 <- max(1, min(nnode-opi, floor(mc.cores/mc.nodes1)))
+                        crossi <- mclapply(
+                            (opi+1):(nnode),
+                            mc.cores=mc.nodes2,
+                            function(opj) {
+                                opni <- names(opals)[opi]
+                                opnj <- names(opals)[opj]
+                                a1 <- .solveSSCP(
+                                    XXt=prodDataCross[[opnj]][[opni]][[tab]],
+                                    XtX=prodDataCross[[opni]][[opnj]][[tab]],
+                                    r=tcrossProdSelf[[opnj]][[tab]][, 1, drop=F],
+                                    Xr=singularProdCross[[opni]][[opnj]][[tab]],
+                                    TOL=TOL)
+                                a2 <- .solveSSCP(
+                                    XXt=prodDataCross[[opni]][[opnj]][[tab]],
+                                    XtX=prodDataCross[[opnj]][[opni]][[tab]],
+                                    r=tcrossProdSelf[[opni]][[tab]][, 1, drop=F],
+                                    Xr=singularProdCross[[opnj]][[opni]][[tab]],
+                                    TOL=TOL)
+                                cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))),
+                                    " / (", quantile(abs(a1)), ")\n")
+                                return (a1)
+                            })
+                        names(crossi) <- names(opals)[(opi+1):(nnode)]
+                        return (crossi)
                     })
-                    names(crossi) <- names(opals)[(opi+1):(nnode)]
-                    return (crossi)
-                })
-            names(cptab) <- names(opals)[1:(nnode-1)]
-            return (cptab)
-        })
+                names(cptab) <- names(opals)[1:(nnode-1)]
+                return (cptab)
+            })
         names(crossProductPair) <- querytables
         .printTime(".federateSSCP XY' computed")
         
         ## SSCP whole matrix
-        XXt <- lapply(querytables, function(tab) {
-            XXt.tab <- do.call(rbind, mclapply(
-                1:nnode,
-                mc.cores=mc.cores,
-                function(opi) {
-                    upper.opi <- do.call(cbind, as.list(
-                        crossProductPair[[tab]][[names(opals)[opi]]]))
-                    lower.opi <- do.call(cbind, lapply(
-                        setdiff(1:opi, opi),
-                        function(opj) {
-                            t(crossProductPair[[tab]][[names(opals)[opj]]][[
-                                names(opals)[opi]]])
-                        }))
-                    return (cbind(lower.opi,
-                                  tcrossProdSelf[[opi]][[tab]],
-                                  upper.opi))
-                }))
-            rownames(XXt.tab) <- colnames(XXt.tab) <- 
-                unlist(samples, use.names=F)
-    
-            return (XXt.tab)
-        })
+        XXt <- mclapply(
+            querytables,
+            mc.cores=max(1, min(ntab, floor(mc.cores/mc.nodes))),
+            function(tab) {
+                XXt.tab <- do.call(rbind, mclapply(
+                    1:nnode,
+                    mc.cores=mc.nodes,
+                    function(opi) {
+                        upper.opi <- do.call(cbind, as.list(
+                            crossProductPair[[tab]][[names(opals)[opi]]]))
+                        lower.opi <- do.call(cbind, lapply(
+                            setdiff(1:opi, opi),
+                            function(opj) {
+                                t(crossProductPair[[tab]][[names(opals)[opj]]][[
+                                    names(opals)[opi]]])
+                            }))
+                        return (cbind(lower.opi,
+                                      tcrossProdSelf[[opi]][[tab]],
+                                      upper.opi))
+                    }))
+                rownames(XXt.tab) <- colnames(XXt.tab) <- 
+                    unlist(samples, use.names=F)
+                
+                return (XXt.tab)
+            })
         names(XXt) <- querytables
         .printTime(".federateSSCP Whole XX' computed")
         gc(reset=F)
