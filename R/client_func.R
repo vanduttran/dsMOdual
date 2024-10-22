@@ -141,6 +141,9 @@ matrix2DscFD <- function(value) {
 #' @importFrom Matrix rankMatrix
 #' @keywords internal
 .solveSSCP <- function(XXt, XtX, r, Xr, TOL = .Machine$double.eps) {
+    print(head(r))
+    print(dim(XtX))
+    print(XtX[1:2,1:2])
     if (length(r) != ncol(XtX)) {
         stop("r length shoud match ncol(XtX).")
     }
@@ -617,7 +620,6 @@ matrix2DscFD <- function(value) {
                                             dscblocks[[tab]],
                                             mc.cores=mc.chunks))
                                     })
-                                #if (is.null(names(pdcs)))
                                 names(pdcs) <- querytables
                                 return (pdcs)
                             })
@@ -668,24 +670,22 @@ matrix2DscFD <- function(value) {
                 singularProdCrossDSC <- datashield.aggregate(opals,
                                                              as.call(command),
                                                              async=T)
+                mc.tabs <- max(1, min(ntab, floor(mc.cores/mc.nodes)))
+                mc.chunks <- max(1, floor(mc.cores/(mc.nodes*mc.tabs)))
                 singularProdCross <- mclapply(
                     names(opals),
                     mc.cores=mc.nodes,
-                    #singularProdCrossDSC,
                     function(opn) {
                         lapply(singularProdCrossDSC[[opn]],
                                function(dscblocks) {
-                                   mc.tabs <- max(1, min(ntab, floor(mc.cores/mc.nodes)))
                                    spcs <- mclapply(
                                        querytables,
                                        mc.cores=mc.tabs,
                                        function(tab) {
-                                           mc.chunks <- max(1, floor(mc.cores/(mc.nodes*mc.tabs)))
                                            return (.rebuildMatrixDsc(
                                                dscblocks[[tab]],
                                                mc.cores=mc.chunks))
                                        })
-                                   #if (is.null(names(spcs)))
                                    names(spcs) <- querytables
                                    return (spcs)
                                })
@@ -711,16 +711,16 @@ matrix2DscFD <- function(value) {
         
         ## deduced from received info by federation: (X_i) * (X_j)'
         mc.tabs <- min(ntab, mc.cores)
+        mc.nodes1 <- max(1, min(nnode-1, floor(mc.cores/mc.tabs)))
+        mc.nodes2 <- max(1, min(nnode-opi, floor(mc.cores/mc.nodes1)))
         crossProductPair <- mclapply(
             querytables,
             mc.cores=mc.tabs,
             function(tab) {
-                mc.nodes1 <- max(1, min(nnode-1, floor(mc.cores/mc.tabs)))
                 cptab <- mclapply(
                     1:(nnode-1),
                     mc.cores=mc.nodes1,
                     function(opi) {
-                        mc.nodes2 <- max(1, min(nnode-opi, floor(mc.cores/mc.nodes1)))
                         crossi <- mclapply(
                             (opi+1):(nnode),
                             mc.cores=mc.nodes2,
