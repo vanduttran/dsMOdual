@@ -691,6 +691,7 @@ matrix2DscFD <- function(value) {
                                    return (spcs)
                                })
                     })
+                names(singularProdCross) <- names(opals)
                 gc(reset=F)
                 .printTime(".federateSSCP Ar communicated to FD")
             }, error = function(e) {
