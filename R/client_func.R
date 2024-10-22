@@ -446,6 +446,7 @@ matrix2DscFD <- function(value) {
                 names(tcps) <- querytables
                 return (tcps)
             })
+        names(tcrossProdSelf) <- names(opals)
         gc(reset=F)
     }, error = function(e) {
         .printTime(paste0("SSCP PUSH PROCESS: ", e))
