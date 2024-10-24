@@ -1071,7 +1071,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
     tryCatch({
         ## send Qlist from FD to opals
         # TOCHECK: security on pushed data
-        invisible(mcapply(names(opals), mc.cores=mc.nodes, function(opn) {
+        invisible(mclapply(names(opals), mc.cores=mc.nodes, function(opn) {
             mc.cl1 <- max(1,
                           min(length(chunkList[opn]),
                               floor(mc.cores/mc.nodes)))
