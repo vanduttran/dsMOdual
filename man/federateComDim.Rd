@@ -41,7 +41,7 @@ divided by the square root of its inertia. Default, TRUE.
 See \code{MBAnalysis::ComDim}.}
 
 \item{threshold}{if the difference of fit<threshold then break the iterative
-loop (default 1e-8)}
+loop (default 1e-8).}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
 Default, 500L.}

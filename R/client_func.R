@@ -141,9 +141,6 @@ matrix2DscFD <- function(value) {
 #' @importFrom Matrix rankMatrix
 #' @keywords internal
 .solveSSCP <- function(XXt, XtX, r, Xr, TOL = .Machine$double.eps) {
-    print(head(r))
-    print(dim(XtX))
-    print(XtX[1:2,1:2])
     if (length(r) != ncol(XtX)) {
         stop("r length shoud match ncol(XtX).")
     }
@@ -429,20 +426,16 @@ matrix2DscFD <- function(value) {
             names(opals),
             mc.cores=mc.nodes,
             function(opn) {
-                #dscblocks <- tcrossProdSelfDSC[[opn]]
-                #tcps <- lapply(dscblocks, function(dscblocki) {
                 mc.tabs <- max(1, min(ntab, floor(mc.cores/mc.nodes)))
                 tcps <- mclapply(
-                    querytables,#dscblocks,
+                    querytables,
                     mc.cores=mc.tabs,
-                    function(tab) {#dscblocki) {
+                    function(tab) {
                         mc.chunks <- max(1, floor(mc.cores/(mc.nodes*mc.tabs)))
                         return (.rebuildMatrixDsc(
-                            #dscblocki,
                             tcrossProdSelfDSC[[opn]][[tab]],
                             mc.cores=mc.chunks))
                     })
-                #if (is.null(names(tcps))) 
                 names(tcps) <- querytables
                 return (tcps)
             })
@@ -733,16 +726,17 @@ matrix2DscFD <- function(value) {
                                 a1 <- .solveSSCP(
                                     XXt=prodDataCross[[opnj]][[opni]][[tab]],
                                     XtX=prodDataCross[[opni]][[opnj]][[tab]],
-                                    r=tcrossProdSelf[[opnj]][[tab]][, 1, drop=F],
+                                    r=tcrossProdSelf[[opnj]][[tab]][,1,drop=F],
                                     Xr=singularProdCross[[opni]][[opnj]][[tab]],
                                     TOL=TOL)
                                 a2 <- .solveSSCP(
                                     XXt=prodDataCross[[opni]][[opnj]][[tab]],
                                     XtX=prodDataCross[[opnj]][[opni]][[tab]],
-                                    r=tcrossProdSelf[[opni]][[tab]][, 1, drop=F],
+                                    r=tcrossProdSelf[[opni]][[tab]][,1,drop=F],
                                     Xr=singularProdCross[[opnj]][[opni]][[tab]],
                                     TOL=TOL)
-                                cat("Precision on a1 = t(a2):", max(abs(a1 - t(a2))),
+                                cat("Precision on a1 = t(a2):",
+                                    max(abs(a1 - t(a2))),
                                     " / (", quantile(abs(a1)), ")\n")
                                 return (a1)
                             })
@@ -756,9 +750,10 @@ matrix2DscFD <- function(value) {
         .printTime(".federateSSCP XY' computed")
         
         ## SSCP whole matrix
+        mc.tabs <- max(1, min(ntab, floor(mc.cores/mc.nodes)))
         XXt <- mclapply(
             querytables,
-            mc.cores=max(1, min(ntab, floor(mc.cores/mc.nodes))),
+            mc.cores=mc.tabs,
             function(tab) {
                 XXt.tab <- do.call(rbind, mclapply(
                     1:nnode,
@@ -769,8 +764,9 @@ matrix2DscFD <- function(value) {
                         lower.opi <- do.call(cbind, lapply(
                             setdiff(1:opi, opi),
                             function(opj) {
-                                t(crossProductPair[[tab]][[names(opals)[opj]]][[
-                                    names(opals)[opi]]])
+                                t(crossProductPair[[tab]][[names(
+                                    opals)[opj]]][[names(
+                                        opals)[opi]]])
                             }))
                         return (cbind(lower.opi,
                                       tcrossProdSelf[[opi]][[tab]],
@@ -829,7 +825,7 @@ matrix2DscFD <- function(value) {
 #' divided by the square root of its inertia. Default, TRUE.
 #' See \code{MBAnalysis::ComDim}.
 #' @param threshold if the difference of fit<threshold then break the iterative
-#' loop (default 1e-8)
+#' loop (default 1e-8).
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
 #' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
@@ -839,6 +835,7 @@ matrix2DscFD <- function(value) {
 #' @importFrom DSI datashield.logout datashield.errors datashield.symbols
 #' datashield.assign
 #' @importFrom arrow write_to_raw
+#' @importFrom parallel mclapply detectCores
 #' @export
 federateComDim <- function(loginFD, logins, func, symbol,
                            ncomp = 2,
@@ -852,6 +849,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
+    mc.cores <- min(mc.cores, detectCores())
     
     if (!is.logical(scale)) stop("scale must be logical.")
     if (scale) stop("Only scale=FALSE is considered.")
@@ -869,6 +867,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
     queryvariables <- XX_query$variables
     opals <- XX_query$conns
     nnode <- length(opals)
+    mc.nodes <- min(nnode, mc.cores)
     
     ## function: compute the total variance from a XX' matrix
     inertie <- function(tab) {
@@ -1010,17 +1009,27 @@ federateComDim <- function(loginFD, logins, func, symbol,
 
         ## Percentage of explained inertia of each block and global
         explained.X[1:ntab, comp] <- sapply(1:ntab, function(k) {
-            inertie(tcrossprod(Q[, comp]) %*% XX[[k]]
-                    %*% tcrossprod(Q[, comp]))
+            inertie(
+                tcrossprod(
+                    crossprod(tcrossprod(Q[, comp, drop=F]),
+                              XX[[k]]),
+                    tcrossprod(Q[, comp, drop=F])))
         })
         explained.X[ntab+1, comp] <- sum(explained.X[1:ntab, comp])
-        Q.b[, comp,] <- sapply(1:ntab, function(k) {
-            crossprod(XX[[k]], Q[, comp, drop=F])
+        Q.b[, comp, ] <- sapply(1:ntab, function(k) {
+            crossprod(XX[[k]],
+                      Q[, comp, drop=F])
         })
         
         ## Deflation of XX
-        proj <- diag(1, nind) - tcrossprod(Q[, comp])
-        XX <- lapply(XX, function(xx) proj %*% xx %*% t(proj))
+        proj <- diag(1, nind) - tcrossprod(Q[, comp, drop=F])
+        XX <- mclapply(querytables,
+                       mc.cores=min(ntab, mc.cores),
+                       function(tab) {
+                           #proj %*% xx %*% t(proj)
+                           tcrossprod(crossprod(proj, XX[[tab]]), proj)
+        })
+        names(XX) <- querytables
     }
     
     ## Explained inertia for X
@@ -1040,32 +1049,49 @@ federateComDim <- function(loginFD, logins, func, symbol,
         rownames(Qi) <- querysamples[[i-1]]
         return (Qi)
     }), names(opals))
-    chunkList <- mclapply(Qlist, mc.cores=mc.cores, function(xx) {
-        nblocksrow <- ceiling(nrow(xx)/chunk)
-        sepblocksrow <- rep(ceiling(nrow(xx)/nblocksrow), nblocksrow-1)
-        sepblocksrow <- c(sepblocksrow, nrow(xx) - sum(sepblocksrow))
-        tcpblocks <- .partitionMatrix(xx, seprow=sepblocksrow, sepcol=ncomp)
-        return (lapply(tcpblocks, function(tcpb) {
-            return (lapply(tcpb, function(tcp) {
-                return (.encode.arg(write_to_raw(tcp)))
+    chunkList <- mclapply(names(opals), mc.cores=mc.nodes, function(opn) {
+        ql <- Qlist[[opn]]
+        nblocksrow <- ceiling(nrow(ql)/chunk)
+        sepblocksrow <- rep(ceiling(nrow(ql)/nblocksrow), nblocksrow-1)
+        sepblocksrow <- c(sepblocksrow, nrow(ql) - sum(sepblocksrow))
+        tcpblocks <- .partitionMatrix(ql, seprow=sepblocksrow, sepcol=ncomp)
+        print(tcpblocks)
+        return (mclapply(
+            tcpblocks,
+            mc.cores=max(1, floor(mc.cores/mc.nodes)),
+            function(tcpb) {
+                return (lapply(tcpb, function(tcp) {
+                    return (.encode.arg(write_to_raw(tcp)))
+                }))
             }))
-        }))
     })
+    names(chunkList) <- names(opals)
+    print("CHUNKLIST")
+    print(chunkList)
     tryCatch({
         ## send Qlist from FD to opals
         # TOCHECK: security on pushed data
-        invisible(sapply(names(opals), function(opn) {
-            lapply(1:length(chunkList[opn]), function(i) {
-                lapply(1:length(chunkList[[i]]), function(j) {
-                    lapply(1:length(chunkList[[i]][[j]]), function(k) {
-                        datashield.assign(
-                            opals[opn], paste(c('FD', i, j, k),
-                                              collapse="__"),
-                            as.call(list(as.symbol("matrix2DscMate"),
-                                         chunkList[opn][[i]][[j]][[k]])),
-                            async=T)
+        invisible(mcapply(names(opals), mc.cores=mc.nodes, function(opn) {
+            mc.cl1 <- max(1,
+                          min(length(chunkList[opn]),
+                              floor(mc.cores/mc.nodes)))
+            mclapply(1:length(chunkList[opn]), mc.cores=mc.cl1, function(i) {
+                mc.cl2 <- max(1,
+                              min(length(chunkList[opn]),
+                                  floor(mc.cores/(mc.nodes*mc.cl1))))
+                mclapply(
+                    1:length(chunkList[[i]]),
+                    mc.cores=mc.cl2,
+                    function(j) {
+                        lapply(1:length(chunkList[[i]][[j]]), function(k) {
+                            datashield.assign(
+                                opals[opn], paste(c('FD', i, j, k),
+                                                  collapse="__"),
+                                as.call(list(as.symbol("matrix2DscMate"),
+                                             chunkList[opn][[i]][[j]][[k]])),
+                                async=T)
+                        })
                     })
-                })
             })
             datashield.assign(
                 opals[opn],
@@ -1118,12 +1144,11 @@ federateComDim <- function(loginFD, logins, func, symbol,
     })
 
     ## Weights for the block components
-    W.b <- lapply(querytables, function(tab) {
+    W.b <- mclapply(querytables, mc.cores=mc.cores, function(tab) {
         Reduce('+', lapply(loadingsLoc, function(ll) ll[[tab]]))
     })
-    names(W.b) <- querytables
     if (scale.block) {
-        W.b <- lapply(querytables, function(tab) {
+        W.b <- mclapply(querytables, mc.cores=mc.cores, function(tab) {
             W.b[[tab]]/inertia0.sqrt[tab]
         })
     }
@@ -1166,12 +1191,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
     Block$T.b <- Q.b
     Block$W.b <- W.b
     res$Block <- Block
-    # call$X <- matrix(0, nrow=nind, ncol=sum(nvar),
-    #                  dimnames=list(unlist(querysamples),
-    #                                unlist(queryvariables)))
-    # call$Xcale <- list()
-    # call$Xscale$mean <- rep(0, sum(nvar))
-    # call$Xscale$scale <- rep(1, sum(nvar))
     call$size.block <- nvar
     call$name.block <- querytables
     call$ncomp <- ncomp
