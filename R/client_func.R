@@ -483,7 +483,10 @@ matrix2DscFD <- function(value) {
             ## TODO: crossLogin sessions can remain if one of them fails
             
             ##- received by each from other nodes ----
-            prodDataCross <- mclapply(names(opals), mc.cores=mc.nodes, function(opn) {
+            prodDataCross <- mclapply(
+                names(opals),
+                mc.cores=mc.nodes,
+                function(opn) {
                 # ind.opn <- which(logindata$server == opn)
                 # logindata.opn <- logindata[-ind.opn, , drop=F]
                 # logindata.opn$user <- logindata.opn$userserver
@@ -500,7 +503,8 @@ matrix2DscFD <- function(value) {
                                         as.symbol("mates"),
                                         .encode.arg(funcPreProc),
                                         .encode.arg(querytables))
-                    .printTime("Command: crossAssignFunc(mates, funcPreProc, ...)")
+                    .printTime(
+                        "Command: crossAssignFunc(mates, funcPreProc, ...)")
                     invisible(datashield.aggregate(opals[opn],
                                                    as.call(command.opn),
                                                    async=T))
@@ -524,7 +528,8 @@ matrix2DscFD <- function(value) {
                         value.call=T,
                         async=T
                     )
-                    .printTime("Command: crossAssign(mates, centeredDataMate)")
+                    .printTime(
+                        "Command: crossAssign(mates, centeredDataMate)")
                     invisible(datashield.aggregate(opals[opn],
                                                    as.call(command.opn),
                                                    async=T))
@@ -546,7 +551,8 @@ matrix2DscFD <- function(value) {
                                         as.symbol("crossProdSelf"),
                                         opn,
                                         async=T)
-                    .printTime("Command: pushToDscMate(mates, crossProdSelf...")
+                    .printTime(
+                        "Command: pushToDscMate(mates, crossProdSelf...")
                     invisible(datashield.aggregate(opals[opn],
                                                    as.call(command.opn),
                                                    async=T))
@@ -604,12 +610,16 @@ matrix2DscFD <- function(value) {
                         prodDataCross.opn <- lapply(
                             prodDataCrossDSC[[opn]],
                             function(dscblocks) {
-                                mc.tabs <- max(1, min(ntab, floor(mc.cores/mc.nodes)))
+                                mc.tabs <- max(
+                                    1,
+                                    min(ntab, floor(mc.cores/mc.nodes)))
                                 pdcs <- mclapply(
                                     querytables,
                                     mc.cores=mc.tabs,
                                     function(tab) {
-                                        mc.chunks <- max(1, floor(mc.cores/(mc.nodes*mc.tabs)))
+                                        mc.chunks <- max(
+                                            1,
+                                            floor(mc.cores/(mc.nodes*mc.tabs)))
                                         return (.rebuildMatrixDsc(
                                             dscblocks[[tab]],
                                             mc.cores=mc.chunks))
@@ -1123,16 +1133,23 @@ federateComDim <- function(loginFD, logins, func, symbol,
                         async=T)
         cat("Command: pushToDscFD(FD, loadings)", "\n")
         loadingsDSC <- datashield.aggregate(opals, as.call(command), async=T)
-        loadingsLoc <- lapply(loadingsDSC, function(dscblocks) {
-            cps <- lapply(names(dscblocks), function(dscn) {
-                cpsi <- .rebuildMatrixDsc(dscblocks[[dscn]], mc.cores=mc.cores)
-                colnames(cpsi) <- paste0("Comp.", 1:ncomp)
-                rownames(cpsi) <- queryvariables[[gsub("__common" ,"", dscn)]]
-                return (cpsi)
+        loadingsLoc <- mclapply(
+            loadingsDSC,
+            mc.cores=mc.nodes,
+            function(dscblocks) {
+                cps <- lapply(names(dscblocks), function(dscn) {
+                    cpsi <- .rebuildMatrixDsc(
+                        dscblocks[[dscn]],
+                        mc.cores=max(1, floor(mc.cores/mc.nodes)))
+                    colnames(cpsi) <- paste0("Comp.", 1:ncomp)
+                    rownames(cpsi) <- queryvariables[[gsub("__common" ,
+                                                           "",
+                                                           dscn)]]
+                    return (cpsi)
+                })
+                names(cps) <- gsub("__common" , "", names(dscblocks))
+                return (cps)
             })
-            names(cps) <- gsub("__common" ,"", names(dscblocks))
-            return (cps)
-        })
         gc(reset=F)
         .printTime("federatedComDim Loadings communicated to FD")
     }, error = function(e) {
@@ -1147,15 +1164,19 @@ federateComDim <- function(loginFD, logins, func, symbol,
     })
 
     ## Weights for the block components
-    W.b <- mclapply(querytables, mc.cores=mc.cores, function(tab) {
+    #.printTime(names(loadingsLoc))
+    #.printTime(names(loadingsLoc[[1]]))
+    mc.tabs <- min(ntab, mc.cores)
+    W.b <- mclapply(querytables, mc.cores=mc.tabs, function(tab) {
         Reduce('+', lapply(loadingsLoc, function(ll) ll[[tab]]))
     })
+    names(W.b) <- querytables
     if (scale.block) {
-        W.b <- mclapply(querytables, mc.cores=mc.cores, function(tab) {
+        W.b <- mclapply(querytables, mc.cores=mc.tabs, function(tab) {
             W.b[[tab]]/inertia0.sqrt[tab]
         })
+        names(W.b) <- querytables
     }
-    names(W.b) <- querytables
     
     ## Loadings for the global components: normed
     Load.g <- tcrossprod(do.call(rbind, W.b),
