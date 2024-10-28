@@ -1055,7 +1055,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
         sepblocksrow <- rep(ceiling(nrow(ql)/nblocksrow), nblocksrow-1)
         sepblocksrow <- c(sepblocksrow, nrow(ql) - sum(sepblocksrow))
         tcpblocks <- .partitionMatrix(ql, seprow=sepblocksrow, sepcol=ncomp)
-        print(tcpblocks)
+        #print(tcpblocks)
         return (mclapply(
             tcpblocks,
             mc.cores=max(1, floor(mc.cores/mc.nodes)),
@@ -1075,10 +1075,12 @@ federateComDim <- function(loginFD, logins, func, symbol,
             mc.cl1 <- max(1,
                           min(length(chunkList[opn]),
                               floor(mc.cores/mc.nodes)))
+            .printTime(paste0("FIRST: ", mc.cl1))
             mclapply(1:length(chunkList[opn]), mc.cores=mc.cl1, function(i) {
                 mc.cl2 <- max(1,
                               min(length(chunkList[opn]),
                                   floor(mc.cores/(mc.nodes*mc.cl1))))
+                .printTime(paste0("SECOND: ", mc.cl2))
                 mclapply(
                     1:length(chunkList[[i]]),
                     mc.cores=mc.cl2,
@@ -1093,6 +1095,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
                         })
                     })
             })
+            .printTime(paste0("END FIRST: ", mc.cl1))
             datashield.assign(
                 opals[opn],
                 paste("pushed", 'FD', sep="_"),
