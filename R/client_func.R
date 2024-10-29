@@ -95,7 +95,10 @@ matrix2DscFD <- function(value) {
     ## access to matrix blocks 
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
         lapply(y, function(x) {
-            return ((attach.big.matrix(x))[,,drop=F])
+            bmx <- (attach.big.matrix(x))[,,drop=F]
+            rm(x)
+            gc()
+            return (bmx)
         })
     })
     tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
@@ -440,7 +443,6 @@ matrix2DscFD <- function(value) {
                 return (tcps)
             })
         names(tcrossProdSelf) <- names(opals)
-        gc(reset=F)
     }, error = function(e) {
         .printTime(paste0("SSCP PUSH PROCESS: ", e))
         datashield.assign(opals, 'crossEnd',
@@ -695,7 +697,6 @@ matrix2DscFD <- function(value) {
                                })
                     })
                 names(singularProdCross) <- names(opals)
-                gc(reset=F)
                 .printTime(".federateSSCP Ar communicated to FD")
             }, error = function(e) {
                 .printTime(paste0("FD PROCESS MULTIPLE: ", e))
@@ -734,16 +735,24 @@ matrix2DscFD <- function(value) {
                                 opni <- names(opals)[opi]
                                 opnj <- names(opals)[opj]
                                 a1 <- .solveSSCP(
-                                    XXt=prodDataCross[[opnj]][[opni]][[tab]],
-                                    XtX=prodDataCross[[opni]][[opnj]][[tab]],
-                                    r=tcrossProdSelf[[opnj]][[tab]][,1,drop=F],
-                                    Xr=singularProdCross[[opni]][[opnj]][[tab]],
+                                    XXt=prodDataCross[[opnj]][[opni]][[
+                                        tab]],
+                                    XtX=prodDataCross[[opni]][[opnj]][[
+                                        tab]],
+                                    r=tcrossProdSelf[[opnj]][[
+                                        tab]][,1,drop=F],
+                                    Xr=singularProdCross[[opni]][[opnj]][[
+                                        tab]],
                                     TOL=TOL)
                                 a2 <- .solveSSCP(
-                                    XXt=prodDataCross[[opni]][[opnj]][[tab]],
-                                    XtX=prodDataCross[[opnj]][[opni]][[tab]],
-                                    r=tcrossProdSelf[[opni]][[tab]][,1,drop=F],
-                                    Xr=singularProdCross[[opnj]][[opni]][[tab]],
+                                    XXt=prodDataCross[[opni]][[opnj]][[
+                                        tab]],
+                                    XtX=prodDataCross[[opnj]][[opni]][[
+                                        tab]],
+                                    r=tcrossProdSelf[[opni]][[
+                                        tab]][,1,drop=F],
+                                    Xr=singularProdCross[[opnj]][[opni]][[
+                                        tab]],
                                     TOL=TOL)
                                 cat("Precision on a1 = t(a2):",
                                     max(abs(a1 - t(a2))),
@@ -789,7 +798,6 @@ matrix2DscFD <- function(value) {
             })
         names(XXt) <- querytables
         .printTime(".federateSSCP Whole XX' computed")
-        gc(reset=F)
     }
     
     if (!connRes) {
@@ -960,7 +968,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
     ## Block results
     Block <- NULL
     ## Output
-    res   <- NULL
+    comdimObj <- NULL
     call  <- NULL
     ##-----
     
@@ -1076,8 +1084,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
             }))
     })
     names(chunkList) <- names(opals)
-    print("CHUNKLIST")
-    print(chunkList)
+
     tryCatch({
         ## send Qlist from FD to opals
         # TOCHECK: security on pushed data
@@ -1085,12 +1092,10 @@ federateComDim <- function(loginFD, logins, func, symbol,
             mc.cl1 <- max(1,
                           min(length(chunkList[opn]),
                               floor(mc.cores/mc.nodes)))
-            .printTime(paste0("FIRST: ", mc.cl1))
             mclapply(1:length(chunkList[opn]), mc.cores=mc.cl1, function(i) {
                 mc.cl2 <- max(1,
                               min(length(chunkList[opn]),
                                   floor(mc.cores/(mc.nodes*mc.cl1))))
-                .printTime(paste0("SECOND: ", mc.cl2))
                 mclapply(
                     1:length(chunkList[[i]]),
                     mc.cores=mc.cl2,
@@ -1105,7 +1110,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
                         })
                     })
             })
-            .printTime(paste0("END FIRST: ", mc.cl1))
             datashield.assign(
                 opals[opn],
                 paste("pushed", 'FD', sep="_"),
@@ -1150,7 +1154,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
                 names(cps) <- gsub("__common" , "", names(dscblocks))
                 return (cps)
             })
-        gc(reset=F)
         .printTime("federatedComDim Loadings communicated to FD")
     }, error = function(e) {
         .printTime(paste0("LOADING COMPUTATION PROCESS: ", e))
@@ -1185,10 +1188,13 @@ federateComDim <- function(loginFD, logins, func, symbol,
     colnames(Load.g) <- compnames
     
     ## Global weights: normed
-    W.g <- do.call(rbind, mclapply(1:ntab, mc.cores=mc.cores, function(k)
-        tcrossprod(W.b[[k]], diag(LAMBDA[k,], nrow=ncomp, ncol=ncomp))))
-    W.g <- do.call(cbind, mclapply(1:ncomp, mc.cores=mc.cores, function(comp)
-        normv(W.g[, comp])))
+    W.g <- do.call(rbind, mclapply(1:ntab, mc.cores=mc.tabs, function(k) {
+        tcrossprod(W.b[[k]], diag(LAMBDA[k,], nrow=ncomp, ncol=ncomp))
+    }))
+    mc.comps <- min(ncomp, mc.cores)
+    W.g <- do.call(cbind, mclapply(1:ncomp, mc.cores=mc.comps, function(comp) {
+        normv(W.g[, comp])
+    }))
     colnames(W.g) <- compnames
     
     ## Global projection
@@ -1198,33 +1204,34 @@ federateComDim <- function(loginFD, logins, func, symbol,
     
     ##- 5. Results ----
     ## Global
-    res$components   <- c(ncomp=ncomp)
-    res$optimalcrit  <- optimalcrit
-    res$saliences    <- LAMBDA
-    res$T.g          <- Q
-    res$Scor.g       <- Scor.g
-    res$W.g          <- W.g
-    res$Load.g       <- Load.g
-    res$Proj.g       <- Proj.g
-    res$explained.X  <- round(100 * explained.X[1:ntab, 1:ncomp, drop = FALSE],
+    comdimObj$components   <- c(ncomp=ncomp)
+    comdimObj$optimalcrit  <- optimalcrit
+    comdimObj$saliences    <- LAMBDA
+    comdimObj$T.g          <- Q
+    comdimObj$Scor.g       <- Scor.g
+    comdimObj$W.g          <- W.g
+    comdimObj$Load.g       <- Load.g
+    comdimObj$Proj.g       <- Proj.g
+    comdimObj$explained.X  <- round(100 * explained.X[1:ntab, 1:ncomp,
+                                                      drop = FALSE],
                               2)
-    res$cumexplained <- round(100 * cumexplained[1:ncomp, ],
+    comdimObj$cumexplained <- round(100 * cumexplained[1:ncomp, ],
                               2)
     
     ## Blocks
     Block$T.b <- Q.b
     Block$W.b <- W.b
-    res$Block <- Block
+    comdimObj$Block <- Block
     call$size.block <- nvar
     call$name.block <- querytables
     call$ncomp <- ncomp
     call$scale <- scale
     call$scale.block <- scale.block
-    res$call <- call
-    class(res) <- c("ComDim", "list")
+    comdimObj$call <- call
+    class(comdimObj) <- c("ComDim", "list", "federateComDim")
     ##-----
-    
-    return (res)
+
+    return (comdimObj)
 }
 
 
@@ -1291,7 +1298,8 @@ federateSNF <- function(loginFD, logins, func, symbol,
                               chunk=chunk, mc.cores=mc.cores,
                               width.cutoff=width.cutoff, TOL=TOL, 
                               connRes=F)
-    XX <- lapply(1:ntab, function(i) {
+    mc.tabs <- min(ntab, mc.cores)
+    XX <- mclapply(1:ntab, mc.cores=mc.tabs, function(i) {
         if (metric == "correlation") {
             ## compute (1 - correlation) distance between samples
             1 - XX_query$sscp[[i]]/(length(XX_query$variables[[i]])-1)
@@ -1304,15 +1312,19 @@ federateSNF <- function(loginFD, logins, func, symbol,
     
     ## take common samples
     commons <- Reduce(intersect, lapply(XX, rownames))
-    XX <- lapply(XX, function(distmat) {
-        distmat[commons, commons]
+    XX <- mclapply(querytables, mc.cores=mc.tabs, function(tab) {
+        XX[[tab]][commons, commons, drop=F]
     })
+    names(XX) <- querytables
     ## similarity graphs
-    Ws <- lapply(XX, function(distmat) {
-        affinityMatrix(distmat, K, sigma)
+    Ws <- mclapply(querytables, mc.cores=mc.tabs, function(tab) {
+        affinityMatrix(XX[[tab]], K, sigma)
     })
+    names(Ws) <- querytables
     ## fuse similarity graphs
     W <- SNF(Ws, K, t)
+    
+    class(W) <- c("federateSNF", "list")
     
     return (W)
 }
@@ -1375,7 +1387,8 @@ federateUMAP <- function(loginFD, logins, func, symbol,
                               chunk=chunk, mc.cores=mc.cores,
                               width.cutoff=width.cutoff, TOL=TOL, 
                               connRes=F)
-    XX <- lapply(1:ntab, function(i) {
+    mc.tabs <- min(ntab, mc.cores)
+    XX <- mclapply(1:ntab, mc.cores=mc.tabs, function(i) {
         if (metric == "correlation") {
             ## compute (1 - correlation) distance between samples
             return (as.dist(
@@ -1390,12 +1403,16 @@ federateUMAP <- function(loginFD, logins, func, symbol,
     })
     names(XX) <- querytables
     
-    return (setNames(
-        lapply(1:ntab, function(i) {
-            uwot::umap(XX[[i]], ...)
-            #ret_model = FALSE, ret_nn = FALSE, ret_extra = c(),
-        }),
-        querytables))
+    ## umap
+    umapObjs <- mclapply(1:ntab, mc.cores=mc.tabs, function(i) {
+        uwot::umap(XX[[i]], ...)
+        #ret_model = FALSE, ret_nn = FALSE, ret_extra = c(),
+    })
+    names(umapObjs) <- querytables
+    
+    class(umapObjs) <- c("federateUMAP", "list")
+    
+    return (umapObjs)
 }
 
 
@@ -1458,7 +1475,8 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
                               chunk=chunk, mc.cores=mc.cores,
                               width.cutoff=width.cutoff, TOL=TOL, 
                               connRes=F)
-    XX <- lapply(1:ntab, function(i) {
+    mc.tabs <- min(ntab, mc.cores)
+    XX <- mclapply(1:ntab, mc.cores=mc.tabs, function(i) {
         if (metric == "correlation") {
             ## compute (1 - correlation) distance between samples
             return (as.dist(
@@ -1473,11 +1491,15 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
     })
     names(XX) <- querytables
     
-    return (setNames(
-        lapply(1:ntab, function(i) {
-            dbscan::hdbscan(XX[[i]], minPts = minPts, ...)
-        }),
-        querytables))
+    ## hdbscan
+    hdbscanObjs <- mclapply(1:ntab, mc.cores=mc.tabs, function(i) {
+        dbscan::hdbscan(XX[[i]], minPts = minPts, ...)
+    })
+    names(hdbscanObjs) <- querytables
+    
+    class(hdbscanObjs) <- c("federateHdbscan", "list")
+    
+    return (hdbscanObjs)
 }
 
 
@@ -1524,7 +1546,8 @@ testSSCP <- function(loginFD, logins, func, symbol,
                               chunk=chunk, mc.cores=mc.cores,
                               width.cutoff=width.cutoff, TOL=TOL, 
                               connRes=F)
-    XX <- lapply(1:ntab, function(i) {
+    mc.tabs <- min(ntab, mc.cores)
+    XX <- mclapply(1:ntab, mc.cores=mc.tabs, function(i) {
         if (metric == "correlation") {
             ## compute (1 - correlation) distance between samples
             return (as.dist(
