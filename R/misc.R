@@ -165,3 +165,10 @@
     cat(message, "---", as.character(Sys.time()), "\n")
 }
 
+
+#' @title Options
+#' @description Options.
+#' @keywords internal
+.onLoad <- function(...) {
+    options(datashield.errors.print = TRUE)
+}

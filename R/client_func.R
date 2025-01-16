@@ -868,7 +868,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
                            TOL = .Machine$double.eps,
                            width.cutoff = 500L) {
     .printTime("federateComDim started")
-    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1287,7 +1286,6 @@ federateSNF <- function(loginFD, logins, func, symbol,
                         TOL = .Machine$double.eps,
                         width.cutoff = 500L) {
     .printTime("federateSNF started")
-    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1377,7 +1375,6 @@ federateUMAP <- function(loginFD, logins, func, symbol,
                          TOL = .Machine$double.eps,
                          width.cutoff = 500L, ...) {
     .printTime("federateUMAP started")
-    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1466,7 +1463,6 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
                             TOL = .Machine$double.eps,
                             width.cutoff = 500L, ...) {
     .printTime("federateHdbscan started")
-    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1538,7 +1534,6 @@ testSSCP <- function(loginFD, logins, func, symbol,
                      TOL = .Machine$double.eps,
                      width.cutoff = 500L, ...) {
     .printTime("testSSCP started")
-    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
