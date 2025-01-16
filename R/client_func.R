@@ -368,7 +368,7 @@ matrix2DscFD <- function(value) {
                                     subset=NULL,
                                     byColumn=byColumn,
                                     scale=scale
-                                    )),
+                          )),
                           async=T)
         
         ## samples
@@ -470,7 +470,8 @@ matrix2DscFD <- function(value) {
                               async=T)
         
             ## login from each to other nodes
-            invisible(lapply(names(opals), function(opn) {
+            opn.logined <- c()
+            for (opn in names(opals)) {
                 ind.opn <- which(logindata$server == opn)
                 logindata.opn <- logindata[-ind.opn, , drop=F]
                 logindata.opn$user <- logindata.opn$userserver
@@ -479,185 +480,188 @@ matrix2DscFD <- function(value) {
                 opals.loc <- paste0("crossLogin('",
                                     .encode.arg(logindata.opn),
                                     "')")
-                datashield.assign(opals[opn], 'mates',
-                                  as.symbol(opals.loc), async=T)
-            }))
-            ## TODO: crossLogin sessions can remain if one of them fails
-            
+                tryCatch({
+                    datashield.assign(opals[opn], 'mates',
+                                      as.symbol(opals.loc), async=T)
+                    opn.logined <- c(opn.logined, opn)
+                }, error = function(e) {
+                    .printTime(paste0("CROSS LOGIN: ", e))
+                    datashield.assign(opals[opn.logined], 'crossEnd',
+                                      as.symbol("crossLogout(mates)"),
+                                      async=T)
+                    return (paste0("CROSS LOGIN: ", e,
+                                   ' --- ', datashield.symbols(opals[opn]),
+                                   ' --- ', datashield.errors()))
+                })
+            }
+
             ##- received by each from other nodes ----
             prodDataCross <- mclapply(
                 names(opals),
                 mc.cores=mc.nodes,
                 function(opn) {
-                # ind.opn <- which(logindata$server == opn)
-                # logindata.opn <- logindata[-ind.opn, , drop=F]
-                # logindata.opn$user <- logindata.opn$userserver
-                # logindata.opn$password <- logindata.opn$passwordserver
-                # ## from each node opn, log in other nodes (mates)
-                # opals.loc <- paste0("crossLogin('",
-                #                     .encode.arg(logindata.opn),
-                #                     "')")
-                # datashield.assign(opals[opn], 'mates',
-                #                   as.symbol(opals.loc), async=T)
-                tryCatch({
-                    ## prepare raw data matrices on mates of opn
-                    command.opn <- list(as.symbol("crossAssignFunc"),
-                                        as.symbol("mates"),
-                                        .encode.arg(funcPreProc),
-                                        .encode.arg(querytables))
-                    .printTime(
-                        "Command: crossAssignFunc(mates, funcPreProc, ...)")
-                    invisible(datashield.aggregate(opals[opn],
-                                                   as.call(command.opn),
-                                                   async=T))
-                    
-                    ## center raw data on mates of opn
-                    command.opn <- list(
-                        as.symbol("crossAssign"),
-                        as.symbol("mates"), 
-                        symbol="centeredDataMate",
-                        value=.encode.arg(deparse1(
-                            as.call(c(as.symbol("center"),
-                                      x=as.call(
-                                          c(as.symbol("list"),
-                                            setNames(
-                                                lapply(querytables,
-                                                       as.symbol),
-                                                querytables))),
-                                      byColumn=byColumn,
-                                      scale=scale)),
-                            width.cutoff=width.cutoff)),
-                        value.call=T,
-                        async=T
-                    )
-                    .printTime(
-                        "Command: crossAssign(mates, centeredDataMate)")
-                    invisible(datashield.aggregate(opals[opn],
-                                                   as.call(command.opn),
-                                                   async=T))
-                    
-                    ## create singularProd from mates of opn
-                    command.opn <- paste0(
-                        "crossAggregatePrimal(mates, '",
-                        .encode.arg('singularProd(centeredDataMate)'),
-                        "', async=T)")
-                    .printTime("Command: crossAggregatePrimal(mates, 
-                        singularProd(centeredDataMate), ...")
-                    datashield.assign(opals[opn],
-                                      "singularProdMate",
-                                      as.symbol(command.opn), async=T)
-                    
-                    ## send X'X from opn to mates of opn
-                    command.opn <- list(as.symbol("pushToDscMate"),
-                                        as.symbol("mates"),
-                                        as.symbol("crossProdSelf"),
-                                        opn,
-                                        async=T)
-                    .printTime(
-                        "Command: pushToDscMate(mates, crossProdSelf...")
-                    invisible(datashield.aggregate(opals[opn],
-                                                   as.call(command.opn),
-                                                   async=T))
-                    .printTime(paste0(
-                        ".federateSSCP Pairwise X'X communicated: ",
-                        opn))
-                    
-                    ## compute (X_i) * (X_j)' * (X_j) * (X_i)' on mates
-                    command.opn <- list(
-                        as.symbol("crossAssign"),
-                        as.symbol("mates"),
-                        symbol=paste0("prodDataCross_",opn),
-                        value=.encode.arg(deparse1(
-                            as.call(c(as.symbol("tripleProdChunk"),
-                                      x=as.symbol("centeredDataMate"),
-                                      mate=opn,
-                                      chunk=chunk,
-                                      mc.cores=mc.cores)),
-                            width.cutoff=width.cutoff)),
-                        value.call=T,
-                        async=T
-                    )
-                    .printTime("Command: crossAssign(mates, prodDataCross,
-                        tripleProdChunk(...")
-                    invisible(datashield.aggregate(opals[opn],
-                                                   as.call(command.opn),
-                                                   async=T))
-                    
-                    ## login to FD from mates
-                    command.opn <- paste0(
-                        "crossAssign(mates, symbol='FDmate', value='",
-                        .encode.arg(paste0("crossLogin('", loginFD, "')")),
-                        "', value.call=T, async=F)")
-                    .printTime("Command: crossAssign(mates, FDmate,
-                        crossLogin(...")
-                    invisible(datashield.aggregate(opals[opn],
-                                                   as.symbol(command.opn),
-                                                   async=T))
-                    
-                    ## push X_i * X_j * X_j' * X_i' to FD from mates
                     tryCatch({
-                        command.opn <- paste0(
-                            "crossAggregateDual(mates, '", 
-                            .encode.arg(
-                                paste0("pushToDscFD(FDmate, prodDataCross_",
-                                       opn, ")")), 
-                            "', async=T)")
-                        .printTime("Command: crossAggregateDual(mates,
-                            pushToDscFD(FDmate, prodDataCross_...")
-                        prodDataCrossDSC <- datashield.aggregate(
-                            opals[opn],
-                            as.symbol(command.opn),
-                            async=T)
+                        ## prepare raw data matrices on mates of opn
+                        command.opn <- list(as.symbol("crossAssignFunc"),
+                                            as.symbol("mates"),
+                                            .encode.arg(funcPreProc),
+                                            .encode.arg(querytables))
+                        .printTime(
+                            "Command: crossAssignFunc(mates, funcPreProc, ...")
+                        invisible(datashield.aggregate(opals[opn],
+                                                       as.call(command.opn),
+                                                       async=T))
                         
-                        prodDataCross.opn <- lapply(
-                            prodDataCrossDSC[[opn]],
-                            function(dscblocks) {
-                                mc.tabs <- max(
-                                    1,
-                                    min(ntab, floor(mc.cores/mc.nodes)))
-                                pdcs <- mclapply(
-                                    querytables,
-                                    mc.cores=mc.tabs,
-                                    function(tab) {
-                                        mc.chunks <- max(
-                                            1,
-                                            floor(mc.cores/(mc.nodes*mc.tabs)))
-                                        return (.rebuildMatrixDsc(
-                                            dscblocks[[tab]],
-                                            mc.cores=mc.chunks))
-                                    })
-                                names(pdcs) <- querytables
-                                return (pdcs)
-                            })
-                        .printTime(paste0(".federateSSCP XY'YX' tripleProd
+                        ## center raw data on mates of opn
+                        command.opn <- list(
+                            as.symbol("crossAssign"),
+                            as.symbol("mates"), 
+                            symbol="centeredDataMate",
+                            value=.encode.arg(deparse1(
+                                as.call(c(as.symbol("center"),
+                                          x=as.call(
+                                              c(as.symbol("list"),
+                                                setNames(
+                                                    lapply(querytables,
+                                                           as.symbol),
+                                                    querytables))),
+                                          byColumn=byColumn,
+                                          scale=scale)),
+                                width.cutoff=width.cutoff)),
+                            value.call=T,
+                            async=T
+                        )
+                        .printTime(
+                            "Command: crossAssign(mates, centeredDataMate)")
+                        invisible(datashield.aggregate(opals[opn],
+                                                       as.call(command.opn),
+                                                       async=T))
+                        
+                        ## create singularProd from mates of opn
+                        command.opn <- paste0(
+                            "crossAggregatePrimal(mates, '",
+                            .encode.arg('singularProd(centeredDataMate)'),
+                            "', async=T)")
+                        .printTime("Command: crossAggregatePrimal(mates, 
+                        singularProd(centeredDataMate), ...")
+                        datashield.assign(opals[opn],
+                                          "singularProdMate",
+                                          as.symbol(command.opn), async=T)
+                        
+                        ## send X'X from opn to mates of opn
+                        command.opn <- list(as.symbol("pushToDscMate"),
+                                            as.symbol("mates"),
+                                            as.symbol("crossProdSelf"),
+                                            opn,
+                                            async=T)
+                        .printTime(
+                            "Command: pushToDscMate(mates, crossProdSelf...")
+                        invisible(datashield.aggregate(opals[opn],
+                                                       as.call(command.opn),
+                                                       async=T))
+                        .printTime(paste0(
+                            ".federateSSCP Pairwise X'X communicated: ",
+                            opn))
+                        
+                        ## compute (X_i) * (X_j)' * (X_j) * (X_i)' on mates
+                        command.opn <- list(
+                            as.symbol("crossAssign"),
+                            as.symbol("mates"),
+                            symbol=paste0("prodDataCross_",opn),
+                            value=.encode.arg(deparse1(
+                                as.call(c(as.symbol("tripleProdChunk"),
+                                          x=as.symbol("centeredDataMate"),
+                                          mate=opn,
+                                          chunk=chunk,
+                                          mc.cores=mc.cores)),
+                                width.cutoff=width.cutoff)),
+                            value.call=T,
+                            async=T
+                        )
+                        .printTime("Command: crossAssign(mates, prodDataCross,
+                        tripleProdChunk(...")
+                        invisible(datashield.aggregate(opals[opn],
+                                                       as.call(command.opn),
+                                                       async=T))
+                        
+                        ## login to FD from mates
+                        command.opn <- paste0(
+                            "crossAssign(mates, symbol='FDmate', value='",
+                            .encode.arg(paste0("crossLogin('", loginFD, "')")),
+                            "', value.call=T, async=F)")
+                        .printTime("Command: crossAssign(mates, FDmate,
+                        crossLogin(...")
+                        invisible(datashield.aggregate(opals[opn],
+                                                       as.symbol(command.opn),
+                                                       async=T))
+                        
+                        ## push X_i * X_j * X_j' * X_i' to FD from mates
+                        tryCatch({
+                            command.opn <- paste0(
+                                "crossAggregateDual(mates, '", 
+                                .encode.arg(paste0(
+                                    "pushToDscFD(FDmate, prodDataCross_",
+                                    opn, ")")), 
+                                "', async=T)")
+                            .printTime("Command: crossAggregateDual(mates,
+                            pushToDscFD(FDmate, prodDataCross_...")
+                            prodDataCrossDSC <- datashield.aggregate(
+                                opals[opn],
+                                as.symbol(command.opn),
+                                async=T)
+                            
+                            prodDataCross.opn <- lapply(
+                                prodDataCrossDSC[[opn]],
+                                function(dscblocks) {
+                                    mc.tabs <- max(
+                                        1,
+                                        min(ntab, floor(mc.cores/mc.nodes)))
+                                    pdcs <- mclapply(
+                                        querytables,
+                                        mc.cores=mc.tabs,
+                                        function(tab) {
+                                            mc.chunks <- max(
+                                                1,
+                                                floor(mc.cores/
+                                                          (mc.nodes*mc.tabs)))
+                                            return (.rebuildMatrixDsc(
+                                                dscblocks[[tab]],
+                                                mc.cores=mc.chunks))
+                                        })
+                                    names(pdcs) <- querytables
+                                    return (pdcs)
+                                })
+                            .printTime(paste0(".federateSSCP XY'YX' tripleProd
                                           communicated to FD: ", opn))
+                        }, error = function(e) {
+                            .printTime(paste0("CROSS SSCP PUSH PROCESS: ", e))
+                            return (paste0("CROSS SSCP PUSH PROCESS: ", e,
+                                           ' --- ',
+                                           datashield.symbols(opals[opn]),
+                                           ' --- ',
+                                           datashield.errors()))
+                        }, finally = {
+                            datashield.aggregate(
+                                opals[opn], 
+                                as.symbol(paste0(
+                                    "crossAssign(mates, symbol='crossFDEnd', ",
+                                    "value='",
+                                    .encode.arg("crossLogout(FDmate)"),
+                                    "', value.call=T, async=F)")),
+                                async=T)
+                        })
+                        return (prodDataCross.opn)
                     }, error = function(e) {
-                        .printTime(paste0("CROSS SSCP PUSH PROCESS: ", e))
-                        return (paste0("CROSS SSCP PUSH PROCESS: ", e,
+                        .printTime(paste0("CROSS PROCESS: ", e))
+                        return (paste0("CROSS PROCESS: ", e,
                                        ' --- ', datashield.symbols(opals[opn]),
                                        ' --- ', datashield.errors()))
                     }, finally = {
-                        datashield.aggregate(
-                            opals[opn], 
-                            as.symbol(paste0(
-                                "crossAssign(mates, symbol='crossFDEnd', ",
-                                "value='",
-                                .encode.arg("crossLogout(FDmate)"),
-                                "', value.call=T, async=F)")),
-                            async=T)
+                        datashield.assign(opals[opn], 'crossEnd',
+                                          as.symbol("crossLogout(mates)"),
+                                          async=T)
                     })
-                    return (prodDataCross.opn)
-                }, error = function(e) {
-                    .printTime(paste0("CROSS PROCESS: ", e))
-                    return (paste0("CROSS PROCESS: ", e,
-                                   ' --- ', datashield.symbols(opals[opn]),
-                                   ' --- ', datashield.errors()))
-                }, finally = {
-                    datashield.assign(opals[opn], 'crossEnd',
-                                      as.symbol("crossLogout(mates)"),
-                                      async=T)
                 })
-            })
             names(prodDataCross) <- names(opals)
             ##-----
             
@@ -864,6 +868,7 @@ federateComDim <- function(loginFD, logins, func, symbol,
                            TOL = .Machine$double.eps,
                            width.cutoff = 500L) {
     .printTime("federateComDim started")
+    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1073,7 +1078,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
         sepblocksrow <- rep(ceiling(nrow(ql)/nblocksrow), nblocksrow-1)
         sepblocksrow <- c(sepblocksrow, nrow(ql) - sum(sepblocksrow))
         tcpblocks <- .partitionMatrix(ql, seprow=sepblocksrow, sepcol=ncomp)
-        #print(tcpblocks)
         return (mclapply(
             tcpblocks,
             mc.cores=max(1, floor(mc.cores/mc.nodes)),
@@ -1167,8 +1171,6 @@ federateComDim <- function(loginFD, logins, func, symbol,
     })
 
     ## Weights for the block components
-    #.printTime(names(loadingsLoc))
-    #.printTime(names(loadingsLoc[[1]]))
     mc.tabs <- min(ntab, mc.cores)
     W.b <- mclapply(querytables, mc.cores=mc.tabs, function(tab) {
         Reduce('+', lapply(loadingsLoc, function(ll) ll[[tab]]))
@@ -1285,6 +1287,7 @@ federateSNF <- function(loginFD, logins, func, symbol,
                         TOL = .Machine$double.eps,
                         width.cutoff = 500L) {
     .printTime("federateSNF started")
+    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1374,6 +1377,7 @@ federateUMAP <- function(loginFD, logins, func, symbol,
                          TOL = .Machine$double.eps,
                          width.cutoff = 500L, ...) {
     .printTime("federateUMAP started")
+    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1462,6 +1466,7 @@ federateHdbscan <- function(loginFD, logins, func, symbol,
                             TOL = .Machine$double.eps,
                             width.cutoff = 500L, ...) {
     .printTime("federateHdbscan started")
+    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
@@ -1533,6 +1538,7 @@ testSSCP <- function(loginFD, logins, func, symbol,
                      TOL = .Machine$double.eps,
                      width.cutoff = 500L, ...) {
     .printTime("testSSCP started")
+    options(datashield.errors.print = TRUE)
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     ntab <- length(querytables)
